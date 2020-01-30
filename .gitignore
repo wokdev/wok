@@ -1,0 +1,7 @@
+# common
+.*
+!.gitignore
+
+# python
+*.pyc
+/*.egg-info
