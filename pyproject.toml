@@ -9,9 +9,15 @@ description = "Wok is a tool to manage several `git` repos in a single workspace
 authors = ["Serge Matveenko <lig@countzero.co>"]
 license = "MIT"
 
+[tool.poetry.scripts]
+wok = 'wok.cli:main'
+
 [tool.poetry.dependencies]
 python = "^3.7"
 click = "^7.0"
+toml = "^0.10.0"
+marshmallow = "^3.5.1"
+pyyaml = "^5.3.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.3.5"
@@ -19,3 +25,16 @@ pytest-black = "^0.3.7"
 pytest-flake8 = "^1.0.4"
 pytest-isort = "^0.3.1"
 pytest-mypy = "^0.4.2"
+sphinx = "^2.4.4"
+
+[tool.black]
+target-version = ["py37"]
+skip-string-normalization = true
+
+[tool.isort]
+force_grid_wrap = 0
+include_trailing_comma = true
+line_length = 88
+multi_line_output = 3
+use_parentheses = true
+lines_after_imports = 2

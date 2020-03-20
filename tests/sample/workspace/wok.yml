@@ -1,7 +1,0 @@
-workspace:
-  prj-1:
-    remote: ../repos/prj-1-repo
-    ref: master
-  prj-2:
-    remote: ../repos/prj-2-repo
-    ref: master
