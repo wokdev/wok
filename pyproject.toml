@@ -13,11 +13,16 @@ license = "MIT"
 wok = 'wok.cli:main'
 
 [tool.poetry.dependencies]
-python = "^3.7"
+# For pygit2 dependencies see https://github.com/python-poetry/poetry/issues/2066
+attrs = "^19.3.0"
+cached-property = "^1.5.1" # pygit2 dependency
+cffi = "^1.14.0" # pygit2 dependency
 click = "^7.0"
-toml = "^0.10.0"
 marshmallow = "^3.5.1"
+pygit2 = "^1.1.1"
+python = "^3.7"
 pyyaml = "^5.3.1"
+toml = "^0.10.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.3.5"
