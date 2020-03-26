@@ -1,8 +1,0 @@
-workspace:
-  repos:
-    - path: ./prj-1
-      url: ../repos/prj-1-repo
-      ref: master
-    - path: ./prj-2
-      url: ../repos/prj-2-repo
-      ref: master
