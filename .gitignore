@@ -2,6 +2,9 @@
 .*
 !.gitignore
 
+# dot files
+!/.pre-commit-config.yaml
+
 # python
 *.pyc
 /*.egg-info

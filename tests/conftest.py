@@ -1,7 +1,10 @@
+import difflib
 import pathlib
+import pprint
 import sys
 import typing
 
+import attr
 import pytest
 
 
@@ -10,22 +13,26 @@ def pytest_configure() -> None:
 
 
 def pytest_assertrepr_compare(
-    op: str,
-    left: typing.Union[pathlib.Path, typing.Any],
-    right: typing.Union[pathlib.Path, typing.Any],
+    op: str, left: typing.Any, right: typing.Any
 ) -> typing.Optional[typing.Iterable[str]]:
+    from wok import config
+
     if (
-        op == "=="
-        and isinstance(left, pathlib.Path)
-        and isinstance(right, pathlib.Path)
-        and left.suffix in ('.yml', '.yaml')
-        and right.suffix in ('.yml', '.yaml')
+        op == '=='
+        and isinstance(left, config.Config)
+        and isinstance(right, config.Config)
     ):
-        
+        left = attr.assoc(left, _path='**excluded**')
+        right = attr.assoc(right, _path='**excluded**')
         return [
-            "Comparing Foo instances:",
-            "   vals: {} != {}".format(left.val, right.val),
+            "Comparing Config instances:",
+            *difflib.ndiff(
+                pprint.pformat(attr.asdict(left), width=1, compact=False).split('\n'),
+                pprint.pformat(attr.asdict(right), width=1, compact=False).split('\n'),
+            ),
         ]
+
+    return None
 
 
 @pytest.fixture(scope='session')

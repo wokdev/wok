@@ -22,6 +22,7 @@ class Repo(Schema):
 
 class Config(Schema):
     version = ma.fields.String(required=True)
+    ref = ma.fields.String(required=True)
     repos = ma.fields.Nested(Repo, many=True)
 
     @ma.post_load

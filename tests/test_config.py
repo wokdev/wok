@@ -13,9 +13,10 @@ def test_001_config_1_0_load(data_dir: pathlib.Path) -> None:
 
     assert conf_data == {
         'version': '1.0',
+        'ref': 'dev',
         'repos': [
             {'path': 'prj-1', 'url': 'repos/prj-1', 'ref': 'master'},
-            {'path': 'prj-2', 'url': 'repos/prj-2', 'ref': 'master'},
+            {'path': 'prj-2', 'url': 'repos/prj-2', 'ref': 'dev'},
         ],
     }
 
@@ -24,9 +25,10 @@ def test_002_config_1_0_save(data_dir: pathlib.Path, tmp_path: pathlib.Path) -> 
     conf: config.Config = schema.config.load(
         {
             'version': '1.0',
+            'ref': 'dev',
             'repos': [
                 {'path': 'prj-1', 'url': 'repos/prj-1', 'ref': 'master'},
-                {'path': 'prj-2', 'url': 'repos/prj-2', 'ref': 'master'},
+                {'path': 'prj-2', 'url': 'repos/prj-2', 'ref': 'dev'},
             ],
         }
     )

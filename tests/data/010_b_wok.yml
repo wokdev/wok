@@ -1,4 +1,5 @@
 version: "1.0"
+ref: master
 repos:
   - path: prj-1
     url: repos/prj-1
