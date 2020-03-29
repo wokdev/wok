@@ -1,5 +1,5 @@
-from .cmd import add, init
+from .cmd import add, init, start
 from .context import Context
 
 
-__all__ = ['add', 'init', 'Context']
+__all__ = ['add', 'Context', 'init', 'start']
