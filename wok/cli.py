@@ -1,4 +1,5 @@
 import pathlib
+import typing
 
 import click
 
@@ -34,3 +35,9 @@ def add(url: str, path: str) -> None:
 def start(branch_name: str) -> None:
     # TODO: Allow to `swicth` to existing branch
     core.start(branch_name=branch_name)
+
+
+@main.command()
+@click.argument('repo-path', nargs=-1)
+def join(repo_path: typing.Iterable[str]) -> None:
+    core.join(repo_paths=repo_path)

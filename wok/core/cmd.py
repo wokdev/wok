@@ -1,10 +1,12 @@
 import pathlib
+import sys
+import typing
 
 import pygit2
 
 from wok import config
 
-from . import context
+from . import base, context
 
 
 @context.with_context
@@ -32,8 +34,14 @@ def commit(ctx: context.Context) -> None:
 
 @context.with_context
 def add(ctx: context.Context, path: pathlib.Path, url: str) -> None:
-    # TODO: Assert path or url don't exist in the config already
-
+    already_configured = ctx.conf.lookup_repo(url=url, path=path)
+    if already_configured is not None:
+        print(
+            f"Repo `{already_configured.url}` is already congigured at path"
+            f" `{already_configured.path}`",
+            file=sys.stderr,
+        )
+        raise ValueError(already_configured)
     if path.exists():
         raise FileExistsError(path.absolute())
 
@@ -55,19 +63,40 @@ def start(ctx: context.Context, branch_name: str) -> None:
     else:
         raise ValueError(f"Reference `{ref.name}` already exists")
 
-    stashed = False
-    if not ctx.root_repo.status():
-        ctx.root_repo.stash(stasher=ctx.root_repo.default_signature)
-        stashed = True
-
     started_branch = ctx.root_repo.branches.local.create(
         name=branch_name,
         commit=ctx.root_repo.resolve_refish(refish=ctx.root_repo.head.name)[0],
     )
-    ctx.root_repo.checkout(refname=started_branch)
-
-    if stashed:
-        ctx.root_repo.stash_pop()
-
+    base.switch(repo=ctx.root_repo, ref=started_branch)
     ctx.conf.ref = branch_name
     ctx.conf.save()
+
+
+@context.with_context
+def join(ctx: context.Context, repo_paths: typing.Iterable[str]) -> None:
+    repo_confs: typing.MutableSequence[config.Repo] = []
+
+    for repo_path in repo_paths:
+        repo_conf = ctx.conf.lookup_repo(path=repo_path)
+        if repo_conf is None:
+            print(f"Unknown repo path `{repo_path}`")
+            raise ValueError(repo_path)
+
+        repo_confs.append(repo_conf)
+
+    branch_name = ctx.conf.ref
+
+    for repo_conf in repo_confs:
+        repo = pygit2.Repository(path=str(repo_conf.path))
+
+        try:
+            ref = repo.lookup_reference_dwim(branch_name)
+        except KeyError:
+            ref = repo.branches.local.create(
+                name=branch_name, commit=repo.resolve_refish(refish=repo.head.name)[0]
+            )
+
+        base.switch(repo=repo, ref=ref)
+
+        repo_conf.ref = ref.shorthand
+        ctx.conf.save()

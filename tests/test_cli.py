@@ -8,6 +8,26 @@ import pytest
 from wok import cli, config
 
 
+@pytest.fixture(scope='session')
+def repo_1_url(data_dir: pathlib.Path) -> str:
+    return str(data_dir / 'repos' / 'prj-1')
+
+
+@pytest.fixture(scope='session')
+def repo_1_path() -> str:
+    return './prj-1'
+
+
+@pytest.fixture(scope='session')
+def repo_2_url(data_dir: pathlib.Path) -> str:
+    return str(data_dir / 'repos' / 'prj-2')
+
+
+@pytest.fixture(scope='session')
+def repo_2_path() -> str:
+    return './prj-2'
+
+
 @pytest.fixture()
 def cli_runner() -> typing.Iterator[click.testing.CliRunner]:
     cli_runner = click.testing.CliRunner()
@@ -37,14 +57,13 @@ def root_repo(cli_runner: click.testing.CliRunner) -> pygit2.Repository:
 
 @pytest.fixture()
 def cooked_repo(
-    data_dir: pathlib.Path,
     cli_runner: click.testing.CliRunner,
     root_repo: pygit2.Repository,
+    repo_1_url: str,
+    repo_1_path: str,
+    repo_2_url: str,
+    repo_2_path: str,
 ) -> pygit2.Repository:
-    repo_1_url = str(data_dir / 'repos' / 'prj-1')
-    repo_1_path = './prj-1'
-    repo_2_url = str(data_dir / 'repos' / 'prj-2')
-    repo_2_path = './prj-2'
 
     assert (
         cli_runner.invoke(cli.main, ['init']).exit_code
@@ -111,12 +130,13 @@ def test_021_add(
     data_dir: pathlib.Path,
     cli_runner: click.testing.CliRunner,
     root_repo: pygit2.Repository,
+    repo_1_url: str,
+    repo_1_path: str,
+    repo_2_url: str,
+    repo_2_path: str,
 ) -> None:
-    cli_runner.invoke(cli.main, ['init'])
-    repo_1_url = str(data_dir / 'repos' / 'prj-1')
-    repo_1_path = './prj-1'
-    repo_2_url = str(data_dir / 'repos' / 'prj-2')
-    repo_2_path = './prj-2'
+    result = cli_runner.invoke(cli.main, ['init'])
+    assert result.exit_code == 0, result.output
 
     result = cli_runner.invoke(cli.main, ['add', repo_1_url, repo_1_path])
     assert result.exit_code == 0, result.output
@@ -142,6 +162,26 @@ def test_021_add(
     assert repo_2.remotes['origin'].url == repo_2_url
 
 
+def test_022_add_fails_on_already_added(
+    data_dir: pathlib.Path,
+    cli_runner: click.testing.CliRunner,
+    cooked_repo: pygit2.Repository,
+    repo_1_url: str,
+    repo_1_path: str,
+) -> None:
+    result = cli_runner.invoke(cli.main, ['add', repo_1_url, repo_1_path])
+    assert result.exit_code == 1, result.output
+    assert "already congigured" in result.output
+
+    result = cli_runner.invoke(cli.main, ['add', repo_1_url, 'other_path'])
+    assert result.exit_code == 1, result.output
+    assert "already congigured" in result.output
+
+    result = cli_runner.invoke(cli.main, ['add', 'other_url', repo_1_path])
+    assert result.exit_code == 1, result.output
+    assert "already congigured" in result.output
+
+
 def test_031_start(
     data_dir: pathlib.Path,
     cli_runner: click.testing.CliRunner,
@@ -157,3 +197,63 @@ def test_031_start(
     assert actual_config == expected_config
 
     assert cooked_repo.head.shorthand == 'branch-1'
+
+
+def test_041_join(
+    data_dir: pathlib.Path,
+    cli_runner: click.testing.CliRunner,
+    cooked_repo: pygit2.Repository,
+    repo_1_path: str,
+) -> None:
+    result = cli_runner.invoke(cli.main, ['start', 'branch-1'])
+    assert result.exit_code == 0, result.output
+
+    result = cli_runner.invoke(cli.main, ['join', repo_1_path])
+    assert result.exit_code == 0, result.output
+
+    actual_config = config.Config.load(path=pathlib.Path('wok.yml'))
+    expected_config = config.Config.load(path=data_dir / '041_wok.yml')
+    expected_config.repos[0].url = str(data_dir / expected_config.repos[0].url)
+    expected_config.repos[1].url = str(data_dir / expected_config.repos[1].url)
+    assert actual_config == expected_config
+
+    repo_1 = pygit2.Repository(path=repo_1_path)
+    assert repo_1.head.shorthand == 'branch-1'
+
+
+def test_042_join_many(
+    data_dir: pathlib.Path,
+    cli_runner: click.testing.CliRunner,
+    cooked_repo: pygit2.Repository,
+    repo_1_path: str,
+    repo_2_path: str,
+) -> None:
+    result = cli_runner.invoke(cli.main, ['start', 'branch-1'])
+    assert result.exit_code == 0, result.output
+
+    result = cli_runner.invoke(cli.main, ['join', repo_1_path, repo_2_path])
+    assert result.exit_code == 0, result.output
+
+    actual_config = config.Config.load(path=pathlib.Path('wok.yml'))
+    expected_config = config.Config.load(path=data_dir / '042_wok.yml')
+    expected_config.repos[0].url = str(data_dir / expected_config.repos[0].url)
+    expected_config.repos[1].url = str(data_dir / expected_config.repos[1].url)
+    assert actual_config == expected_config
+
+    repo_1 = pygit2.Repository(path=repo_1_path)
+    repo_2 = pygit2.Repository(path=repo_2_path)
+    assert repo_1.head.shorthand == 'branch-1'
+    assert repo_2.head.shorthand == 'branch-1'
+
+
+def test_043_join_fails_on_unknown_path(
+    data_dir: pathlib.Path,
+    cli_runner: click.testing.CliRunner,
+    cooked_repo: pygit2.Repository,
+) -> None:
+    result = cli_runner.invoke(cli.main, ['start', 'branch-1'])
+    assert result.exit_code == 0, result.output
+
+    result = cli_runner.invoke(cli.main, ['join', 'unknown/path'])
+    assert result.exit_code == 1, result.output
+    assert result.output == "Unknown repo path `unknown/path`\n"

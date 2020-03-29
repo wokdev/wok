@@ -33,6 +33,25 @@ class Config:
     )
     _path: pathlib.Path = attr.ib(init=False, eq=False)
 
+    def lookup_repo(
+        self,
+        *,
+        url: typing.Optional[str] = None,
+        path: typing.Optional[typing.Union[str, pathlib.Path]] = None,
+    ) -> typing.Optional[Repo]:
+        if url is not None:
+            for repo in self.repos:
+                if repo.url == url:
+                    return repo
+
+        if path is not None:
+            path = _path_converter(path=path)
+            for repo in self.repos:
+                if repo.path == path:
+                    return repo
+
+        return None
+
     def save(self) -> None:
         from . import schema
 
