@@ -22,6 +22,7 @@ def root_repo(cli_runner: click.testing.CliRunner) -> pygit2.Repository:
 
     root_repo = pygit2.init_repository(path=str(cwd))
     root_repo.index.add_all()
+    root_repo.index.write()
     tree = root_repo.index.write_tree()
     root_repo.create_commit(
         'refs/heads/master',
@@ -31,34 +32,39 @@ def root_repo(cli_runner: click.testing.CliRunner) -> pygit2.Repository:
         tree,
         [],
     )
-
     return root_repo
 
 
 @pytest.fixture()
-def cooked(data_dir: pathlib.Path, cli_runner: click.testing.CliRunner) -> None:
+def cooked_repo(
+    data_dir: pathlib.Path,
+    cli_runner: click.testing.CliRunner,
+    root_repo: pygit2.Repository,
+) -> pygit2.Repository:
     repo_1_url = str(data_dir / 'repos' / 'prj-1')
     repo_1_path = './prj-1'
     repo_2_url = str(data_dir / 'repos' / 'prj-2')
     repo_2_path = './prj-2'
 
-    cli_runner.invoke(cli.main, ['init'])
-    cli_runner.invoke(cli.main, ['add', repo_1_url, repo_1_path])
-    cli_runner.invoke(cli.main, ['add', repo_2_url, repo_2_path])
+    assert (
+        cli_runner.invoke(cli.main, ['init']).exit_code
+        | cli_runner.invoke(cli.main, ['add', repo_1_url, repo_1_path]).exit_code
+        | cli_runner.invoke(cli.main, ['add', repo_2_url, repo_2_path]).exit_code
+        | cli_runner.invoke(cli.main, ['commit']).exit_code
+    ) == 0
+
+    return root_repo
 
 
-def test_001_init_no_root_repo(
+def test_001_init_fails_without_root_repo(
     data_dir: pathlib.Path, cli_runner: click.testing.CliRunner
 ) -> None:
     result = cli_runner.invoke(cli.main, ['init'])
-    assert result.exit_code == 0, result.output
-
-    assert config.Config.load(path=pathlib.Path('wok.yml')) == config.Config.load(
-        path=data_dir / '001_wok.yml'
-    )
+    assert result.exit_code == 1
+    assert result.output.startswith('Unable to find root `wok` repo at')
 
 
-def test_002_init_in_root_repo(
+def test_002_init(
     data_dir: pathlib.Path,
     cli_runner: click.testing.CliRunner,
     root_repo: pygit2.Repository,
@@ -71,7 +77,7 @@ def test_002_init_in_root_repo(
     )
 
 
-def test_003_init_in_root_repo_branch(
+def test_003_init_in_branch(
     data_dir: pathlib.Path,
     cli_runner: click.testing.CliRunner,
     root_repo: pygit2.Repository,
@@ -89,7 +95,23 @@ def test_003_init_in_root_repo_branch(
     )
 
 
-def test_011_add(data_dir: pathlib.Path, cli_runner: click.testing.CliRunner) -> None:
+def test_011_commit(
+    cli_runner: click.testing.CliRunner, root_repo: pygit2.Repository
+) -> None:
+    result = cli_runner.invoke(cli.main, ['init'])
+    assert result.exit_code == 0, result.output
+
+    result = cli_runner.invoke(cli.main, ['commit'])
+    assert result.exit_code == 0, result.output
+
+    assert root_repo.status() == {}
+
+
+def test_021_add(
+    data_dir: pathlib.Path,
+    cli_runner: click.testing.CliRunner,
+    root_repo: pygit2.Repository,
+) -> None:
     cli_runner.invoke(cli.main, ['init'])
     repo_1_url = str(data_dir / 'repos' / 'prj-1')
     repo_1_path = './prj-1'
@@ -100,8 +122,7 @@ def test_011_add(data_dir: pathlib.Path, cli_runner: click.testing.CliRunner) ->
     assert result.exit_code == 0, result.output
 
     actual_config = config.Config.load(path=pathlib.Path('wok.yml'))
-
-    expected_config = config.Config.load(path=data_dir / '011_a_wok.yml')
+    expected_config = config.Config.load(path=data_dir / '021_a_wok.yml')
     expected_config.repos[0].url = str(data_dir / expected_config.repos[0].url)
     assert actual_config == expected_config
 
@@ -112,8 +133,7 @@ def test_011_add(data_dir: pathlib.Path, cli_runner: click.testing.CliRunner) ->
     assert result.exit_code == 0, result.output
 
     actual_config = config.Config.load(path=pathlib.Path('wok.yml'))
-
-    expected_config = config.Config.load(path=data_dir / '011_b_wok.yml')
+    expected_config = config.Config.load(path=data_dir / '021_b_wok.yml')
     expected_config.repos[0].url = str(data_dir / expected_config.repos[0].url)
     expected_config.repos[1].url = str(data_dir / expected_config.repos[1].url)
     assert actual_config == expected_config
@@ -122,32 +142,18 @@ def test_011_add(data_dir: pathlib.Path, cli_runner: click.testing.CliRunner) ->
     assert repo_2.remotes['origin'].url == repo_2_url
 
 
-def test_021_start_no_root_repo(
-    data_dir: pathlib.Path, cli_runner: click.testing.CliRunner, cooked: None
-) -> None:
-    result = cli_runner.invoke(cli.main, ['start', 'branch-1'])
-    assert result.exit_code == 0, result.output
-
-    actual_config = config.Config.load(path=pathlib.Path('wok.yml'))
-    expected_config = config.Config.load(path=data_dir / '021_wok.yml')
-    expected_config.repos[0].url = str(data_dir / expected_config.repos[0].url)
-    expected_config.repos[1].url = str(data_dir / expected_config.repos[1].url)
-    assert actual_config == expected_config
-
-
-def test_022_start_in_root_repo(
+def test_031_start(
     data_dir: pathlib.Path,
     cli_runner: click.testing.CliRunner,
-    root_repo: pygit2.Repository,
-    cooked: None,
+    cooked_repo: pygit2.Repository,
 ) -> None:
     result = cli_runner.invoke(cli.main, ['start', 'branch-1'])
     assert result.exit_code == 0, result.output
 
     actual_config = config.Config.load(path=pathlib.Path('wok.yml'))
-    expected_config = config.Config.load(path=data_dir / '022_wok.yml')
+    expected_config = config.Config.load(path=data_dir / '031_wok.yml')
     expected_config.repos[0].url = str(data_dir / expected_config.repos[0].url)
     expected_config.repos[1].url = str(data_dir / expected_config.repos[1].url)
     assert actual_config == expected_config
 
-    assert root_repo.head.shorthand == 'branch-1'
+    assert cooked_repo.head.shorthand == 'branch-1'

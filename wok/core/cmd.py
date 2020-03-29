@@ -1,6 +1,4 @@
-import functools
 import pathlib
-import typing
 
 import pygit2
 
@@ -9,38 +7,31 @@ from wok import config
 from . import context
 
 
-MaybeRepo_T = typing.Optional[pygit2.Repository]
-
-
-def discover_root_repo() -> MaybeRepo_T:
-    root_repo_path = pygit2.discover_repository(str(pathlib.Path.cwd()))
-    if root_repo_path is None:
-        return None
-    return pygit2.Repository(path=root_repo_path)
-
-
-def with_root_repo(func: typing.Callable) -> typing.Callable:
-    @functools.wraps(func)
-    def wrapper(*args: typing.Any, **kwargs: typing.Any) -> typing.Any:
-        return func(*args, root_repo=discover_root_repo(), **kwargs)
-
-    return wrapper
-
-
-@context.with_conf_path
-@with_root_repo
-def init(conf_path: pathlib.Path, root_repo: MaybeRepo_T) -> None:
-    conf = config.Config.create(path=conf_path)
-
-    if root_repo is None:
-        return
-
-    conf.ref = root_repo.head.shorthand
+@context.with_context
+def init(ctx: context.Context) -> None:
+    conf = config.Config.create(path=ctx.conf_path)
+    conf.ref = ctx.root_repo.head.shorthand
     conf.save()
 
 
-@context.with_conf
-def add(conf: config.Config, path: pathlib.Path, url: str) -> None:
+@context.with_context
+def commit(ctx: context.Context) -> None:
+    ctx.root_repo.index.add(str(ctx.conf_path))
+    ctx.root_repo.index.write()
+    tree = ctx.root_repo.index.write_tree()
+    parent, ref = ctx.root_repo.resolve_refish(refish=ctx.root_repo.head.name)
+    ctx.root_repo.create_commit(
+        ref.name,
+        ctx.root_repo.default_signature,
+        ctx.root_repo.default_signature,
+        "Update `wok` config",
+        tree,
+        [parent.oid],
+    )
+
+
+@context.with_context
+def add(ctx: context.Context, path: pathlib.Path, url: str) -> None:
     # TODO: Assert path or url don't exist in the config already
 
     if path.exists():
@@ -51,31 +42,32 @@ def add(conf: config.Config, path: pathlib.Path, url: str) -> None:
     ref = repo.head.shorthand
 
     repo_config = config.Repo(url=url, path=path, ref=ref)
-    conf.repos.append(repo_config)
-    conf.save()
+    ctx.conf.repos.append(repo_config)
+    ctx.conf.save()
 
 
-@context.with_conf
-@with_root_repo
-def start(conf: config.Config, branch_name: str, root_repo: MaybeRepo_T) -> None:
-    if root_repo is not None:
-        try:
-            ref = root_repo.lookup_reference_dwim(branch_name)
-        except KeyError:
-            pass
-        else:
-            raise ValueError(f"Reference `{ref.name}` already exists")
+@context.with_context
+def start(ctx: context.Context, branch_name: str) -> None:
+    try:
+        ref = ctx.root_repo.lookup_reference_dwim(branch_name)
+    except KeyError:
+        pass
+    else:
+        raise ValueError(f"Reference `{ref.name}` already exists")
 
-    conf.ref = branch_name
-    conf.save()
+    stashed = False
+    if not ctx.root_repo.status():
+        ctx.root_repo.stash(stasher=ctx.root_repo.default_signature)
+        stashed = True
 
-    if root_repo is None:
-        return
-
-    root_repo.stash(stasher=root_repo.default_signature)
-    started_branch = root_repo.branches.local.create(
+    started_branch = ctx.root_repo.branches.local.create(
         name=branch_name,
-        commit=root_repo.resolve_refish(refish=root_repo.head.name)[0],
+        commit=ctx.root_repo.resolve_refish(refish=ctx.root_repo.head.name)[0],
     )
-    root_repo.checkout(refname=started_branch)
-    root_repo.stash_pop()
+    ctx.root_repo.checkout(refname=started_branch)
+
+    if stashed:
+        ctx.root_repo.stash_pop()
+
+    ctx.conf.ref = branch_name
+    ctx.conf.save()

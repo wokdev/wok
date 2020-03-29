@@ -17,6 +17,11 @@ def init() -> None:
 
 
 @main.command()
+def commit() -> None:
+    core.commit()
+
+
+@main.command()
 @click.argument('url')
 @click.argument('path', type=click.Path(exists=False))
 def add(url: str, path: str) -> None:
