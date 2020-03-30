@@ -3,11 +3,12 @@ requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
 
 [tool.poetry]
-name = "wok"
-version = "0.1.0"
+name = "git-wok"
+version = "0.1.0-dev"
 description = "Wok is a tool to manage several `git` repos in a single workspace."
-authors = ["Serge Matveenko <lig@countzero.co>"]
 license = "MIT"
+authors = ["Serge Matveenko <lig@countzero.co>"]
+packages = [{ include = "wok" }, { include = "tests", format = "sdist" }]
 
 [tool.poetry.scripts]
 wok = 'wok.cli:main'
