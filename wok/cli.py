@@ -40,4 +40,4 @@ def start(branch_name: str) -> None:
 @main.command()
 @click.argument('repo-path', nargs=-1)
 def join(repo_path: typing.Iterable[str]) -> None:
-    core.join(repo_paths=repo_path)
+    core.join(repo_paths=[pathlib.Path(repo_path_item) for repo_path_item in repo_path])

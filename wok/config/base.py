@@ -55,7 +55,6 @@ class Config:
     def save(self) -> None:
         from . import schema
 
-        print(self)
         yaml.safe_dump(
             data=schema.config.dump(obj=self),
             stream=self._path.open('w'),

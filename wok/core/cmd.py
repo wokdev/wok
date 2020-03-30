@@ -73,11 +73,11 @@ def start(ctx: context.Context, branch_name: str) -> None:
 
 
 @context.with_context
-def join(ctx: context.Context, repo_paths: typing.Iterable[str]) -> None:
+def join(ctx: context.Context, repo_paths: typing.Iterable[pathlib.Path]) -> None:
     repo_confs: typing.MutableSequence[config.Repo] = []
 
     for repo_path in repo_paths:
-        repo_conf = ctx.conf.lookup_repo(path=repo_path)
+        repo_conf = ctx.conf.lookup_repo(path=str(repo_path))
         if repo_conf is None:
             print(f"Unknown repo path `{repo_path}`")
             raise ValueError(repo_path)
