@@ -111,3 +111,25 @@ def test_042_join_converts_to_path(
 
     result = cli_runner.invoke(cli.main, ['join', str(repo_1_path)])
     assert result.exit_code == 0, result.output
+
+
+def test_051_push_output(
+    cli_runner: click.testing.CliRunner,
+    repo_1_path: pathlib.Path,
+    tmp_repos: typing.Iterable[pygit2.Repository],
+) -> None:
+    repo_1, repo_2, cooked_repo = tmp_repos
+
+    result = cli_runner.invoke(cli.main, ['start', 'branch-1'])
+    assert result.exit_code == 0, result.output
+
+    result = cli_runner.invoke(cli.main, ['join', str(repo_1_path)])
+    assert result.exit_code == 0, result.output
+
+    result = cli_runner.invoke(cli.main, ['commit'])
+    assert result.exit_code == 0, result.output
+
+    result = cli_runner.invoke(cli.main, ['push'])
+    assert result.exit_code == 0, result.output
+
+    assert result.output == ''

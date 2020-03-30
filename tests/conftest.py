@@ -2,6 +2,7 @@ import difflib
 import os
 import pathlib
 import pprint
+import shutil
 import sys
 import typing
 
@@ -68,6 +69,11 @@ def repo_2_path() -> pathlib.Path:
     return pathlib.Path('./prj-2')
 
 
+@pytest.fixture(scope='session')
+def repo_w_url(data_dir: pathlib.Path) -> str:
+    return str(data_dir / 'repos' / 'workspace')
+
+
 @pytest.fixture()
 def tmp_cwd(tmp_path: pathlib.Path) -> typing.Iterator[pathlib.Path]:
     orig_cwd = pathlib.Path.cwd()
@@ -78,21 +84,16 @@ def tmp_cwd(tmp_path: pathlib.Path) -> typing.Iterator[pathlib.Path]:
 
 @pytest.fixture()
 def root_repo(tmp_cwd: pathlib.Path) -> pygit2.Repository:
+    import wok.core.base
+
     cwd = pathlib.Path.cwd()
-    cwd.joinpath('readme').write_text('a file to commit')
 
     root_repo = pygit2.init_repository(path=str(cwd))
-    root_repo.index.add_all()
-    root_repo.index.write()
-    tree = root_repo.index.write_tree()
-    root_repo.create_commit(
-        'refs/heads/master',
-        root_repo.default_signature,
-        root_repo.default_signature,
-        'Initial commit',
-        tree,
-        [],
-    )
+
+    cwd.joinpath('readme').write_text('a file to commit')
+
+    wok.core.base.commit(repo=root_repo, message='Initial commit')
+
     return root_repo
 
 
@@ -114,3 +115,33 @@ def cooked_repo(
         | cli_runner.invoke(cli.main, ['commit']).exit_code
     ) == 0
     return root_repo
+
+
+@pytest.fixture()
+def tmp_repos(
+    repo_1_url: str,
+    repo_1_path: pathlib.Path,
+    repo_2_url: str,
+    repo_2_path: pathlib.Path,
+    cooked_repo: pygit2.Repository,
+    repo_w_url: str,
+) -> typing.Iterator[typing.Iterable[pygit2.Repository]]:
+    repos = (
+        pygit2.Repository(path=str(repo_1_path)),
+        pygit2.Repository(path=str(repo_2_path)),
+        cooked_repo,
+    )
+    repo_urls = (repo_1_url, repo_2_url, repo_w_url)
+
+    for n, repo in enumerate(repos):
+        repo_url = repo_urls[n]
+        repo_tmp_url = f'{repo_url}-tmp'
+        shutil.copytree(src=repo_url, dst=repo_tmp_url)
+        repo.remotes.set_url(name='origin', url=repo_tmp_url)
+
+    yield repos
+
+    for n, repo in enumerate(repos):
+        repo_tmp_url = repo.remotes['origin'].url
+        repo.remotes.set_url(name='origin', url=repo_urls[n])
+        shutil.rmtree(path=repo_tmp_url)

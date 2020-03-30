@@ -18,17 +18,8 @@ def init(ctx: context.Context) -> None:
 
 @context.with_context
 def commit(ctx: context.Context) -> None:
-    ctx.root_repo.index.add(str(ctx.conf_path))
-    ctx.root_repo.index.write()
-    tree = ctx.root_repo.index.write_tree()
-    parent, ref = ctx.root_repo.resolve_refish(refish=ctx.root_repo.head.name)
-    ctx.root_repo.create_commit(
-        ref.name,
-        ctx.root_repo.default_signature,
-        ctx.root_repo.default_signature,
-        "Update `wok` config",
-        tree,
-        [parent.oid],
+    base.commit(
+        repo=ctx.root_repo, message="Update `wok` config", pathspecs=[ctx.conf_path]
     )
 
 
@@ -100,3 +91,15 @@ def join(ctx: context.Context, repo_paths: typing.Iterable[pathlib.Path]) -> Non
 
         repo_conf.ref = ref.shorthand
         ctx.conf.save()
+
+
+@context.with_context
+def push(ctx: context.Context) -> None:
+    base.push(repo=ctx.root_repo, branch_name=ctx.conf.ref)
+
+    for repo_conf in ctx.conf.repos:
+        if repo_conf.ref != ctx.conf.ref:
+            continue
+
+        repo = pygit2.Repository(path=str(repo_conf.path))
+        base.push(repo=repo, branch_name=repo_conf.ref)

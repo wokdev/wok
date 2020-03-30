@@ -1,9 +1,11 @@
 import pathlib
+import typing
 
 import _pytest
 import pygit2
 import pytest
 
+import wok.core.base
 from wok import config, core
 
 
@@ -156,3 +158,38 @@ def test_043_join_fails_on_unknown_path(
 
     with pytest.raises(ValueError):
         core.join(repo_paths=['unknown/path'])
+
+
+def test_051_push(
+    data_dir: pathlib.Path,
+    repo_1_path: pathlib.Path,
+    repo_2_path: pathlib.Path,
+    tmp_repos: typing.Iterable[pygit2.Repository],
+) -> None:
+    repo_1, repo_2, cooked_repo = tmp_repos
+    repo_w_tmp_url = cooked_repo.remotes['origin'].url
+    cooked_repo.remotes.delete('origin')
+
+    core.start(branch_name='branch-1')
+    core.join(repo_paths=[repo_1_path])
+    core.commit()
+
+    repo_1_change = repo_1_path.joinpath('change-1')
+    repo_1_change.write_text('added changes 1')
+    wok.core.base.commit(repo=repo_1, message="Some changes", pathspecs=[repo_1_change])
+
+    repo_2_change = repo_2_path.joinpath('change-2')
+    repo_2_change.write_text('added changes 2')
+    wok.core.base.commit(repo=repo_2, message="Some changes", pathspecs=[repo_2_change])
+
+    core.push()
+
+    assert 'origin/branch-1' not in cooked_repo.branches.remote
+    assert 'origin/branch-1' in repo_1.branches.remote
+    assert 'origin/branch-1' not in repo_2.branches.remote
+
+    cooked_repo.create_remote(name='origin', url=repo_w_tmp_url)
+
+    core.push()
+
+    assert 'origin/branch-1' in cooked_repo.branches.remote
