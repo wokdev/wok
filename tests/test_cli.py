@@ -133,3 +133,15 @@ def test_051_push_output(
     assert result.exit_code == 0, result.output
 
     assert result.output == ''
+
+
+def test_061_finish_output(
+    cli_runner: click.testing.CliRunner, cooked_repo: pygit2.Repository
+) -> None:
+    result = cli_runner.invoke(cli.main, ['start', 'branch-1'])
+    assert result.exit_code == 0, result.output
+
+    result = cli_runner.invoke(cli.main, ['finish', "Finishing message"])
+    assert result.exit_code == 0, result.output
+
+    assert result.output == ''

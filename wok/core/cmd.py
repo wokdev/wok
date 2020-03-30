@@ -95,11 +95,29 @@ def join(ctx: context.Context, repo_paths: typing.Iterable[pathlib.Path]) -> Non
 
 @context.with_context
 def push(ctx: context.Context) -> None:
-    base.push(repo=ctx.root_repo, branch_name=ctx.conf.ref)
-
-    for repo_conf in ctx.conf.repos:
-        if repo_conf.ref != ctx.conf.ref:
-            continue
-
+    for repo_conf in ctx.conf.joined_repos:
         repo = pygit2.Repository(path=str(repo_conf.path))
         base.push(repo=repo, branch_name=repo_conf.ref)
+
+    base.push(repo=ctx.root_repo, branch_name=ctx.conf.ref)
+
+
+@context.with_context
+def finish(ctx: context.Context, message: str) -> None:
+    # TODO: Implement different merge strategies
+    # TODO: Allow to set integration branch different from `master`
+    # TODO: Use GIT_EDITOR to compose the finish message
+
+    if ctx.conf.ref == 'master':
+        raise ValueError('master')
+
+    for repo_conf in ctx.conf.joined_repos:
+        repo = pygit2.Repository(path=str(repo_conf.path))
+        base.finish(repo=repo, branch_name=repo_conf.ref, message=message)
+        repo_conf.ref = 'master'
+
+    branch_name = ctx.conf.ref
+    ctx.conf.ref = 'master'
+    ctx.conf.save()
+    commit()
+    base.finish(repo=ctx.root_repo, branch_name=branch_name, message=message)

@@ -70,3 +70,30 @@ def push(repo: pygit2.Repository, branch_name: str) -> None:
         return
 
     remote.push(specs=[branch.name])
+
+
+def finish(repo: pygit2.Repository, branch_name: str, message: str) -> None:
+    master = repo.branches.local['master']
+    branch = repo.branches.local[branch_name]
+    if not branch.is_head():
+        raise ValueError(branch)
+
+    merge_state, _ = repo.merge_analysis(branch.target, master.name)
+    if merge_state & pygit2.GIT_MERGE_ANALYSIS_UP_TO_DATE:
+        repo.checkout(refname=master)
+        return
+    if not (merge_state & pygit2.GIT_MERGE_ANALYSIS_FASTFORWARD):
+        raise ValueError(branch)
+
+    index: pygit2.Index = repo.merge_trees(ancestor=master, ours=master, theirs=branch)
+    tree = index.write_tree(repo=repo)
+    repo.create_commit(
+        master.name,
+        repo.default_signature,
+        repo.default_signature,
+        message,
+        tree,
+        [master.target],
+    )
+    repo.checkout(refname=master)
+    branch.delete()

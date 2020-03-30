@@ -33,6 +33,10 @@ class Config:
     )
     _path: pathlib.Path = attr.ib(init=False, eq=False)
 
+    @property
+    def joined_repos(self) -> typing.Iterator[Repo]:
+        yield from (repo for repo in self.repos if (repo.ref == self.ref))
+
     def lookup_repo(
         self,
         *,

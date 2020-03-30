@@ -46,3 +46,9 @@ def join(repo_path: typing.Iterable[str]) -> None:
 @main.command()
 def push() -> None:
     core.push()
+
+
+@main.command()
+@click.argument('finish-message')
+def finish(finish_message: str) -> None:
+    core.finish(message=finish_message)

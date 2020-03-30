@@ -193,3 +193,50 @@ def test_051_push(
     core.push()
 
     assert 'origin/branch-1' in cooked_repo.branches.remote
+
+
+def test_061_finish(
+    data_dir: pathlib.Path, cooked_repo: pygit2.Repository, repo_1_path: pathlib.Path
+) -> None:
+    finish_message = "Implemented feature in `branch-1`"
+    core.start(branch_name='branch-1')
+    core.join(repo_paths=[repo_1_path])
+    core.commit()
+
+    repo_1 = pygit2.Repository(path=str(repo_1_path))
+
+    repo_1_change_1 = repo_1_path.joinpath('change-1')
+    repo_1_change_1.write_text('added changes 1')
+    wok.core.base.commit(repo=repo_1, message="Change 1", pathspecs=[repo_1_change_1])
+
+    repo_1_change_2 = repo_1_path.joinpath('change-2')
+    repo_1_change_2.write_text('added changes 2')
+    wok.core.base.commit(repo=repo_1, message="Change 2", pathspecs=[repo_1_change_2])
+
+    core.finish(message=finish_message)
+
+    actual_config = config.Config.load(path=pathlib.Path('wok.yml'))
+    expected_config = config.Config.load(path=data_dir / '061_wok.yml')
+    expected_config.repos[0].url = str(data_dir / expected_config.repos[0].url)
+    expected_config.repos[1].url = str(data_dir / expected_config.repos[1].url)
+    assert actual_config == expected_config
+
+    assert cooked_repo.head.shorthand == 'master'
+    assert repo_1.head.shorthand == 'master'
+
+    cooked_repo_walker = cooked_repo.walk(
+        cooked_repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL
+    )
+    assert next(cooked_repo_walker).message == finish_message
+    assert next(cooked_repo_walker).message == "Update `wok` config"
+    assert next(cooked_repo_walker).message == "Initial commit"
+
+    repo_1_walker = repo_1.walk(repo_1.head.target, pygit2.GIT_SORT_TOPOLOGICAL)
+    assert next(repo_1_walker).message == finish_message
+    assert next(repo_1_walker).message == "2\n"
+    assert next(repo_1_walker).message == "1\n"
+
+
+def test_062_finish_fails_on_master(cooked_repo: pygit2.Repository) -> None:
+    with pytest.raises(ValueError):
+        core.finish(message="Finish on master")
