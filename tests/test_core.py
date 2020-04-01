@@ -37,9 +37,9 @@ def test_003_init_in_branch(
     data_dir: pathlib.Path, root_repo: pygit2.Repository
 ) -> None:
     dev_branch = root_repo.branches.local.create(
-        name='dev', commit=next(root_repo.walk(root_repo.head.target))
+        name='dev', commit=root_repo.head.peel()
     )
-    root_repo.checkout(refname=dev_branch, strategy=pygit2.GIT_CHECKOUT_FORCE)
+    root_repo.checkout(refname=dev_branch)
 
     core.init()
 
@@ -274,3 +274,32 @@ def test_072_tag_fails_on_dirty_working_copy(
 
     with pytest.raises(ValueError):
         core.tag(tag_name='test-tag')
+
+
+def test_081_sync_swithes_to_config(
+    data_dir: pathlib.Path, cooked_repo: pygit2.Repository, repo_1_path: pathlib.Path
+) -> None:
+    branch_name = 'branch-1'
+
+    core.start(branch_name=branch_name)
+    core.join(repo_paths=[repo_1_path])
+    core.commit()
+
+    cooked_repo.checkout(refname=cooked_repo.lookup_reference_dwim('master'))
+
+    core.sync()
+
+    assert False
+
+
+def test_081_sync_pulls_from_remote() -> None:
+    pass
+
+
+def test_083_sync_fails_on_dirty_working_copy(
+    cooked_repo: pygit2.Repository, repo_1_path: pathlib.Path
+) -> None:
+    pathlib.Path(repo_1_path).joinpath('1').write_text('change')
+
+    with pytest.raises(ValueError):
+        core.sync()

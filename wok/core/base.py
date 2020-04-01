@@ -100,6 +100,19 @@ def push(repo: pygit2.Repository, branch_name: str) -> None:
     remote.push(specs=[branch.name], callbacks=RemoteCallbacks())
 
 
+def pull(repo: pygit2.Repository, branch_name: str) -> None:
+    branch = repo.branches.local[branch_name]
+    if not branch.is_head():
+        raise ValueError(branch)
+
+    try:
+        remote = repo.remotes['origin']
+    except KeyError:
+        return
+
+    remote.fetch()
+
+
 def finish(repo: pygit2.Repository, branch_name: str, message: str) -> None:
     master = repo.branches.local['master']
     branch = repo.branches.local[branch_name]
