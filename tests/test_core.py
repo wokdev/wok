@@ -240,3 +240,27 @@ def test_061_finish(
 def test_062_finish_fails_on_master(cooked_repo: pygit2.Repository) -> None:
     with pytest.raises(ValueError):
         core.finish(message="Finish on master")
+
+
+def test_071_tag(
+    cooked_repo: pygit2.Repository, repo_1_path: pathlib.Path, repo_2_path: pathlib.Path
+) -> None:
+    tag_name = 'test-tag'
+
+    core.tag(tag_name=tag_name)
+
+    repo_1 = pygit2.Repository(path=str(repo_1_path))
+    repo_2 = pygit2.Repository(path=str(repo_2_path))
+
+    assert f'refs/tags/{tag_name}' in cooked_repo.references
+    assert f'refs/tags/{tag_name}' in repo_1.references
+    assert f'refs/tags/{tag_name}' in repo_2.references
+
+
+def test_072_tag_fails_on_dirty_working_copy(
+    cooked_repo: pygit2.Repository, repo_1_path: pathlib.Path
+) -> None:
+    pathlib.Path(repo_1_path).joinpath('1').write_text('change')
+
+    with pytest.raises(ValueError):
+        core.tag(tag_name='test-tag')

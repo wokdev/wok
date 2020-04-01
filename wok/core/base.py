@@ -1,16 +1,43 @@
+import functools
 import pathlib
 import typing
 
 import pygit2
 
+from . import context
 
-def switch(repo: pygit2.Repository, ref: pygit2.Reference) -> None:
-    stashed = False
-    if [
+
+def is_clean(repo: pygit2.Repository) -> bool:
+    return not [
         code
         for code in repo.status().values()
         if (code ^ (code & pygit2.GIT_STATUS_WT_NEW))
-    ]:
+    ]
+
+
+def require_clean(func: typing.Callable) -> typing.Callable:
+    @functools.wraps(func)
+    def wrapper(
+        *args: typing.Any, ctx: context.Context, **kwargs: typing.Any
+    ) -> typing.Any:
+
+        if not is_clean(repo=ctx.root_repo):
+            print(ctx.root_repo.status())
+            raise ValueError(ctx.root_repo.workdir)
+
+        for repo_conf in ctx.conf.repos:
+            repo = pygit2.Repository(path=str(repo_conf.path))
+            if not is_clean(repo=repo):
+                raise ValueError(repo.workdir)
+
+        return func(*args, ctx=ctx, **kwargs)
+
+    return wrapper
+
+
+def switch(repo: pygit2.Repository, ref: pygit2.Reference) -> None:
+    stashed = False
+    if not is_clean(repo=repo):
         repo.stash(stasher=repo.default_signature)
         stashed = True
 
@@ -97,3 +124,7 @@ def finish(repo: pygit2.Repository, branch_name: str, message: str) -> None:
     )
     repo.checkout(refname=master)
     branch.delete()
+
+
+def tag(repo: pygit2.Repository, tag_name: str) -> None:
+    repo.references.create(name=f'refs/tags/{tag_name}', target=repo.head.target)

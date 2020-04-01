@@ -121,3 +121,12 @@ def finish(ctx: context.Context, message: str) -> None:
     ctx.conf.save()
     commit()
     base.finish(repo=ctx.root_repo, branch_name=branch_name, message=message)
+
+
+@context.with_context
+@base.require_clean
+def tag(ctx: context.Context, tag_name: str) -> None:
+    base.tag(repo=ctx.root_repo, tag_name=tag_name)
+    for repo_conf in ctx.conf.repos:
+        repo = pygit2.Repository(path=str(repo_conf.path))
+        base.tag(repo=repo, tag_name=tag_name)
