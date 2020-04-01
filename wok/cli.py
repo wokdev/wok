@@ -52,3 +52,9 @@ def push() -> None:
 @click.argument('finish-message')
 def finish(finish_message: str) -> None:
     core.finish(message=finish_message)
+
+
+@main.command()
+@click.argument('tag-name')
+def tag(tag_name: str) -> None:
+    core.tag(tag_name=tag_name)

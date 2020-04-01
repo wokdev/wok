@@ -145,3 +145,12 @@ def test_061_finish_output(
     assert result.exit_code == 0, result.output
 
     assert result.output == ''
+
+
+def test_071_tag_output(
+    cli_runner: click.testing.CliRunner, cooked_repo: pygit2.Repository
+) -> None:
+    result = cli_runner.invoke(cli.main, ['tag', 'test-tag'])
+    assert result.exit_code == 0, result.output
+
+    assert result.output == ''
