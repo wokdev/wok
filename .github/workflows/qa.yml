@@ -1,0 +1,40 @@
+name: qa
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.x
+      - name: Prepare cache key
+        id: cache-key
+        run: echo "::set-output name=sha-256::$(python -VV | sha256sum | cut -d' ' -f1)"
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ steps.cache-key.outputs.sha-256 }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Pre-commit cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Poetry cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry|${{ runner.os }}|${{ env.PY }}|${{ hashFiles('poetry.lock') }}
+      - name: Install dependencies
+        run: |
+          pip install pre-commit poetry
+          poetry install
+      - name: Test with pre-commit
+        run: pre-commit run --all-files --show-diff-on-failure

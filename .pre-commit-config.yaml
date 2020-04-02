@@ -15,11 +15,13 @@ repos:
           (?x)^(
             tests/
           )
-  - repo: https://github.com/ambv/black
-    rev: 19.10b0
-    hooks:
       - id: black
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: "3.7.9"
-    hooks:
+        name: black
+        entry: poetry run black
+        language: system
+        types: [python]
       - id: flake8
+        name: flake8
+        entry: poetry run flake8
+        language: system
+        types: [python]

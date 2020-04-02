@@ -216,14 +216,17 @@ def test_051_push(
 
 
 def test_061_finish(
-    data_dir: pathlib.Path, cooked_repo: pygit2.Repository, repo_1_path: pathlib.Path
+    data_dir: pathlib.Path,
+    cooked_repo: pygit2.Repository,
+    repo_1_path: pathlib.Path,
+    create_repo: typing.Callable,
 ) -> None:
     finish_message = "Implemented feature in `branch-1`"
     core.start(branch_name='branch-1')
     core.join(repo_paths=[repo_1_path])
     core.commit()
 
-    repo_1 = pygit2.Repository(str(repo_1_path))
+    repo_1 = create_repo(repo_1_path)
 
     repo_1_change_1 = repo_1_path.joinpath('change-1')
     repo_1_change_1.write_text('added changes 1')
