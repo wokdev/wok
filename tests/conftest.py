@@ -83,6 +83,11 @@ def tmp_cwd(tmp_path: pathlib.Path) -> typing.Iterator[pathlib.Path]:
 
 
 @pytest.fixture()
+def empty_repo(tmp_cwd: pathlib.Path) -> pygit2.Repository:
+    return pygit2.init_repository(path=str(pathlib.Path.cwd()))
+
+
+@pytest.fixture()
 def root_repo(tmp_cwd: pathlib.Path) -> pygit2.Repository:
     import wok.core.base
 
