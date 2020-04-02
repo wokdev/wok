@@ -88,18 +88,15 @@ def empty_repo(tmp_cwd: pathlib.Path) -> pygit2.Repository:
 
 
 @pytest.fixture()
-def root_repo(tmp_cwd: pathlib.Path) -> pygit2.Repository:
+def root_repo(tmp_cwd: pathlib.Path, empty_repo: pathlib.Path) -> pygit2.Repository:
     import wok.core.base
 
     cwd = pathlib.Path.cwd()
-
-    root_repo = pygit2.init_repository(path=str(cwd))
-
     cwd.joinpath('readme').write_text('a file to commit')
 
-    wok.core.base.commit(repo=root_repo, message='Initial commit')
+    wok.core.base.commit(repo=empty_repo, message='Initial commit')
 
-    return root_repo
+    return empty_repo
 
 
 @pytest.fixture()
