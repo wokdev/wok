@@ -1,8 +1,8 @@
 import functools
-import getpass
 import pathlib
 import typing
 
+import click
 import pygit2
 
 from . import context
@@ -148,8 +148,8 @@ class RemoteCallbacks(pygit2.RemoteCallbacks):
         if allowed_types & pygit2.credentials.GIT_CREDTYPE_SSH_KEY:
             return pygit2.KeypairFromAgent(username_from_url)
         elif allowed_types & pygit2.credentials.GIT_CREDTYPE_USERPASS_PLAINTEXT:
-            username = username_from_url or input("Username: ")
-            password = getpass.getpass()
+            username = username_from_url or click.prompt("Username")
+            password = click.prompt("Password", hide_input=True)
             return pygit2.UserPass(username=username, password=password)
         elif allowed_types & pygit2.credentials.GIT_CREDTYPE_USERNAME:
             return pygit2.Username(username_from_url)
