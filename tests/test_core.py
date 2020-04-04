@@ -54,7 +54,7 @@ def test_004_init_with_empty_repo(
     core.init()
 
     assert config.Config.load(path=pathlib.Path('wok.yml')) == config.Config.load(
-        path=data_dir / '002_wok.yml'
+        path=data_dir / '004_wok.yml'
     )
 
 
