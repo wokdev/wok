@@ -2,6 +2,7 @@ import functools
 import pathlib
 import typing
 
+import click
 import pygit2
 
 from . import context
@@ -96,7 +97,7 @@ def push(repo: pygit2.Repository, branch_name: str) -> None:
     except KeyError:
         return
 
-    remote.push(specs=[branch.name])
+    remote.push(specs=[branch.name], callbacks=RemoteCallbacks())
 
 
 def finish(repo: pygit2.Repository, branch_name: str, message: str) -> None:
@@ -128,3 +129,35 @@ def finish(repo: pygit2.Repository, branch_name: str, message: str) -> None:
 
 def tag(repo: pygit2.Repository, tag_name: str) -> None:
     repo.references.create(name=f'refs/tags/{tag_name}', target=repo.head.target)
+
+
+class RemoteCallbacks(pygit2.RemoteCallbacks):
+    """
+    Overrides the credentials callback.
+    """
+
+    def credentials(
+        self, url: str, username_from_url: typing.Optional[str], allowed_types: int
+    ) -> typing.Optional[
+        typing.Union[pygit2.Keypair, pygit2.UserPass, pygit2.Username]
+    ]:
+        """
+        If the remote server requires authentication, this function will be called and
+        its return value used for authentication.
+        """
+        if allowed_types & pygit2.credentials.GIT_CREDTYPE_SSH_KEY:
+            return pygit2.KeypairFromAgent(username_from_url)
+        elif allowed_types & pygit2.credentials.GIT_CREDTYPE_USERPASS_PLAINTEXT:
+            username = username_from_url or click.prompt("Username")
+            password = click.prompt("Password", hide_input=True)
+            return pygit2.UserPass(username=username, password=password)
+        elif allowed_types & pygit2.credentials.GIT_CREDTYPE_USERNAME:
+            return pygit2.Username(username_from_url)
+        else:
+            return None
+
+
+def clone(url: str, path: pathlib.Path, **kwargs: typing.Any) -> pygit2.Repository:
+    return pygit2.clone_repository(
+        url=url, path=str(path), callbacks=RemoteCallbacks(), **kwargs
+    )

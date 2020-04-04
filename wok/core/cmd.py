@@ -37,7 +37,7 @@ def add(ctx: context.Context, path: pathlib.Path, url: str) -> None:
     if path.exists():
         raise FileExistsError(path.absolute())
 
-    repo = pygit2.clone_repository(url=url, path=str(path))
+    repo = base.clone(url=url, path=path)
 
     ref = repo.head.shorthand
 
