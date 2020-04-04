@@ -157,7 +157,7 @@ class RemoteCallbacks(pygit2.RemoteCallbacks):
             return None
 
 
-def clone(url: str, path: str, **kwargs: typing.Any) -> pygit2.Repository:
+def clone(url: str, path: pathlib.Path, **kwargs: typing.Any) -> pygit2.Repository:
     return pygit2.clone_repository(
         url=url, path=str(path), callbacks=RemoteCallbacks(), **kwargs
     )
