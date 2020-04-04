@@ -15,13 +15,12 @@ def init(*, ctx: context.Context) -> None:
     if not ctx.root_repo.head_is_unborn:
         conf.ref = ctx.root_repo.head.shorthand
     conf.save()
+    commit(message="Add `wok` config")
 
 
 @context.with_context
-def commit(*, ctx: context.Context) -> None:
-    base.commit(
-        repo=ctx.root_repo, message="Update `wok` config", pathspecs=[ctx.conf_path]
-    )
+def commit(*, ctx: context.Context, message: str = "Update `wok` config") -> None:
+    base.commit(repo=ctx.root_repo, message=message, pathspecs=[ctx.conf_path])
 
 
 @context.with_context
@@ -48,6 +47,8 @@ def add(*, ctx: context.Context, path: pathlib.Path, url: str) -> None:
 
 @context.with_context
 def start(*, ctx: context.Context, branch_name: str) -> None:
+    if ctx.root_repo.head_is_unborn:
+        raise ValueError("The workspace is not initialized. Run `wok init`.")
     try:
         ref = ctx.root_repo.lookup_reference_dwim(branch_name)
     except KeyError:

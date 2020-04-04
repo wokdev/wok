@@ -124,6 +124,13 @@ def test_031_start(data_dir: pathlib.Path, cooked_repo: pygit2.Repository) -> No
     assert cooked_repo.head.shorthand == 'branch-1'
 
 
+def test_032_start_with_empty_repo(
+    data_dir: pathlib.Path, empty_repo: pygit2.Repository
+) -> None:
+    with pytest.raises(ValueError, match='The workspace is not initialized'):
+        core.start(branch_name='branch-1')
+
+
 def test_041_join(
     data_dir: pathlib.Path, cooked_repo: pygit2.Repository, repo_1_path: pathlib.Path
 ) -> None:
@@ -242,6 +249,7 @@ def test_061_finish(
     )
     assert next(cooked_repo_walker).message == finish_message
     assert next(cooked_repo_walker).message == "Update `wok` config"
+    assert next(cooked_repo_walker).message == "Add `wok` config"
     assert next(cooked_repo_walker).message == "Initial commit"
 
     repo_1_walker = repo_1.walk(repo_1.head.target, pygit2.GIT_SORT_TOPOLOGICAL)
