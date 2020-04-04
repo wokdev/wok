@@ -12,7 +12,8 @@ from . import base, context
 @context.with_context
 def init(ctx: context.Context) -> None:
     conf = config.Config.create(path=ctx.conf_path)
-    conf.ref = ctx.root_repo.head.shorthand
+    if not ctx.root_repo.head_is_unborn:
+        conf.ref = ctx.root_repo.head.shorthand
     conf.save()
 
 

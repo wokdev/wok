@@ -48,6 +48,16 @@ def test_003_init_in_branch(
     )
 
 
+def test_004_init_with_empty_repo(
+    data_dir: pathlib.Path, empty_repo: pygit2.Repository
+) -> None:
+    core.init()
+
+    assert config.Config.load(path=pathlib.Path('wok.yml')) == config.Config.load(
+        path=data_dir / '004_wok.yml'
+    )
+
+
 def test_011_commit(root_repo: pygit2.Repository) -> None:
     core.init()
     core.commit()
