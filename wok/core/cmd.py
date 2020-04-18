@@ -140,9 +140,9 @@ def sync(*, ctx: context.Context) -> None:
     base.switch(
         repo=ctx.root_repo, ref=ctx.root_repo.lookup_reference_dwim(ctx.conf.ref)
     )
-    base.pull(repo=ctx.root_repo, branch_name=ctx.conf.ref)
+    base.sync(repo=ctx.root_repo, branch_name=ctx.conf.ref)
 
     for repo_conf in ctx.conf.repos:
         repo = pygit2.Repository(path=str(repo_conf.path))
         base.switch(repo=repo, ref=repo.lookup_reference_dwim(repo_conf.ref))
-        base.pull(repo=repo, branch_name=repo_conf.ref)
+        base.sync(repo=repo, branch_name=repo_conf.ref)

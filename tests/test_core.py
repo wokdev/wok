@@ -177,10 +177,11 @@ def test_051_push(
     tmp_repos: typing.Iterable[pygit2.Repository],
 ) -> None:
     repo_1, repo_2, cooked_repo = tmp_repos
+    branch_name = 'branch-1'
     repo_w_tmp_url = cooked_repo.remotes['origin'].url
     cooked_repo.remotes.delete('origin')
 
-    core.start(branch_name='branch-1')
+    core.start(branch_name=branch_name)
     core.join(repo_paths=[repo_1_path])
     core.commit()
 
@@ -194,15 +195,17 @@ def test_051_push(
 
     core.push()
 
-    assert 'origin/branch-1' not in cooked_repo.branches.remote
-    assert 'origin/branch-1' in repo_1.branches.remote
-    assert 'origin/branch-1' not in repo_2.branches.remote
+    assert repo_1.branches[branch_name].upstream.shorthand == f'origin/{branch_name}'
+
+    assert f'origin/{branch_name}' not in cooked_repo.branches.remote
+    assert f'origin/{branch_name}' in repo_1.branches.remote
+    assert f'origin/{branch_name}' not in repo_2.branches.remote
 
     cooked_repo.create_remote(name='origin', url=repo_w_tmp_url)
 
     core.push()
 
-    assert 'origin/branch-1' in cooked_repo.branches.remote
+    assert f'origin/{branch_name}' in cooked_repo.branches.remote
 
 
 def test_061_finish(
@@ -277,8 +280,11 @@ def test_072_tag_fails_on_dirty_working_copy(
 
 
 def test_081_sync_swithes_to_config(
-    data_dir: pathlib.Path, cooked_repo: pygit2.Repository, repo_1_path: pathlib.Path
+    repo_1_path: pathlib.Path,
+    repo_2_path: pathlib.Path,
+    tmp_repos: typing.Iterable[pygit2.Repository],
 ) -> None:
+    repo_1, repo_2, cooked_repo = tmp_repos
     branch_name = 'branch-1'
 
     core.start(branch_name=branch_name)
@@ -286,14 +292,47 @@ def test_081_sync_swithes_to_config(
     core.commit()
 
     cooked_repo.checkout(refname=cooked_repo.lookup_reference_dwim('master'))
+    core.sync()
+
+    assert cooked_repo.head.shorthand == 'master'
+    assert repo_1.head.shorthand == 'master'
+    assert repo_2.head.shorthand == 'dev'
+
+    cooked_repo.checkout(refname=cooked_repo.lookup_reference_dwim(branch_name))
+    core.sync()
+
+    assert cooked_repo.head.shorthand == branch_name
+    assert repo_1.head.shorthand == branch_name
+    assert repo_2.head.shorthand == 'dev'
+
+
+def test_081_sync_pulls_from_remote(
+    repo_1_path: pathlib.Path, tmp_repos: typing.Iterable[pygit2.Repository],
+) -> None:
+    repo_1, repo_2, cooked_repo = tmp_repos
+    branch_name = 'branch-1'
+
+    core.start(branch_name=branch_name)
+    core.join(repo_paths=[repo_1_path])
+    core.commit()
+
+    repo_1_old_commit = repo_1.head.peel()
+    repo_1_change_1 = repo_1_path.joinpath('change-1')
+    repo_1_change_1.write_text('added changes 1')
+    wok.core.base.commit(repo=repo_1, message="Change 1", pathspecs=[repo_1_change_1])
+    repo_1_new_commit = repo_1.head.peel()
+    assert repo_1_new_commit.id != repo_1_old_commit.id
+
+    core.push()
+    assert repo_1.branches[branch_name].upstream.peel().id == repo_1_new_commit.id
+
+    repo_1.reset(repo_1_old_commit.id, pygit2.GIT_RESET_HARD)
 
     core.sync()
 
-    assert False
-
-
-def test_081_sync_pulls_from_remote() -> None:
-    pass
+    assert cooked_repo.head.shorthand == branch_name
+    assert repo_1.head.shorthand == branch_name
+    assert repo_1.head.peel().id == repo_1_new_commit.id
 
 
 def test_083_sync_fails_on_dirty_working_copy(

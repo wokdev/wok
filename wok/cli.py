@@ -58,3 +58,8 @@ def finish(finish_message: str) -> None:
 @click.argument('tag-name')
 def tag(tag_name: str) -> None:
     core.tag(tag_name=tag_name)
+
+
+@main.command()
+def sync() -> None:
+    core.sync()
