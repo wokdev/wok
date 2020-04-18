@@ -97,7 +97,42 @@ def push(repo: pygit2.Repository, branch_name: str) -> None:
     except KeyError:
         return
 
-    remote.push(specs=[branch.name], callbacks=RemoteCallbacks())
+    remote.push(specs=[f'{branch.name}'], callbacks=RemoteCallbacks())
+    upstream_branch = repo.branches.get(f'{remote.name}/{branch.shorthand}')
+    if upstream_branch is not None:
+        branch.upstream = upstream_branch
+
+
+def sync(repo: pygit2.Repository, branch_name: str) -> None:
+    """
+    Tries to update the `branch_name` branch of the `repo` repo to the latest
+    upstream branch state.
+    If the branch is up to date, does nothing.
+    If the branch can be fast-forwarded, resets to the upstream.
+    Otherwise, fails with an error.
+    """
+    branch = repo.branches.local[branch_name]
+    if not branch.is_head():
+        raise ValueError(branch)
+
+    try:
+        remote = repo.remotes['origin']
+    except KeyError:
+        return
+
+    remote.fetch(callbacks=RemoteCallbacks())
+    upstream_branch = branch.upstream
+    if not upstream_branch:
+        return
+
+    merge_state, _ = repo.merge_analysis(upstream_branch.target, branch.name)
+    if merge_state & pygit2.GIT_MERGE_ANALYSIS_UP_TO_DATE:
+        return
+    if not (merge_state & pygit2.GIT_MERGE_ANALYSIS_FASTFORWARD):
+        raise ValueError(branch)
+
+    repo.reset(upstream_branch.target, pygit2.GIT_RESET_HARD)
+    repo.checkout(refname=branch)
 
 
 def finish(repo: pygit2.Repository, branch_name: str, message: str) -> None:
@@ -106,29 +141,49 @@ def finish(repo: pygit2.Repository, branch_name: str, message: str) -> None:
     if not branch.is_head():
         raise ValueError(branch)
 
-    merge_state, _ = repo.merge_analysis(branch.target, master.name)
-    if merge_state & pygit2.GIT_MERGE_ANALYSIS_UP_TO_DATE:
-        repo.checkout(refname=master)
-        return
-    if not (merge_state & pygit2.GIT_MERGE_ANALYSIS_FASTFORWARD):
-        raise ValueError(branch)
+    merge_squash(repo=repo, ours_branch=master, theirs_branch=branch, message=message)
 
-    index: pygit2.Index = repo.merge_trees(ancestor=master, ours=master, theirs=branch)
-    tree = index.write_tree(repo=repo)
-    repo.create_commit(
-        master.name,
-        repo.default_signature,
-        repo.default_signature,
-        message,
-        tree,
-        [master.target],
-    )
     repo.checkout(refname=master)
     branch.delete()
 
 
+def merge_squash(
+    repo: pygit2.Repository,
+    ours_branch: pygit2.Branch,
+    theirs_branch: pygit2.Branch,
+    message: str,
+) -> None:
+    """
+    Performs a merge of the `theirs_branch` into `ours_branch` sqaushing the commits
+    """
+    merge_state, _ = repo.merge_analysis(theirs_branch.target, ours_branch.name)
+    if merge_state & pygit2.GIT_MERGE_ANALYSIS_UP_TO_DATE:
+        return
+    if not (merge_state & pygit2.GIT_MERGE_ANALYSIS_FASTFORWARD):
+        raise ValueError(theirs_branch)
+
+    index: pygit2.Index = repo.merge_trees(
+        ancestor=ours_branch, ours=ours_branch, theirs=theirs_branch
+    )
+    tree = index.write_tree(repo=repo)
+    repo.create_commit(
+        ours_branch.name,
+        repo.default_signature,
+        repo.default_signature,
+        message,
+        tree,
+        [ours_branch.target],
+    )
+
+
 def tag(repo: pygit2.Repository, tag_name: str) -> None:
     repo.references.create(name=f'refs/tags/{tag_name}', target=repo.head.target)
+
+
+def clone(url: str, path: pathlib.Path, **kwargs: typing.Any) -> pygit2.Repository:
+    return pygit2.clone_repository(
+        url=url, path=str(path), callbacks=RemoteCallbacks(), **kwargs
+    )
 
 
 class RemoteCallbacks(pygit2.RemoteCallbacks):
@@ -155,9 +210,3 @@ class RemoteCallbacks(pygit2.RemoteCallbacks):
             return pygit2.Username(username_from_url)
         else:
             return None
-
-
-def clone(url: str, path: pathlib.Path, **kwargs: typing.Any) -> pygit2.Repository:
-    return pygit2.clone_repository(
-        url=url, path=str(path), callbacks=RemoteCallbacks(), **kwargs
-    )

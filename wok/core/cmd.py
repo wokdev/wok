@@ -10,7 +10,7 @@ from . import base, context
 
 
 @context.with_context
-def init(ctx: context.Context) -> None:
+def init(*, ctx: context.Context) -> None:
     conf = config.Config.create(path=ctx.conf_path)
     if not ctx.root_repo.head_is_unborn:
         conf.ref = ctx.root_repo.head.shorthand
@@ -18,14 +18,14 @@ def init(ctx: context.Context) -> None:
 
 
 @context.with_context
-def commit(ctx: context.Context) -> None:
+def commit(*, ctx: context.Context) -> None:
     base.commit(
         repo=ctx.root_repo, message="Update `wok` config", pathspecs=[ctx.conf_path]
     )
 
 
 @context.with_context
-def add(ctx: context.Context, path: pathlib.Path, url: str) -> None:
+def add(*, ctx: context.Context, path: pathlib.Path, url: str) -> None:
     already_configured = ctx.conf.lookup_repo(url=url, path=path)
     if already_configured is not None:
         print(
@@ -47,7 +47,7 @@ def add(ctx: context.Context, path: pathlib.Path, url: str) -> None:
 
 
 @context.with_context
-def start(ctx: context.Context, branch_name: str) -> None:
+def start(*, ctx: context.Context, branch_name: str) -> None:
     try:
         ref = ctx.root_repo.lookup_reference_dwim(branch_name)
     except KeyError:
@@ -65,7 +65,7 @@ def start(ctx: context.Context, branch_name: str) -> None:
 
 
 @context.with_context
-def join(ctx: context.Context, repo_paths: typing.Iterable[pathlib.Path]) -> None:
+def join(*, ctx: context.Context, repo_paths: typing.Iterable[pathlib.Path]) -> None:
     repo_confs: typing.MutableSequence[config.Repo] = []
 
     for repo_path in repo_paths:
@@ -95,7 +95,7 @@ def join(ctx: context.Context, repo_paths: typing.Iterable[pathlib.Path]) -> Non
 
 
 @context.with_context
-def push(ctx: context.Context) -> None:
+def push(*, ctx: context.Context) -> None:
     for repo_conf in ctx.conf.joined_repos:
         repo = pygit2.Repository(path=str(repo_conf.path))
         base.push(repo=repo, branch_name=repo_conf.ref)
@@ -104,7 +104,7 @@ def push(ctx: context.Context) -> None:
 
 
 @context.with_context
-def finish(ctx: context.Context, message: str) -> None:
+def finish(*, ctx: context.Context, message: str) -> None:
     # TODO: Implement different merge strategies
     # TODO: Allow to set integration branch different from `master`
     # TODO: Use GIT_EDITOR to compose the finish message
@@ -126,8 +126,23 @@ def finish(ctx: context.Context, message: str) -> None:
 
 @context.with_context
 @base.require_clean
-def tag(ctx: context.Context, tag_name: str) -> None:
+def tag(*, ctx: context.Context, tag_name: str) -> None:
     base.tag(repo=ctx.root_repo, tag_name=tag_name)
+
     for repo_conf in ctx.conf.repos:
         repo = pygit2.Repository(path=str(repo_conf.path))
         base.tag(repo=repo, tag_name=tag_name)
+
+
+@context.with_context
+@base.require_clean
+def sync(*, ctx: context.Context) -> None:
+    base.switch(
+        repo=ctx.root_repo, ref=ctx.root_repo.lookup_reference_dwim(ctx.conf.ref)
+    )
+    base.sync(repo=ctx.root_repo, branch_name=ctx.conf.ref)
+
+    for repo_conf in ctx.conf.repos:
+        repo = pygit2.Repository(path=str(repo_conf.path))
+        base.switch(repo=repo, ref=repo.lookup_reference_dwim(repo_conf.ref))
+        base.sync(repo=repo, branch_name=repo_conf.ref)
