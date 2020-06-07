@@ -4,7 +4,7 @@ build-backend = "poetry.masonry.api"
 
 [tool.poetry]
 name = "wok"
-version = "0.1.0-dev"
+version = "0.1.0-dev1"
 description = "Wok is a tool to manage several `git` repos in a single workspace."
 license = "MIT"
 authors = ["Serge Matveenko <lig@countzero.co>"]
