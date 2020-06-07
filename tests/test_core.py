@@ -81,7 +81,7 @@ def test_021_add(
     expected_config.repos[0].url = str(data_dir / expected_config.repos[0].url)
     assert actual_config == expected_config
 
-    repo_1 = pygit2.Repository(path=str(repo_1_path))
+    repo_1 = pygit2.Repository(str(repo_1_path))
     assert repo_1.remotes['origin'].url == repo_1_url
 
     core.add(path=repo_2_path, url=repo_2_url)
@@ -92,7 +92,7 @@ def test_021_add(
     expected_config.repos[1].url = str(data_dir / expected_config.repos[1].url)
     assert actual_config == expected_config
 
-    repo_2 = pygit2.Repository(path=str(repo_2_path))
+    repo_2 = pygit2.Repository(str(repo_2_path))
     assert repo_2.remotes['origin'].url == repo_2_url
 
 
@@ -143,7 +143,7 @@ def test_041_join(
     expected_config.repos[1].url = str(data_dir / expected_config.repos[1].url)
     assert actual_config == expected_config
 
-    repo_1 = pygit2.Repository(path=str(repo_1_path))
+    repo_1 = pygit2.Repository(str(repo_1_path))
     assert repo_1.head.shorthand == 'branch-1'
 
 
@@ -162,8 +162,8 @@ def test_042_join_many(
     expected_config.repos[1].url = str(data_dir / expected_config.repos[1].url)
     assert actual_config == expected_config
 
-    repo_1 = pygit2.Repository(path=str(repo_1_path))
-    repo_2 = pygit2.Repository(path=str(repo_2_path))
+    repo_1 = pygit2.Repository(str(repo_1_path))
+    repo_2 = pygit2.Repository(str(repo_2_path))
     assert repo_1.head.shorthand == 'branch-1'
     assert repo_2.head.shorthand == 'branch-1'
 
@@ -223,7 +223,7 @@ def test_061_finish(
     core.join(repo_paths=[repo_1_path])
     core.commit()
 
-    repo_1 = pygit2.Repository(path=str(repo_1_path))
+    repo_1 = pygit2.Repository(str(repo_1_path))
 
     repo_1_change_1 = repo_1_path.joinpath('change-1')
     repo_1_change_1.write_text('added changes 1')
@@ -270,8 +270,8 @@ def test_071_tag(
 
     core.tag(tag_name=tag_name)
 
-    repo_1 = pygit2.Repository(path=str(repo_1_path))
-    repo_2 = pygit2.Repository(path=str(repo_2_path))
+    repo_1 = pygit2.Repository(str(repo_1_path))
+    repo_2 = pygit2.Repository(str(repo_2_path))
 
     assert f'refs/tags/{tag_name}' in cooked_repo.references
     assert f'refs/tags/{tag_name}' in repo_1.references

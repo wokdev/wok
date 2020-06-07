@@ -84,7 +84,7 @@ def tmp_cwd(tmp_path: pathlib.Path) -> typing.Iterator[pathlib.Path]:
 
 @pytest.fixture()
 def empty_repo(tmp_cwd: pathlib.Path) -> pygit2.Repository:
-    return pygit2.init_repository(path=str(pathlib.Path.cwd()))
+    return pygit2.init_repository(str(pathlib.Path.cwd()))
 
 
 @pytest.fixture()
@@ -129,8 +129,8 @@ def tmp_repos(
     repo_w_url: str,
 ) -> typing.Iterator[typing.Iterable[pygit2.Repository]]:
     repos = (
-        pygit2.Repository(path=str(repo_1_path)),
-        pygit2.Repository(path=str(repo_2_path)),
+        pygit2.Repository(str(repo_1_path)),
+        pygit2.Repository(str(repo_2_path)),
         cooked_repo,
     )
     repo_urls = (repo_1_url, repo_2_url, repo_w_url)

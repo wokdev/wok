@@ -25,7 +25,7 @@ class Context:
                 file=sys.stderr,
             )
             raise FileNotFoundError(cwd.absolute())
-        self._root_repo = pygit2.Repository(path=root_repo_path)
+        self._root_repo = pygit2.Repository(root_repo_path)
 
         self._conf = (
             config.Config.load(path=self.conf_path) if self.conf_path.exists() else None

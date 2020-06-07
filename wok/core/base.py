@@ -27,7 +27,7 @@ def require_clean(func: typing.Callable) -> typing.Callable:
             raise ValueError(ctx.root_repo.workdir)
 
         for repo_conf in ctx.conf.repos:
-            repo = pygit2.Repository(path=str(repo_conf.path))
+            repo = pygit2.Repository(str(repo_conf.path))
             if not is_clean(repo=repo):
                 raise ValueError(repo.workdir)
 

@@ -80,7 +80,7 @@ def join(*, ctx: context.Context, repo_paths: typing.Iterable[pathlib.Path]) -> 
     branch_name = ctx.conf.ref
 
     for repo_conf in repo_confs:
-        repo = pygit2.Repository(path=str(repo_conf.path))
+        repo = pygit2.Repository(str(repo_conf.path))
 
         try:
             ref = repo.lookup_reference_dwim(branch_name)
@@ -98,7 +98,7 @@ def join(*, ctx: context.Context, repo_paths: typing.Iterable[pathlib.Path]) -> 
 @context.with_context
 def push(*, ctx: context.Context) -> None:
     for repo_conf in ctx.conf.joined_repos:
-        repo = pygit2.Repository(path=str(repo_conf.path))
+        repo = pygit2.Repository(str(repo_conf.path))
         base.push(repo=repo, branch_name=repo_conf.ref)
 
     base.push(repo=ctx.root_repo, branch_name=ctx.conf.ref)
@@ -114,7 +114,7 @@ def finish(*, ctx: context.Context, message: str) -> None:
         raise ValueError('master')
 
     for repo_conf in ctx.conf.joined_repos:
-        repo = pygit2.Repository(path=str(repo_conf.path))
+        repo = pygit2.Repository(str(repo_conf.path))
         base.finish(repo=repo, branch_name=repo_conf.ref, message=message)
         repo_conf.ref = 'master'
 
@@ -131,7 +131,7 @@ def tag(*, ctx: context.Context, tag_name: str) -> None:
     base.tag(repo=ctx.root_repo, tag_name=tag_name)
 
     for repo_conf in ctx.conf.repos:
-        repo = pygit2.Repository(path=str(repo_conf.path))
+        repo = pygit2.Repository(str(repo_conf.path))
         base.tag(repo=repo, tag_name=tag_name)
 
 
@@ -144,6 +144,6 @@ def sync(*, ctx: context.Context) -> None:
     base.sync(repo=ctx.root_repo, branch_name=ctx.conf.ref)
 
     for repo_conf in ctx.conf.repos:
-        repo = pygit2.Repository(path=str(repo_conf.path))
+        repo = pygit2.Repository(str(repo_conf.path))
         base.switch(repo=repo, ref=repo.lookup_reference_dwim(repo_conf.ref))
         base.sync(repo=repo, branch_name=repo_conf.ref)
