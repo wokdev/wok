@@ -147,3 +147,41 @@ def sync(*, ctx: context.Context) -> None:
         repo = pygit2.Repository(str(repo_conf.path))
         base.switch(repo=repo, ref=repo.lookup_reference_dwim(repo_conf.ref))
         base.sync(repo=repo, branch_name=repo_conf.ref)
+
+
+@context.with_context
+@base.require_clean
+def fork(*, ctx: context.Context, branch_name: str) -> None:
+    try:
+        ref = ctx.root_repo.lookup_reference_dwim(branch_name)
+    except KeyError:
+        pass
+    else:
+        raise ValueError(f"Reference `{ref.name}` already exists")
+
+    forked_branch = ctx.root_repo.branches.local.create(
+        name=branch_name,
+        commit=ctx.root_repo.resolve_refish(refish=ctx.root_repo.head.name)[0],
+    )
+    base.switch(repo=ctx.root_repo, ref=forked_branch)
+    ctx.conf.ref = branch_name
+    ctx.conf.save()
+
+    for repo_conf in ctx.conf.repos:
+        repo = pygit2.Repository(str(repo_conf.path))
+
+        try:
+            ref = repo.lookup_reference_dwim(branch_name)
+        except KeyError:
+            ref = repo.branches.local.create(
+                name=branch_name, commit=repo.resolve_refish(refish=repo.head.name)[0]
+            )
+        else:
+            raise ValueError(
+                f"Reference `{ref.name}` already exists in repo `{repo_conf.path}`"
+            )
+
+        base.switch(repo=repo, ref=ref)
+
+        repo_conf.ref = ref.shorthand
+        ctx.conf.save()

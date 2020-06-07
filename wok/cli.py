@@ -63,3 +63,9 @@ def tag(tag_name: str) -> None:
 @main.command()
 def sync() -> None:
     core.sync()
+
+
+@main.command()
+@click.argument('branch-name')
+def fork(branch_name: str) -> None:
+    core.fork(branch_name=branch_name)
