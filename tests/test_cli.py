@@ -184,3 +184,12 @@ def test_081_sync_output(
     assert result.exit_code == 0, result.output
 
     assert result.output == ''
+
+
+def test_091_fork_output(
+    cli_runner: click.testing.CliRunner, cooked_repo: pygit2.Repository
+) -> None:
+    result = cli_runner.invoke(cli.main, ['fork', 'branch-1'])
+    assert result.exit_code == 0, result.output
+
+    assert result.output == ''
