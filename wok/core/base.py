@@ -9,11 +9,15 @@ from . import context
 
 
 def is_clean(repo: pygit2.Repository) -> bool:
-    return not [
+    return not any(
         code
         for code in repo.status().values()
-        if (code ^ (code & pygit2.GIT_STATUS_WT_NEW))
-    ]
+        if (
+            code
+            ^ (code & pygit2.GIT_STATUS_WT_NEW)
+            ^ (code & pygit2.GIT_STATUS_IGNORED)
+        )
+    )
 
 
 def require_clean(func: typing.Callable) -> typing.Callable:
