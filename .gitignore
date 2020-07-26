@@ -1,0 +1,9 @@
+# common
+.*
+!.gitignore
+
+# dot files
+!/.pre-commit-config.yaml
+
+# build
+/target
