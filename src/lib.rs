@@ -9,5 +9,7 @@
 mod config;
 mod error;
 
+pub mod cmd;
+
 pub use config::Config;
 pub use error::Error;

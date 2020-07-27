@@ -5,6 +5,7 @@ authors = ["Serge Matveenko <lig@countzero.co>"]
 edition = "2018"
 
 [dependencies]
+git2 = "0.13.8"
 serde = { version = "1.0.114", features = ["derive"] }
 serde_yaml = "0.8.13"
 structopt = "0.3.15"

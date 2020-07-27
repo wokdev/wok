@@ -4,11 +4,11 @@ use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
-struct Repo {
-    url: String,
-    path: PathBuf,
+pub struct Repo {
+    pub url: String,
+    pub path: PathBuf,
     #[serde(rename = "ref", default = "Repo::default_ref")]
-    ref_: String,
+    pub ref_: String,
 }
 
 impl Repo {
@@ -24,10 +24,10 @@ impl Repo {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
-    version: String,
+    pub version: String,
     #[serde(rename = "ref")]
-    ref_: String,
-    repos: Vec<Repo>,
+    pub ref_: String,
+    pub repos: Vec<Repo>,
 }
 
 impl Config {
