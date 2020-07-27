@@ -8,9 +8,9 @@ use wok;
     about = "Wok -- control several git repositories as a single project."
 )]
 struct Opt {
-    /// Wok workspace file path
-    #[structopt(default_value = "wok.yml", short("f"), long, parse(from_os_str))]
-    wok_file: PathBuf,
+    /// Wok workspace file path. Defaults to `wok.yml` in the umbrella repo root.
+    #[structopt(short("f"), long, parse(from_os_str))]
+    wok_file: Option<PathBuf>,
 
     #[structopt(subcommand)] // Note that we mark a field as a subcommand
     cmd: Command,
@@ -40,21 +40,48 @@ enum Command {
 fn main() -> Result<(), wok::Error> {
     let opt = Opt::from_args();
 
-    println!("{:?}", opt);
+    let wok_file = match opt.wok_file {
+        Some(path) => path,
+        None => git2::Repository::open_from_env()
+            .map_err(|e| wok::Error::from(&e))?
+            .workdir()
+            .unwrap()
+            .join("wok.yml"),
+    };
 
-    return match opt.cmd {
+    match opt.cmd {
+        Command::Init { .. } => {
+            if wok_file.exists() {
+                return Err(wok::Error::new(format!(
+                    "Config already exists at `{}`",
+                    wok_file.to_string_lossy()
+                )));
+            }
+        }
+        _ => {
+            if !wok_file.exists() {
+                return Err(wok::Error::new(format!(
+                    "Config not found at `{}`",
+                    wok_file.to_string_lossy()
+                )));
+            }
+        }
+    };
+
+    let config = match opt.cmd {
         Command::Init {
             main_branch,
             no_introspect,
-        } => wok::cmd::init(main_branch, no_introspect),
+        } => wok::cmd::init(main_branch, no_introspect)?,
     };
 
-    assert!(opt.wok_file.exists());
+    config.save(&wok_file).map_err(|e| wok::Error::from(&e))?;
 
-    let config = wok::Config::load(&opt.wok_file).map_err(|e| wok::Error::from(&e))?;
+    assert!(wok_file.exists());
 
-    println!("{:?}", config);
-    println!("{:}", config.save());
+    let config = wok::Config::load(&wok_file).map_err(|e| wok::Error::from(&e))?;
+
+    eprintln!("{:?}", config);
 
     Ok(())
 }

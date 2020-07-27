@@ -1,0 +1,3 @@
+[submodule ".self"]
+	path = .self
+	url = git@github.com:lig/wok.git

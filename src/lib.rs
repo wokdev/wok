@@ -11,5 +11,5 @@ mod error;
 
 pub mod cmd;
 
-pub use config::Config;
+pub use config::{Config, CONFIG_CURRENT_VERSION};
 pub use error::Error;

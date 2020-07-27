@@ -20,6 +20,12 @@ pub struct Error {
     msg: String,
 }
 
+impl Error {
+    pub fn new(msg: String) -> Self {
+        Error { msg }
+    }
+}
+
 impl error::Error for Error {}
 
 impl<T> From<&T> for Error
