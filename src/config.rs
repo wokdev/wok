@@ -42,8 +42,13 @@ impl Config {
 
     /// Saves the workspace config to a file.
     pub fn save(&self, path: &PathBuf) -> Result<(), serde_yaml::Error> {
-        fs::write(path, serde_yaml::to_string(self)?).unwrap();
+        fs::write(path, self.dump()?).unwrap();
         eprintln!("Wok config saved to `{}`", path.to_string_lossy());
         Ok(())
+    }
+
+    /// Returns config as YAML string (useful mainly for testing).
+    pub fn dump(&self) -> Result<String, serde_yaml::Error> {
+        serde_yaml::to_string(self)
     }
 }

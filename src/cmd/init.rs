@@ -52,3 +52,36 @@ pub fn init(
 
     Ok(config)
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use assert_fs::prelude::*;
+    use pretty_assertions::assert_eq;
+    use rstest::*;
+    use std::env;
+    use std::fs;
+
+    #[fixture(config_file=PathBuf::from("tests/data/simple_config.yml"))]
+    fn expected_config(config_file: PathBuf) -> String {
+        fs::read_to_string(config_file).unwrap()
+    }
+
+    #[rstest]
+    fn init_with_defaults_in_a_single_repo(expected_config: String) {
+        let repo_dir = assert_fs::TempDir::new().unwrap();
+        repo_dir
+            .copy_from("tests/data/repos", &["simple/**"])
+            .unwrap();
+        let repo_path = repo_dir.path().join("simple");
+        fs::rename(repo_path.join("_git"), repo_path.join(".git")).unwrap();
+        let cwd = env::current_dir().unwrap();
+        env::set_current_dir(&repo_path).unwrap();
+
+        let actual_config = init(None, false).unwrap().dump().unwrap();
+        assert_eq!(actual_config, expected_config);
+
+        env::set_current_dir(cwd).unwrap();
+        repo_dir.close().unwrap();
+    }
+}
