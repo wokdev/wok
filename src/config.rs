@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 pub const CONFIG_CURRENT_VERSION: &str = "1.0";
 
@@ -21,8 +20,8 @@ impl Repo {
 
 /// Config schema for `wok.yml`
 ///
-/// A repository containing `wok.yml` file serves as an "umbrella" repo for a workspace
-/// containing several repos.
+/// A repository containing `wok.yml` file serves as an "umbrella" repo for a
+/// workspace containing several repos.
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Config {

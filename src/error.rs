@@ -1,5 +1,4 @@
-use std::error;
-use std::fmt;
+use std::{error, fmt};
 
 /// An [Error](std::error::Error) implementation having its Debug output
 /// generated from a source Error's Display output.
@@ -14,7 +13,10 @@ use std::fmt;
 ///     let some_error = std::io::Error::from(std::io::ErrorKind::NotFound);
 ///     Err(wok::Error::from(&some_error))
 /// }
-/// assert_eq!(format!("{:?}", could_be_main().unwrap_err()), "entity not found")
+/// assert_eq!(
+///     format!("{:?}", could_be_main().unwrap_err()),
+///     "entity not found"
+/// )
 /// ```
 pub struct Error {
     msg: String,
