@@ -81,7 +81,7 @@ fn main() -> Result<(), wok::Error> {
                     wok_file.to_string_lossy()
                 )));
             };
-            wok::cmd::init(main_branch, no_introspect)?
+            wok::cmd::init(wok_file.parent().unwrap(), main_branch, no_introspect)?
         },
         Command::CommandConfigured(cmd_configured) => {
             if !wok_file.exists() {

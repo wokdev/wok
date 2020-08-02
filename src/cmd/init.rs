@@ -1,12 +1,13 @@
 use git2;
-use std::path::PathBuf;
+use std::path;
 
 pub fn init(
+    umbrella_path: &path::Path,
     main_branch: Option<String>,
     no_introspect: bool,
 ) -> Result<crate::Config, crate::Error> {
     let umbrella_repo =
-        git2::Repository::open_from_env().map_err(|e| crate::Error::from(&e))?;
+        git2::Repository::open(umbrella_path).map_err(|e| crate::Error::from(&e))?;
     eprintln!(
         "Found git repo at `{}`",
         umbrella_repo.workdir().unwrap().to_string_lossy()
@@ -61,11 +62,11 @@ pub fn init(
         repos: submodules
             .into_iter()
             .map(|submodule| {
-                let path = PathBuf::from(submodule.path());
-                eprintln!("Found submodule at `{}`", path.to_string_lossy());
+                let module_path = path::PathBuf::from(submodule.path());
+                eprintln!("Found submodule at `{}`", module_path.to_string_lossy());
                 crate::config::Repo {
                     url: submodule.url().map(|url| String::from(url)),
-                    path,
+                    path: module_path,
                     ref_: main_branch.clone(),
                 }
             })

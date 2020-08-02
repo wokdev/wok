@@ -22,7 +22,6 @@ fn expected_config(config_name: &str, data_dir: PathBuf) -> String {
 struct TestRepo {
     _temp_dir: assert_fs::TempDir,
     repo_path: PathBuf,
-    cwd: PathBuf,
 }
 impl TestRepo {
     fn new(data_dir: &PathBuf, repo_name: &str) -> Self {
@@ -38,12 +37,9 @@ impl TestRepo {
         for git_file in git_files {
             fs::rename(&git_file, &git_file.parent().unwrap().join(".git")).unwrap();
         }
-        let cwd = env::current_dir().unwrap();
-        env::set_current_dir(&repo_path).unwrap();
         Self {
             _temp_dir: temp_dir,
             repo_path,
-            cwd,
         }
     }
 
@@ -58,11 +54,5 @@ impl TestRepo {
             };
         }
         git_files
-    }
-}
-
-impl Drop for TestRepo {
-    fn drop(&mut self) {
-        env::set_current_dir(&self.cwd).unwrap();
     }
 }

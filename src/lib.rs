@@ -9,8 +9,10 @@
 
 mod config;
 mod error;
+mod state;
 
 pub mod cmd;
 
 pub use config::{Config, CONFIG_CURRENT_VERSION};
 pub use error::Error;
+pub use state::State;
