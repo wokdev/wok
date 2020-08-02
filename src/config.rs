@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+use std::{fs, path};
 
 pub const CONFIG_CURRENT_VERSION: &str = "1.0";
 
@@ -7,7 +7,7 @@ pub const CONFIG_CURRENT_VERSION: &str = "1.0";
 #[serde(deny_unknown_fields)]
 pub struct Repo {
     pub url: Option<String>,
-    pub path: PathBuf,
+    pub path: path::PathBuf,
     #[serde(rename = "ref", default = "Repo::default_ref")]
     pub ref_: String,
 }
@@ -32,17 +32,17 @@ pub struct Config {
 }
 
 impl Config {
-    /// Loads the workspace config from a file at the `path`.
-    pub fn load(path: &PathBuf) -> Result<Config, serde_yaml::Error> {
-        let config = serde_yaml::from_str(&fs::read_to_string(path).unwrap())?;
-        eprintln!("Wok config loaded from `{}`", path.to_string_lossy());
+    /// Loads the workspace config from a file at the `config_path`.
+    pub fn load(config_path: &path::Path) -> Result<Config, serde_yaml::Error> {
+        let config = serde_yaml::from_str(&fs::read_to_string(config_path).unwrap())?;
+        eprintln!("Wok config loaded from `{}`", config_path.to_string_lossy());
         Ok(config)
     }
 
     /// Saves the workspace config to a file.
-    pub fn save(&self, path: &PathBuf) -> Result<(), serde_yaml::Error> {
-        fs::write(path, self.dump()?).unwrap();
-        eprintln!("Wok config saved to `{}`", path.to_string_lossy());
+    pub fn save(&self, config_path: &path::Path) -> Result<(), serde_yaml::Error> {
+        fs::write(config_path, self.dump()?).unwrap();
+        eprintln!("Wok config saved to `{}`", config_path.to_string_lossy());
         Ok(())
     }
 

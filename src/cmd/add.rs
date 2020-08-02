@@ -2,14 +2,13 @@ use git2;
 use std::path;
 
 pub fn add(
-    config: crate::Config,
+    state: &mut crate::State,
     git_url: String,
     module_path: path::PathBuf,
-) -> Result<crate::Config, crate::Error> {
-    eprintln!("{:?}", config);
+) -> Result<(), crate::Error> {
+    eprintln!("{:?}", state);
     eprintln!("{:?}", git_url);
     eprintln!("{:?}", module_path);
 
-    // git2::Repository::clone_recurse(&git_url, module_path).unwrap();
-    Ok(config)
+    Ok(())
 }

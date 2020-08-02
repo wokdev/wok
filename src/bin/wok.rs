@@ -45,7 +45,7 @@ enum Command {
 #[derive(Debug, StructOpt)]
 enum CommandConfigured {
     /// Adds a new project to the workspace.
-    /// Note: An existing submodule could be imported using `wok import command`
+    /// Note: An existing submodule could be imported using `wok import` command
     Add {
         #[structopt(help("Git repo url."))]
         git_url: String,
@@ -90,13 +90,15 @@ fn main() -> Result<(), wok::Error> {
                     wok_file.to_string_lossy()
                 )));
             };
-            let config =
-                wok::Config::load(&wok_file).map_err(|e| wok::Error::from(&e))?;
+            let mut state = wok::State::new(&wok_file)?;
             match cmd_configured {
                 CommandConfigured::Add {
                     git_url,
                     module_path,
-                } => wok::cmd::add(config, git_url, module_path)?,
+                } => {
+                    wok::cmd::add(&mut state, git_url, module_path)?;
+                    state.into_config()
+                },
             }
         },
     };
