@@ -16,7 +16,10 @@ impl State {
         let projects = config
             .repos
             .iter()
-            .map(|repo| git2::Repository::open(&repo.path).unwrap())
+            .map(|repo| {
+                git2::Repository::open(umbrella.workdir().unwrap().join(&repo.path))
+                    .unwrap()
+            })
             .collect();
         Ok(Self {
             config,

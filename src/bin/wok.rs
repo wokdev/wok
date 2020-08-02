@@ -96,7 +96,7 @@ fn main() -> Result<(), wok::Error> {
                     git_url,
                     module_path,
                 } => {
-                    wok::cmd::add(&mut state, git_url, module_path)?;
+                    wok::cmd::add(&mut state, &git_url, &module_path)?;
                     state.into_config()
                 },
             }

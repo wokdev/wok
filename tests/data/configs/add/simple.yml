@@ -1,0 +1,7 @@
+---
+version: "1.0"
+ref: main
+repos:
+  - url: "../simple"
+    path: added
+    ref: main

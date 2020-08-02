@@ -1,6 +1,5 @@
 use pretty_assertions::assert_eq;
 use rstest::*;
-use serial_test::*;
 
 use wok::cmd;
 

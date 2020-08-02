@@ -2,6 +2,7 @@ use assert_fs::prelude::*;
 use rstest::*;
 use std::{env, fs, path::PathBuf};
 
+mod add;
 mod init;
 
 #[fixture]
