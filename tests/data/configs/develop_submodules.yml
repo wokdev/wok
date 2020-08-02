@@ -1,0 +1,10 @@
+---
+version: "1.0"
+ref: develop
+repos:
+  - url: "../simple"
+    path: simple-a
+    ref: develop
+  - url: "../simple"
+    path: simple-b
+    ref: develop

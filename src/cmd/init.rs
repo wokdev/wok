@@ -91,7 +91,7 @@ mod test {
 
     struct TestRepo {
         _temp_dir: assert_fs::TempDir,
-        _repo_path: PathBuf,
+        repo_path: PathBuf,
         cwd: PathBuf,
     }
     impl TestRepo {
@@ -113,7 +113,7 @@ mod test {
             env::set_current_dir(&repo_path).unwrap();
             Self {
                 _temp_dir: temp_dir,
-                _repo_path: repo_path,
+                repo_path,
                 cwd,
             }
         }
@@ -170,6 +170,55 @@ mod test {
     #[serial]
     fn with_submodules_using_defaults(repo_sample: TestRepo, expected_config: String) {
         let actual_config = init(None, false).unwrap().dump().unwrap();
+        assert_eq!(actual_config, expected_config);
+    }
+
+    #[rstest(repo_sample("submodules"), expected_config("simple.yml"))]
+    #[serial]
+    fn with_submodules_using_no_introspect(
+        repo_sample: TestRepo,
+        expected_config: String,
+    ) {
+        let actual_config = init(None, true).unwrap().dump().unwrap();
+        assert_eq!(actual_config, expected_config);
+    }
+
+    #[rstest(repo_sample("simple"), expected_config("develop.yml"))]
+    #[serial]
+    fn simple_using_custom_main_branch(repo_sample: TestRepo, expected_config: String) {
+        let test_repo = git2::Repository::open(&repo_sample.repo_path).unwrap();
+        test_repo
+            .branch(
+                "develop",
+                &test_repo.head().unwrap().peel_to_commit().unwrap(),
+                false,
+            )
+            .unwrap();
+        let actual_config = init(Some(String::from("develop")), false)
+            .unwrap()
+            .dump()
+            .unwrap();
+        assert_eq!(actual_config, expected_config);
+    }
+
+    #[rstest(repo_sample("submodules"), expected_config("develop_submodules.yml"))]
+    #[serial]
+    fn with_submodules_using_custom_main_branch(
+        repo_sample: TestRepo,
+        expected_config: String,
+    ) {
+        let test_repo = git2::Repository::open(&repo_sample.repo_path).unwrap();
+        test_repo
+            .branch(
+                "develop",
+                &test_repo.head().unwrap().peel_to_commit().unwrap(),
+                false,
+            )
+            .unwrap();
+        let actual_config = init(Some(String::from("develop")), false)
+            .unwrap()
+            .dump()
+            .unwrap();
         assert_eq!(actual_config, expected_config);
     }
 }
