@@ -84,82 +84,92 @@ mod test {
     use serial_test::*;
     use std::{env, fs};
 
+    #[fixture]
+    fn data_dir() -> PathBuf {
+        (PathBuf::from(env!("CARGO_MANIFEST_DIR"))).join("tests/data")
+    }
+
+    struct TestRepo {
+        _temp_dir: assert_fs::TempDir,
+        _repo_path: PathBuf,
+        cwd: PathBuf,
+    }
+    impl TestRepo {
+        fn new(data_dir: &PathBuf, repo_name: &str) -> Self {
+            let temp_dir = assert_fs::TempDir::new().unwrap();
+            temp_dir
+                .copy_from(
+                    data_dir.join("repos"),
+                    &[&(String::from(repo_name) + "/**")],
+                )
+                .unwrap();
+            let repo_path = temp_dir.path().join(repo_name);
+            let git_files = Self::find_git_files(&repo_path);
+            for git_file in git_files {
+                fs::rename(&git_file, &git_file.parent().unwrap().join(".git"))
+                    .unwrap();
+            }
+            let cwd = env::current_dir().unwrap();
+            env::set_current_dir(&repo_path).unwrap();
+            Self {
+                _temp_dir: temp_dir,
+                _repo_path: repo_path,
+                cwd,
+            }
+        }
+
+        fn find_git_files(path: &PathBuf) -> Vec<PathBuf> {
+            let mut git_files = vec![];
+            for entry in fs::read_dir(&path).unwrap() {
+                let entry_path: PathBuf = entry.unwrap().path();
+                if entry_path.file_name().unwrap() == "_git" {
+                    git_files.push(entry_path);
+                } else if entry_path.is_dir() {
+                    git_files.extend(Self::find_git_files(&entry_path))
+                };
+            }
+            git_files
+        }
+    }
+
+    impl Drop for TestRepo {
+        fn drop(&mut self) {
+            env::set_current_dir(&self.cwd).unwrap();
+        }
+    }
+
+    #[fixture(repo_name = "")]
+    fn repo_sample(repo_name: &str, data_dir: PathBuf) -> TestRepo {
+        TestRepo::new(&data_dir, repo_name)
+    }
+
     #[fixture(config_name = "")]
-    fn expected_config(config_name: &str) -> String {
-        fs::read_to_string(PathBuf::from("tests/data/configs").join(config_name))
-            .unwrap()
+    fn expected_config(config_name: &str, data_dir: PathBuf) -> String {
+        fs::read_to_string(data_dir.join("configs").join(config_name)).unwrap()
     }
 
-    #[rstest(expected_config("simple.yml"))]
+    // TODO: see https://github.com/la10736/rstest/issues/29
+    #[rstest(repo_sample("simple"), expected_config("simple.yml"))]
     #[serial]
-    fn in_a_single_repo_using_defaults(expected_config: String) {
-        let repo_dir = assert_fs::TempDir::new().unwrap();
-        repo_dir
-            .copy_from("tests/data/repos", &["simple/**"])
-            .unwrap();
-        let repo_path = repo_dir.path().join("simple");
-        fs::rename(repo_path.join("_git"), repo_path.join(".git")).unwrap();
-        let cwd = env::current_dir().unwrap();
-        env::set_current_dir(&repo_path).unwrap();
-
+    fn in_a_single_repo_using_defaults(repo_sample: TestRepo, expected_config: String) {
         let actual_config = init(None, false).unwrap().dump().unwrap();
         assert_eq!(actual_config, expected_config);
-
-        env::set_current_dir(cwd).unwrap();
-        repo_dir.close().unwrap();
     }
 
-    #[rstest(expected_config("simple.yml"))]
+    #[rstest(repo_sample("no-root"), expected_config("simple.yml"))]
     #[serial]
-    fn in_a_rootless_repo_using_defaults(expected_config: String) {
-        let repo_dir = assert_fs::TempDir::new().unwrap();
-        repo_dir
-            .copy_from("tests/data/repos", &["no-root/**"])
-            .unwrap();
-        let repo_path = repo_dir.path().join("no-root");
-        fs::rename(repo_path.join("_git"), repo_path.join(".git")).unwrap();
-        let cwd = env::current_dir().unwrap();
-        env::set_current_dir(&repo_path).unwrap();
-
+    fn in_a_rootless_repo_using_defaults(
+        repo_sample: TestRepo,
+        expected_config: String,
+    ) {
         let actual_config = init(None, false).unwrap().dump().unwrap();
         assert_eq!(actual_config, expected_config);
-
-        env::set_current_dir(cwd).unwrap();
-        repo_dir.close().unwrap();
     }
 
-    fn find_git_files(path: &PathBuf) -> Vec<PathBuf> {
-        let mut git_files = vec![];
-        for entry in fs::read_dir(&path).unwrap() {
-            let entry_path: PathBuf = entry.unwrap().path();
-            if entry_path.file_name().unwrap() == "_git" {
-                git_files.push(entry_path);
-            } else if entry_path.is_dir() {
-                git_files.extend(find_git_files(&entry_path))
-            };
-        }
-        git_files
-    }
-
-    #[rstest(expected_config("submodules.yml"))]
+    #[rstest(repo_sample("submodules"), expected_config("submodules.yml"))]
     #[serial]
-    fn with_submodules_using_defaults(expected_config: String) {
-        let repo_dir = assert_fs::TempDir::new().unwrap();
-        repo_dir
-            .copy_from("tests/data/repos", &["submodules/**"])
-            .unwrap();
-        let repo_path = repo_dir.path().join("submodules");
-        let git_files = find_git_files(&repo_path);
-        for git_file in git_files {
-            fs::rename(&git_file, &git_file.parent().unwrap().join(".git")).unwrap();
-        }
-        let cwd = env::current_dir().unwrap();
-        env::set_current_dir(&repo_path).unwrap();
-
+    fn with_submodules_using_defaults(repo_sample: TestRepo, expected_config: String) {
         let actual_config = init(None, false).unwrap().dump().unwrap();
         assert_eq!(actual_config, expected_config);
-
-        env::set_current_dir(cwd).unwrap();
-        repo_dir.close().unwrap();
     }
 }
