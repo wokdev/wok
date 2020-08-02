@@ -13,7 +13,7 @@ struct Opt {
     #[structopt(short("f"), long, parse(from_os_str))]
     wok_file: Option<PathBuf>,
 
-    #[structopt(subcommand)] // Note that we mark a field as a subcommand
+    #[structopt(subcommand)]
     cmd: Command,
 }
 
@@ -37,6 +37,25 @@ enum Command {
         #[structopt(short, long, help("Disables submodule introspection."))]
         no_introspect: bool,
     },
+
+    #[structopt(flatten)]
+    CommandConfigured(CommandConfigured),
+}
+
+#[derive(Debug, StructOpt)]
+enum CommandConfigured {
+    /// Adds a new project to the workspace.
+    /// Note: An existing submodule could be imported using `wok import command`
+    Add {
+        #[structopt(help("Git repo url."))]
+        git_url: String,
+
+        #[structopt(
+            parse(from_os_str),
+            help("Path inside the umbrella repo to create submodule at.")
+        )]
+        module_path: PathBuf,
+    },
 }
 
 fn main() -> Result<(), wok::Error> {
@@ -51,30 +70,35 @@ fn main() -> Result<(), wok::Error> {
             .join("wok.yml"),
     };
 
-    match opt.cmd {
-        Command::Init { .. } => {
+    let config = match opt.cmd {
+        Command::Init {
+            main_branch,
+            no_introspect,
+        } => {
             if wok_file.exists() {
                 return Err(wok::Error::new(format!(
                     "Config already exists at `{}`",
                     wok_file.to_string_lossy()
                 )));
-            }
+            };
+            wok::cmd::init(main_branch, no_introspect)?
         },
-        _ => {
+        Command::CommandConfigured(cmd_configured) => {
             if !wok_file.exists() {
                 return Err(wok::Error::new(format!(
                     "Config not found at `{}`",
                     wok_file.to_string_lossy()
                 )));
+            };
+            let config =
+                wok::Config::load(&wok_file).map_err(|e| wok::Error::from(&e))?;
+            match cmd_configured {
+                CommandConfigured::Add {
+                    git_url,
+                    module_path,
+                } => wok::cmd::add(config, git_url, module_path)?,
             }
         },
-    };
-
-    let config = match opt.cmd {
-        Command::Init {
-            main_branch,
-            no_introspect,
-        } => wok::cmd::init(main_branch, no_introspect)?,
     };
 
     config.save(&wok_file).map_err(|e| wok::Error::from(&e))?;
