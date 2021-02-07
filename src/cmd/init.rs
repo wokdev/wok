@@ -26,11 +26,10 @@ pub fn init(
                 .head_detached()
                 .expect("Error finding umbrella repo head")
             {
-                return Err(crate::Error::new(
+                return Err(crate::Error::new(String::from(
                     "Umbrella repo head is detached, provide main branch name \
-                     explicitly!"
-                        .to_string(),
-                ));
+                     explicitly!",
+                )));
             };
             let head_ref = umbrella_repo
                 .find_reference("HEAD")

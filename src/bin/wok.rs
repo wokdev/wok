@@ -1,65 +1,62 @@
+use clap::Clap;
 use std::path::PathBuf;
-use structopt::StructOpt;
 use wok;
 
-#[derive(Debug, StructOpt)]
-#[structopt(
+#[derive(Debug, Clap)]
+#[clap(
     name = "wok",
     about = "Wok -- control several git repositories as a single project."
 )]
-struct Opt {
+struct Opts {
     /// Wok workspace file path. Defaults to `wok.yml` in the umbrella repo
     /// root.
-    #[structopt(short("f"), long, parse(from_os_str))]
+    #[clap(short('f'), long, parse(from_os_str))]
     wok_file: Option<PathBuf>,
 
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     cmd: Command,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Clap)]
 enum Command {
     /// Inits the wok file in the workspace "umbrella" repo.
     /// Requires the git repo to be inited already.
     /// Introspects existing submodules and adds them to the workspace config
     /// setting their branch to the `main-branch`.
     Init {
-        #[structopt(
-            short,
-            long,
-            help(
-                "Sets the workspace main branch to `main-branch` if provided \
-                 otherwise uses the currently active branch in the \"umbrella\" repo."
-            )
-        )]
+        /// Sets the workspace main branch to `main-branch` if provided
+        /// otherwise uses the currently active branch in the "umbrella"
+        /// repo.
+        #[clap(short, long)]
         main_branch: Option<String>,
 
-        #[structopt(short, long, help("Disables submodule introspection."))]
+        /// Disables submodule introspection.
+        #[clap(short, long)]
         no_introspect: bool,
     },
 
-    #[structopt(flatten)]
+    #[clap(flatten)]
     CommandConfigured(CommandConfigured),
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Clap)]
 enum CommandConfigured {
     /// Adds a new project to the workspace.
-    /// Note: An existing submodule could be imported using `wok import` command
+    /// Note: An existing submodule could be imported using `wok import`
+    /// command.
     Add {
-        #[structopt(help("Git repo url."))]
+        /// Git repo url.
+        #[clap()]
         git_url: String,
 
-        #[structopt(
-            parse(from_os_str),
-            help("Path inside the umbrella repo to create submodule at.")
-        )]
+        /// Path inside the umbrella repo to create submodule at.
+        #[clap(parse(from_os_str))]
         module_path: PathBuf,
     },
 }
 
 fn main() -> Result<(), wok::Error> {
-    let opt = Opt::from_args();
+    let opt = Opts::parse();
 
     let wok_file = match opt.wok_file {
         Some(path) => path,
@@ -96,10 +93,10 @@ fn main() -> Result<(), wok::Error> {
                     git_url,
                     module_path,
                 } => {
-                    wok::cmd::add(&mut state, &git_url, &module_path)?;
-                    state.into_config()
+                    wok::cmd::add(&mut state, git_url, module_path)?;
                 },
             }
+            state.into_config()
         },
     };
 

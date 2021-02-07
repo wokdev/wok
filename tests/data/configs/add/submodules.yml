@@ -8,6 +8,6 @@ repos:
   - url: "../simple"
     path: simple-b
     ref: main
-  - url: "../simple"
+  - url: "../submodules"
     path: added
     ref: main

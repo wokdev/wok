@@ -1,7 +1,6 @@
-use pretty_assertions::assert_eq;
-use rstest::*;
-
 use super::*;
+use pretty_assertions::assert_eq;
+use std::path;
 use wok::{self, cmd};
 
 #[rstest(repo_sample("simple"), expected_config("add/simple.yml"))]
@@ -11,8 +10,11 @@ fn local_repo(repo_sample: TestRepo, expected_config: String) {
     let mut state = wok::State::new(&repo_sample.repo_path.join("wok.yml")).unwrap();
     cmd::add(
         &mut state,
-        &repo_sample.repo_path.to_str().unwrap(),
-        &repo_sample.repo_path.join("added"),
+        format!(
+            "../{}",
+            repo_sample.repo_path.file_name().unwrap().to_string_lossy()
+        ),
+        path::PathBuf::from("added"),
     )
     .unwrap();
     let actual_config = state.into_config().dump().unwrap();
@@ -26,8 +28,11 @@ fn local_repo_to_existing_submodules(repo_sample: TestRepo, expected_config: Str
     let mut state = wok::State::new(&repo_sample.repo_path.join("wok.yml")).unwrap();
     cmd::add(
         &mut state,
-        &repo_sample.repo_path.to_str().unwrap(),
-        &repo_sample.repo_path.join("added"),
+        format!(
+            "../{}",
+            repo_sample.repo_path.file_name().unwrap().to_string_lossy()
+        ),
+        path::PathBuf::from("added"),
     )
     .unwrap();
     let actual_config = state.into_config().dump().unwrap();
