@@ -1,6 +1,6 @@
 [package]
 name = "wok"
-version = "0.3.0"
+version = "0.3.0-dev"
 authors = ["Serge Matveenko <lig@countzero.co>"]
 edition = "2018"
 
