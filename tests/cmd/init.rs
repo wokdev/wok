@@ -6,7 +6,7 @@ use wok::cmd;
 use super::*;
 
 // TODO: see https://github.com/la10736/rstest/issues/29
-#[rstest(repo_sample("simple"), expected_config("init/simple.yml"))]
+#[rstest(repo_sample("simple"), expected_config("init/simple.yaml"))]
 fn in_a_single_repo_using_defaults(repo_sample: TestRepo, expected_config: String) {
     let actual_config = cmd::init(&repo_sample.repo_path, None, false)
         .unwrap()
@@ -15,7 +15,7 @@ fn in_a_single_repo_using_defaults(repo_sample: TestRepo, expected_config: Strin
     assert_eq!(actual_config, expected_config);
 }
 
-#[rstest(repo_sample("no-root"), expected_config("init/simple.yml"))]
+#[rstest(repo_sample("no-root"), expected_config("init/simple.yaml"))]
 fn in_a_rootless_repo_using_defaults(repo_sample: TestRepo, expected_config: String) {
     let actual_config = cmd::init(&repo_sample.repo_path, None, false)
         .unwrap()
@@ -24,7 +24,7 @@ fn in_a_rootless_repo_using_defaults(repo_sample: TestRepo, expected_config: Str
     assert_eq!(actual_config, expected_config);
 }
 
-#[rstest(repo_sample("submodules"), expected_config("init/submodules.yml"))]
+#[rstest(repo_sample("submodules"), expected_config("init/submodules.yaml"))]
 fn with_submodules_using_defaults(repo_sample: TestRepo, expected_config: String) {
     let actual_config = cmd::init(&repo_sample.repo_path, None, false)
         .unwrap()
@@ -33,7 +33,7 @@ fn with_submodules_using_defaults(repo_sample: TestRepo, expected_config: String
     assert_eq!(actual_config, expected_config);
 }
 
-#[rstest(repo_sample("submodules"), expected_config("init/simple.yml"))]
+#[rstest(repo_sample("submodules"), expected_config("init/simple.yaml"))]
 fn with_submodules_using_no_introspect(repo_sample: TestRepo, expected_config: String) {
     let actual_config = cmd::init(&repo_sample.repo_path, None, true)
         .unwrap()
@@ -42,7 +42,7 @@ fn with_submodules_using_no_introspect(repo_sample: TestRepo, expected_config: S
     assert_eq!(actual_config, expected_config);
 }
 
-#[rstest(repo_sample("simple"), expected_config("init/develop.yml"))]
+#[rstest(repo_sample("simple"), expected_config("init/develop.yaml"))]
 fn simple_using_custom_main_branch(repo_sample: TestRepo, expected_config: String) {
     let test_repo = git2::Repository::open(&repo_sample.repo_path).unwrap();
     test_repo
@@ -62,7 +62,7 @@ fn simple_using_custom_main_branch(repo_sample: TestRepo, expected_config: Strin
 
 #[rstest(
     repo_sample("submodules"),
-    expected_config("init/develop_submodules.yml")
+    expected_config("init/develop_submodules.yaml")
 )]
 fn with_submodules_using_custom_main_branch(
     repo_sample: TestRepo,

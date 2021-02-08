@@ -18,9 +18,9 @@ impl Repo {
     }
 }
 
-/// Config schema for `wok.yml`
+/// Config schema for `wok.yaml`
 ///
-/// A repository containing `wok.yml` file serves as an "umbrella" repo for a
+/// A repository containing `wok.yaml` file serves as an "umbrella" repo for a
 /// workspace containing several repos.
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]

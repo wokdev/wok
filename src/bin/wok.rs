@@ -8,7 +8,7 @@ use wok;
     about = "Wok -- control several git repositories as a single project."
 )]
 struct Opts {
-    /// Wok workspace file path. Defaults to `wok.yml` in the umbrella repo
+    /// Wok workspace file path. Defaults to `wok.yaml` in the umbrella repo
     /// root.
     #[clap(short('f'), long, parse(from_os_str))]
     wok_file: Option<PathBuf>,
@@ -64,7 +64,7 @@ fn main() -> Result<(), wok::Error> {
             .map_err(|e| wok::Error::from(&e))?
             .workdir()
             .unwrap()
-            .join("wok.yml"),
+            .join("wok.yaml"),
     };
 
     let config = match opt.cmd {
