@@ -64,7 +64,7 @@ pub fn init(
                 let module_path = path::PathBuf::from(submodule.path());
                 eprintln!("Found submodule at `{}`", module_path.to_string_lossy());
                 crate::config::Repo {
-                    url: submodule.url().map(|url| String::from(url)),
+                    url: submodule.url().map(String::from),
                     path: module_path,
                     ref_: main_branch.clone(),
                 }

@@ -30,7 +30,7 @@ pub fn add(
         .map_err(|e| crate::Error::from(&e))?;
 
     state.config.repos.push(crate::config::Repo {
-        url: Some(String::from(git_url)),
+        url: Some(git_url),
         path: path::PathBuf::from(added_submodule.path()),
         ref_: String::from(added_submodule_repo.head().unwrap().shorthand().unwrap()),
     });

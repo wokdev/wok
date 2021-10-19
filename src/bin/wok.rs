@@ -1,8 +1,7 @@
-use clap::Clap;
+use clap::Parser;
 use std::path::PathBuf;
-use wok;
 
-#[derive(Debug, Clap)]
+#[derive(Debug, Parser)]
 #[clap(
     name = "wok",
     about = "Wok -- control several git repositories as a single project."
@@ -17,7 +16,7 @@ struct Opts {
     cmd: Command,
 }
 
-#[derive(Debug, Clap)]
+#[derive(Debug, Parser)]
 enum Command {
     /// Inits the wok file in the workspace "umbrella" repo.
     /// Requires the git repo to be inited already.
@@ -39,7 +38,7 @@ enum Command {
     CommandConfigured(CommandConfigured),
 }
 
-#[derive(Debug, Clap)]
+#[derive(Debug, Parser)]
 enum CommandConfigured {
     /// Adds a new project to the workspace.
     /// Note: An existing submodule could be imported using `wok import`

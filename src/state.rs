@@ -1,4 +1,3 @@
-use git2;
 use std::{fmt, path};
 
 pub struct State {
