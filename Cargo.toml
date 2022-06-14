@@ -5,12 +5,12 @@ authors = ["Serge Matveenko <lig@countzero.co>"]
 edition = "2018"
 
 [dependencies]
-git2 = "0.13.14"
-serde = { version = "1.0.118", features = ["derive"] }
-serde_yaml = "0.8.14"
-clap = "3.0.0-beta.5"
+clap = { version = "3.2.4", features = ["derive"] }
+git2 = "0.14.4"
+serde = { version = "1.0.137", features = ["derive"] }
+serde_yaml = "0.8.24"
 
 [dev-dependencies]
-assert_fs = "1.0.0"
-pretty_assertions = "1.0.0"
-rstest = "0.11.0"
+assert_fs = "1.0.7"
+pretty_assertions = "1.2.1"
+rstest = "0.13.0"
