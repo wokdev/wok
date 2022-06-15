@@ -5,7 +5,7 @@ authors = ["Serge Matveenko <lig@countzero.co>"]
 edition = "2021"
 
 [dependencies]
-clap = { version = "3.2.4", features = ["derive"] }
+clap = { version = "3.2.5", features = ["derive"] }
 git2 = "0.14.4"
 serde = { version = "1.0.137", features = ["derive"] }
 serde_yaml = "0.8.24"
