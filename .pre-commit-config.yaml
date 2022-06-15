@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.1.0
+    rev: v4.3.0
     hooks:
       - id: trailing-whitespace
         exclude: >
@@ -24,7 +24,7 @@ repos:
         types: [rust]
         args: ["--"]
   - repo: https://github.com/doublify/pre-commit-rust
-    rev: 14b3e118cfc36fb87d8d9cbd1305a2238fd85868
+    rev: v1.0
     hooks:
       - id: cargo-check
       - id: clippy
