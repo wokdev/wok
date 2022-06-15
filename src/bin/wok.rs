@@ -1,3 +1,4 @@
+use anyhow::{bail, Result};
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -54,13 +55,12 @@ enum CommandConfigured {
     },
 }
 
-fn main() -> Result<(), wok::Error> {
+fn main() -> Result<()> {
     let opt = Opts::parse();
 
     let wok_file = match opt.wok_file {
         Some(path) => path,
-        None => git2::Repository::open_from_env()
-            .map_err(|e| wok::Error::from(&e))?
+        None => git2::Repository::open_from_env()?
             .workdir()
             .unwrap()
             .join("wok.yaml"),
@@ -72,19 +72,13 @@ fn main() -> Result<(), wok::Error> {
             no_introspect,
         } => {
             if wok_file.exists() {
-                return Err(wok::Error::new(format!(
-                    "Config already exists at `{}`",
-                    wok_file.to_string_lossy()
-                )));
+                bail!("Config already exists at `{}`", wok_file.to_string_lossy());
             };
             wok::cmd::init(wok_file.parent().unwrap(), main_branch, no_introspect)?
         },
         Command::CommandConfigured(cmd_configured) => {
             if !wok_file.exists() {
-                return Err(wok::Error::new(format!(
-                    "Config not found at `{}`",
-                    wok_file.to_string_lossy()
-                )));
+                bail!("Config not found at `{}`", wok_file.to_string_lossy());
             };
             let mut state = wok::State::new(&wok_file)?;
             match cmd_configured {
@@ -99,11 +93,11 @@ fn main() -> Result<(), wok::Error> {
         },
     };
 
-    config.save(&wok_file).map_err(|e| wok::Error::from(&e))?;
+    config.save(&wok_file)?;
 
     assert!(wok_file.exists());
 
-    let config = wok::Config::load(&wok_file).map_err(|e| wok::Error::from(&e))?;
+    let config = wok::Config::load(&wok_file)?;
 
     eprintln!("{:?}", config);
 

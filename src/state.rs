@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::{fmt, path};
 
 pub struct State {
@@ -7,11 +8,9 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(config_path: &path::Path) -> Result<Self, crate::Error> {
-        let config =
-            crate::Config::load(config_path).map_err(|e| crate::Error::from(&e))?;
-        let umbrella = git2::Repository::open(&config_path.parent().unwrap())
-            .map_err(|e| crate::Error::from(&e))?;
+    pub fn new(config_path: &path::Path) -> Result<Self> {
+        let config = crate::Config::load(config_path)?;
+        let umbrella = git2::Repository::open(&config_path.parent().unwrap())?;
         let projects = config
             .repos
             .iter()

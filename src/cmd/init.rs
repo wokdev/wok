@@ -1,3 +1,4 @@
+use anyhow::{bail, Result};
 use git2;
 use std::path;
 
@@ -5,9 +6,8 @@ pub fn init(
     umbrella_path: &path::Path,
     main_branch: Option<String>,
     no_introspect: bool,
-) -> Result<crate::Config, crate::Error> {
-    let umbrella_repo =
-        git2::Repository::open(umbrella_path).map_err(|e| crate::Error::from(&e))?;
+) -> Result<crate::Config> {
+    let umbrella_repo = git2::Repository::open(umbrella_path)?;
     eprintln!(
         "Found git repo at `{}`",
         umbrella_repo.workdir().unwrap().to_string_lossy()
@@ -15,10 +15,8 @@ pub fn init(
 
     let main_branch = match main_branch {
         Some(main_branch) => umbrella_repo
-            .find_branch(&main_branch, git2::BranchType::Local)
-            .map_err(|e| crate::Error::from(&e))?
-            .name()
-            .map_err(|e| crate::Error::from(&e))?
+            .find_branch(&main_branch, git2::BranchType::Local)?
+            .name()?
             .unwrap()
             .to_string(),
         None => {
@@ -26,19 +24,12 @@ pub fn init(
                 .head_detached()
                 .expect("Error finding umbrella repo head")
             {
-                return Err(crate::Error::new(String::from(
-                    "Umbrella repo head is detached, provide main branch name \
-                     explicitly!",
-                )));
+                bail!("Umbrella repo head is detached, provide main branch name explicitly!");
             };
-            let head_ref = umbrella_repo
-                .find_reference("HEAD")
-                .map_err(|e| crate::Error::from(&e))?;
+            let head_ref = umbrella_repo.find_reference("HEAD")?;
             let head_target = head_ref.symbolic_target().unwrap();
             if !head_target.starts_with("refs/heads/") {
-                return Err(crate::Error::new(
-                    "HEAD of umbrella repo doesn't point to a local branch".to_string(),
-                ));
+                bail!("HEAD of umbrella repo doesn't point to a local branch");
             }
             head_target[11..].to_string()
         },
@@ -50,9 +41,7 @@ pub fn init(
             eprintln!("Skipping submodule introspection.");
             vec![]
         },
-        false => umbrella_repo
-            .submodules()
-            .map_err(|e| crate::Error::from(&e))?,
+        false => umbrella_repo.submodules()?,
     };
 
     let config = crate::Config {
