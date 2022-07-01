@@ -1,0 +1,10 @@
+---
+version: "1.0"
+ref: main
+repos:
+  - url: "../submodules"
+    path: sub-a
+    ref: main
+  - url: "../submodules"
+    path: sub-b
+    ref: main

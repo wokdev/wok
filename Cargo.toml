@@ -5,8 +5,8 @@ authors = ["Serge Matveenko <lig@countzero.co>"]
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.57"
-clap = { version = "3.2.5", features = ["derive"] }
+anyhow = "1.0.58"
+clap = { version = "3.2.8", features = ["derive"] }
 git2 = "0.14.4"
 serde = { version = "1.0.137", features = ["derive"] }
 serde_yaml = "0.8.24"
@@ -14,4 +14,5 @@ serde_yaml = "0.8.24"
 [dev-dependencies]
 assert_fs = "1.0.7"
 pretty_assertions = "1.2.1"
-rstest = "0.13.0"
+rstest = "0.15.0"
+shell-words = "1.1.0"

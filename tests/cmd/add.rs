@@ -23,7 +23,7 @@ fn local_repo(repo_sample: TestRepo, expected_config: String) {
     assert_eq!(actual_config, expected_config);
 }
 
-#[rstest(repo_sample("submodules"), expected_config("add/submodules.yaml"))]
+#[rstest(repo_sample("submodules", vec!["sub-a", "sub-b"]), expected_config("add/submodules.yaml"))]
 fn local_repo_to_existing_submodules(repo_sample: TestRepo, expected_config: String) {
     let config = cmd::init(&repo_sample.repo_path, None, false).unwrap();
     config
