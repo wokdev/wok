@@ -8,9 +8,6 @@
 //! See [Wok's README](https://github.com/lig/wok/blob/master/README.md) and `wok --help` for details on how to use the tool.
 
 mod config;
-mod state;
+mod repo;
 
 pub mod cmd;
-
-pub use config::{Config, CONFIG_CURRENT_VERSION};
-pub use state::State;
