@@ -11,6 +11,8 @@ pub struct Repo {
 
 impl Repo {
     pub fn new(work_dir: &path::Path, head_name: Option<&str>) -> Result<Self> {
+        println!("Reading repo at `{}`", work_dir.display());
+
         let git_repo = git2::Repository::open(work_dir)
             .with_context(|| format!("Cannot open repo at `{}`", work_dir.display()))?;
 
@@ -55,6 +57,7 @@ impl Repo {
             .map(|submodule| Repo::new(&work_dir.join(submodule.path()), Some(&head)))
             .collect::<Result<Vec<Repo>>>()?;
 
+        println!("Successfully read repo at `{}`", work_dir.display());
         Ok(Repo {
             git_repo,
             work_dir: path::PathBuf::from(work_dir),

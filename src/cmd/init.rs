@@ -4,7 +4,7 @@ use std::{env, path};
 use crate::{config, repo};
 
 pub fn init(config_path: &path::Path, sync: bool) -> Result<()> {
-    let mut config = config::Config::new();
+    let mut wok_config: config::Config = Default::default();
 
     let umbrella = repo::Repo::new(
         config_path.parent().with_context(|| {
@@ -16,7 +16,7 @@ pub fn init(config_path: &path::Path, sync: bool) -> Result<()> {
     for repo in umbrella.subrepos.iter() {
         let repo_path = repo.work_dir.strip_prefix(&umbrella.work_dir)?;
 
-        config.add_repo(repo_path, &repo.head);
+        wok_config.add_repo(repo_path, &repo.head);
 
         if sync {
             repo.sync()?;
@@ -28,7 +28,7 @@ pub fn init(config_path: &path::Path, sync: bool) -> Result<()> {
         }
     }
 
-    config.save(config_path)?;
+    wok_config.save(config_path)?;
     println!(
         "Created config at `{}`",
         config_path

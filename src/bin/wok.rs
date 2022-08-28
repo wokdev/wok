@@ -14,7 +14,7 @@ struct Args {
         short('f'),
         long,
         value_parser,
-        default_value = "wok.yaml"
+        default_value = wok::DEFAULT_CONFIG_NAME,
     )]
     wok_file_path: path::PathBuf,
 

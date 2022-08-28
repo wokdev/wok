@@ -46,11 +46,14 @@ impl Config {
 
     /// Loads the workspace config from a file at the `config_path`.
     pub fn load(config_path: &path::Path) -> Result<Config> {
-        let config = serde_yaml::from_str(
-            &fs::read_to_string(config_path).context("Cannot read the wok file")?,
-        )
-        .context("Cannot parse the wok file")?;
+        let config = serde_yaml::from_str(&Self::read(config_path)?)
+            .context("Cannot parse the wok file")?;
         Ok(config)
+    }
+
+    /// Reads the config file into a string (useful mainly for testing).
+    pub fn read(config_path: &path::Path) -> Result<String> {
+        fs::read_to_string(config_path).context("Cannot read the wok file")
     }
 
     /// Saves the workspace config to a file.
@@ -66,5 +69,11 @@ impl Config {
 
     fn has_repo_path(&self, path: &path::Path) -> bool {
         self.repos.iter().any(|repo| repo.path == path)
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config::new()
     }
 }

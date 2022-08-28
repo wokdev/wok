@@ -1,4 +1,2 @@
----
-version: "1.0"
-ref: main
+version: '1.0'
 repos: []
