@@ -1,16 +1,16 @@
 use pretty_assertions::assert_eq;
 use rstest::*;
 
-use wok::{cmd, config::Config, DEFAULT_CONFIG_NAME};
+use wok::{cmd, config::Config};
 
 use super::*;
 
 // TODO: see https://github.com/la10736/rstest/issues/29
 #[rstest(repo_sample("simple"), expected_config("init/simple.yaml"))]
 fn in_a_single_repo(repo_sample: TestRepo, expected_config: String) {
-    let config_path = repo_sample.repo_path.join(DEFAULT_CONFIG_NAME);
+    let config_path = repo_sample.config_path();
 
-    cmd::init(&config_path, false).unwrap();
+    cmd::init(&config_path, &repo_sample.repo(), false).unwrap();
     let actual_config = Config::read(&config_path).unwrap();
 
     assert_eq!(actual_config, expected_config);
@@ -18,9 +18,9 @@ fn in_a_single_repo(repo_sample: TestRepo, expected_config: String) {
 
 #[rstest(repo_sample("submodules", vec!["sub-a", "sub-b"]), expected_config("init/submodules.yaml"))]
 fn with_submodules(repo_sample: TestRepo, expected_config: String) {
-    let config_path = repo_sample.repo_path.join(DEFAULT_CONFIG_NAME);
+    let config_path = repo_sample.config_path();
 
-    cmd::init(&config_path, false).unwrap();
+    cmd::init(&config_path, &repo_sample.repo(), false).unwrap();
     let actual_config = Config::read(&config_path).unwrap();
 
     assert_eq!(actual_config, expected_config);
@@ -33,9 +33,9 @@ fn with_sync(repo_sample: TestRepo, expected_config: String) {
         &repo_sample.subrepo_paths.get("sub-a").unwrap(),
     )
     .unwrap();
-    let config_path = repo_sample.repo_path.join(DEFAULT_CONFIG_NAME);
+    let config_path = repo_sample.config_path();
 
-    cmd::init(&config_path, true).unwrap();
+    cmd::init(&config_path, &repo_sample.repo(), true).unwrap();
     let actual_config = Config::read(&config_path).unwrap();
 
     assert_eq!(actual_config, expected_config);
@@ -56,9 +56,9 @@ fn without_sync(repo_sample: TestRepo, expected_config: String) {
         &repo_sample.subrepo_paths.get("sub-a").unwrap(),
     )
     .unwrap();
-    let config_path = repo_sample.repo_path.join(DEFAULT_CONFIG_NAME);
+    let config_path = repo_sample.config_path();
 
-    cmd::init(&config_path, false).unwrap();
+    cmd::init(&config_path, &repo_sample.repo(), false).unwrap();
     let actual_config = Config::read(&config_path).unwrap();
 
     assert_eq!(actual_config, expected_config);

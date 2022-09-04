@@ -27,29 +27,23 @@ enum Command {
     /// Inits the wok file in the workspace "umbrella" repo.
     /// Requires the git repo to be inited already.
     /// Introspects existing submodules and adds them to the workspace config
-    /// setting their branch to the `main-branch`.
+    /// optionally switching them to the same branch.
     Init {
         /// Switch all submodules to the branch matching umbrella's head branch.
         #[clap(long, action)]
         sync: bool,
     },
-    // #[clap(flatten)]
-    // CommandConfigured(CommandConfigured),
+    #[clap(flatten)]
+    WokCommand(WokCommand),
 }
 
 #[derive(Debug, Parser)]
-enum CommandConfigured {
-    /// Adds a new project to the workspace.
-    /// Note: An existing submodule could be imported using `wok import`
-    /// command.
+enum WokCommand {
+    /// Adds an existing submodule to the wok workspace.
     Add {
-        /// Git repo url.
-        #[clap()]
-        git_url: String,
-
-        /// Path inside the umbrella repo to create submodule at.
+        /// Path of the submodule relative to the umbrella repo.
         #[clap(parse(from_os_str))]
-        module_path: path::PathBuf,
+        submodule_path: path::PathBuf,
     },
 }
 
@@ -67,28 +61,37 @@ fn main() -> Result<()> {
         }
     };
 
+    let umbrella = wok::repo::Repo::new(
+        wok_file_path.parent().with_context(|| {
+            format!("Cannot open work dir for `{}`", wok_file_path.display())
+        })?,
+        None,
+    )?;
+
     match args.cmd {
         Command::Init { sync } => {
             if wok_file_path.exists() {
                 bail!("Wok file already exists at `{}`", wok_file_path.display());
             };
-            wok::cmd::init(&wok_file_path, sync)?
+            wok::cmd::init(&wok_file_path, &umbrella, sync)?
         },
-        // Command::CommandConfigured(cmd_configured) => {
-        //     if !wok_file_path.exists() {
-        //         bail!("Wok file not found at `{}`", wok_file_path.display());
-        //     };
-        //     let mut state = wok::State::new(&wok_file_path)?;
-        //     match cmd_configured {
-        //         CommandConfigured::Add {
-        //             git_url,
-        //             module_path,
-        //         } => {
-        //             wok::cmd::add(&mut state, git_url, module_path)?;
-        //         },
-        //     }
-        //     state.into_config()
-        // },
+        Command::WokCommand(wok_command) => {
+            if !wok_file_path.exists() {
+                bail!("Wok file not found at `{}`", wok_file_path.display());
+            };
+
+            let mut wok_config = wok::config::Config::load(&wok_file_path)?;
+
+            if match wok_command {
+                WokCommand::Add { submodule_path } => wok::cmd::add(
+                    &mut wok_config,
+                    &umbrella,
+                    &umbrella.work_dir.join(submodule_path),
+                )?,
+            } {
+                wok_config.save(&wok_file_path)?;
+            }
+        },
     };
 
     Ok(())

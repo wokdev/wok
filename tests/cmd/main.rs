@@ -1,8 +1,14 @@
 use anyhow::*;
 use rstest::*;
-use std::{collections::HashMap, env, fs, path::PathBuf, process};
+use std::{
+    collections::HashMap,
+    env, fs,
+    path::{self, PathBuf},
+    process,
+};
+use wok::{repo, DEFAULT_CONFIG_NAME};
 
-// mod add;
+mod add;
 mod init;
 
 #[fixture]
@@ -10,9 +16,18 @@ fn data_dir() -> PathBuf {
     (PathBuf::from(env!("CARGO_MANIFEST_DIR"))).join("tests/data")
 }
 
-#[fixture(repo_name = "", sub_repo_names = vec![])]
-fn repo_sample(repo_name: &str, sub_repo_names: Vec<&str>) -> TestRepo {
-    TestRepo::new(repo_name, sub_repo_names)
+#[fixture(repo_name = "", subrepo_names = vec![], with_config = None)]
+fn repo_sample(
+    repo_name: &str,
+    subrepo_names: Vec<&str>,
+    with_config: Option<&str>,
+    data_dir: PathBuf,
+) -> TestRepo {
+    TestRepo::new(
+        repo_name,
+        subrepo_names,
+        with_config.map(|config_name| data_dir.join(config_name)),
+    )
 }
 
 #[fixture(config_name = "")]
@@ -26,36 +41,26 @@ struct TestRepo {
     subrepo_paths: HashMap<String, PathBuf>,
 }
 impl TestRepo {
-    fn new(repo_name: &str, sub_repo_names: Vec<&str>) -> Self {
+    fn new(
+        repo_name: &str,
+        subrepo_names: Vec<&str>,
+        config_name: Option<PathBuf>,
+    ) -> Self {
         let temp_dir = assert_fs::TempDir::new().unwrap();
         let repo_path = temp_dir.path().join(repo_name);
 
         fs::create_dir(&repo_path).unwrap();
-
-        _run("git init", &repo_path).unwrap();
-        _run(
-            "git commit --allow-empty --allow-empty-message -m ''",
-            &repo_path,
-        )
-        .unwrap();
+        Self::init_repo(&repo_path);
 
         let mut subrepo_paths: HashMap<String, PathBuf> = HashMap::new();
 
-        for sub_repo_name in sub_repo_names {
-            let sub_repo_path = repo_path.join(&sub_repo_name);
-            _run(&format!("mkdir {}", sub_repo_name), &repo_path).unwrap();
-            _run("git init", &sub_repo_path).unwrap();
-            _run(
-                "git commit --allow-empty --allow-empty-message -m ''",
-                &sub_repo_path,
-            )
-            .unwrap();
-            _run(
-                &format!("git submodule add ./{} {}", &sub_repo_name, &sub_repo_name),
-                &repo_path,
-            )
-            .unwrap();
-            subrepo_paths.insert(String::from(sub_repo_name), sub_repo_path);
+        for subrepo_name in subrepo_names {
+            let subrepo_path = Self::create_submodule(&repo_path, subrepo_name);
+            subrepo_paths.insert(String::from(subrepo_name), subrepo_path);
+        }
+
+        if let Some(config_path) = config_name {
+            fs::copy(config_path, &repo_path.join(DEFAULT_CONFIG_NAME)).unwrap();
         }
 
         Self {
@@ -63,6 +68,42 @@ impl TestRepo {
             repo_path,
             subrepo_paths,
         }
+    }
+
+    pub fn repo(&self) -> repo::Repo {
+        repo::Repo::new(&self.repo_path, None).unwrap()
+    }
+
+    pub fn config_path(&self) -> path::PathBuf {
+        self.repo_path.join(DEFAULT_CONFIG_NAME)
+    }
+
+    pub fn add_submodule(&self, subrepo_name: &str) -> path::PathBuf {
+        Self::create_submodule(&self.repo_path, subrepo_name)
+    }
+
+    fn init_repo(repo_path: &PathBuf) {
+        _run("git init", repo_path).unwrap();
+        _run(
+            "git commit --allow-empty --allow-empty-message -m ''",
+            repo_path,
+        )
+        .unwrap();
+    }
+
+    fn create_submodule(repo_path: &PathBuf, submodule_name: &str) -> PathBuf {
+        let subrepo_path = repo_path.join(&submodule_name);
+        fs::create_dir(&subrepo_path).unwrap();
+        Self::init_repo(&subrepo_path);
+        _run(
+            &format!(
+                "git submodule add ./{submodule_name} {submodule_name}",
+                submodule_name = submodule_name
+            ),
+            repo_path,
+        )
+        .unwrap();
+        subrepo_path
     }
 }
 

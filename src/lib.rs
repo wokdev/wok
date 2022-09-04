@@ -7,9 +7,8 @@
 //!
 //! See [Wok's README](https://github.com/lig/wok/blob/master/README.md) and `wok --help` for details on how to use the tool.
 
-mod repo;
-
 pub mod cmd;
 pub mod config;
+pub mod repo;
 
 pub const DEFAULT_CONFIG_NAME: &str = "wok.yaml";

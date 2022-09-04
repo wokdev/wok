@@ -3,15 +3,8 @@ use std::{env, path};
 
 use crate::{config, repo};
 
-pub fn init(config_path: &path::Path, sync: bool) -> Result<()> {
+pub fn init(config_path: &path::Path, umbrella: &repo::Repo, sync: bool) -> Result<()> {
     let mut wok_config: config::Config = Default::default();
-
-    let umbrella = repo::Repo::new(
-        config_path.parent().with_context(|| {
-            format!("Cannot open work dir for `{}`", config_path.display())
-        })?,
-        None,
-    )?;
 
     for repo in umbrella.subrepos.iter() {
         let repo_path = repo.work_dir.strip_prefix(&umbrella.work_dir)?;

@@ -1,35 +1,34 @@
-use anyhow::{bail, Result};
+use anyhow::*;
 use std::path;
 
+use crate::{config, repo};
+
 pub fn add(
-    state: &mut crate::State,
-    git_url: String,
-    mut module_path: path::PathBuf,
-) -> Result<()> {
-    let umbrella_workdir = state.umbrella.workdir().unwrap();
+    wok_config: &mut config::Config,
+    umbrella: &repo::Repo,
+    submodule_path: &path::PathBuf,
+) -> Result<bool> {
+    let subrepo = umbrella
+        .get_subrepo_by_path(submodule_path)
+        .with_context(|| {
+            format!("Cannot find submodule at `{}`", submodule_path.display())
+        })?;
 
-    if !module_path.is_absolute() {
-        module_path = umbrella_workdir.join(module_path)
+    if !wok_config.add_repo(
+        subrepo.work_dir.strip_prefix(&umbrella.work_dir)?,
+        &subrepo.head,
+    ) {
+        println!(
+            "Not adding existing subrepo at `{}`",
+            &subrepo.work_dir.display()
+        );
+        return Ok(false);
     }
-    if !module_path.starts_with(umbrella_workdir) {
-        bail!("Submodule path is outside the repo workdir!");
-    }
-    let relative_module_path = module_path.strip_prefix(umbrella_workdir).unwrap();
 
-    let mut added_submodule =
-        state
-            .umbrella
-            .submodule(&git_url, relative_module_path, true)?;
-    added_submodule.open()?;
-    let added_submodule_repo =
-        added_submodule.clone(Some(&mut git2::SubmoduleUpdateOptions::default()))?;
-    added_submodule.add_finalize()?;
-
-    state.config.repos.push(crate::config::Repo {
-        url: Some(git_url),
-        path: path::PathBuf::from(added_submodule.path()),
-        ref_: String::from(added_submodule_repo.head().unwrap().shorthand().unwrap()),
-    });
-
-    Ok(())
+    println!(
+        "Added subrepo at `{}` with head `{}`",
+        &subrepo.work_dir.display(),
+        &subrepo.head
+    );
+    Ok(true)
 }

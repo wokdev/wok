@@ -58,6 +58,7 @@ impl Repo {
             .collect::<Result<Vec<Repo>>>()?;
 
         println!("Successfully read repo at `{}`", work_dir.display());
+
         Ok(Repo {
             git_repo,
             work_dir: path::PathBuf::from(work_dir),
@@ -80,6 +81,12 @@ impl Repo {
         )?;
         self.git_repo.checkout_head(None)?;
         Ok(())
+    }
+
+    pub fn get_subrepo_by_path(&self, subrepo_path: &path::PathBuf) -> Option<&Repo> {
+        self.subrepos
+            .iter()
+            .find(|subrepo| (subrepo.work_dir == self.work_dir.join(subrepo_path)))
     }
 }
 
