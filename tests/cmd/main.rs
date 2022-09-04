@@ -16,15 +16,13 @@ fn data_dir() -> PathBuf {
     (PathBuf::from(env!("CARGO_MANIFEST_DIR"))).join("tests/data")
 }
 
-#[fixture(repo_name = "", subrepo_names = vec![], with_config = None)]
+#[fixture(subrepo_names = vec![], with_config = None)]
 fn repo_sample(
-    repo_name: &str,
     subrepo_names: Vec<&str>,
     with_config: Option<&str>,
     data_dir: PathBuf,
 ) -> TestRepo {
     TestRepo::new(
-        repo_name,
         subrepo_names,
         with_config.map(|config_name| data_dir.join(config_name)),
     )
@@ -41,15 +39,10 @@ struct TestRepo {
     subrepo_paths: HashMap<String, PathBuf>,
 }
 impl TestRepo {
-    fn new(
-        repo_name: &str,
-        subrepo_names: Vec<&str>,
-        config_name: Option<PathBuf>,
-    ) -> Self {
+    fn new(subrepo_names: Vec<&str>, config_name: Option<PathBuf>) -> Self {
         let temp_dir = assert_fs::TempDir::new().unwrap();
-        let repo_path = temp_dir.path().join(repo_name);
+        let repo_path = temp_dir.path().to_owned();
 
-        fs::create_dir(&repo_path).unwrap();
         Self::init_repo(&repo_path);
 
         let mut subrepo_paths: HashMap<String, PathBuf> = HashMap::new();
@@ -93,7 +86,7 @@ impl TestRepo {
 
     fn create_submodule(repo_path: &PathBuf, submodule_name: &str) -> PathBuf {
         let subrepo_path = repo_path.join(&submodule_name);
-        fs::create_dir(&subrepo_path).unwrap();
+        fs::create_dir_all(&subrepo_path).unwrap();
         Self::init_repo(&subrepo_path);
         _run(
             &format!(

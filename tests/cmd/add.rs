@@ -3,7 +3,7 @@ use pretty_assertions::assert_eq;
 
 use wok::{self, cmd, config::Config};
 
-#[rstest(repo_sample("simple", vec![], Some("add/simple-in.yaml")), expected_config("add/simple-out.yaml"))]
+#[rstest(repo_sample(vec![], Some("add/simple-in.toml")), expected_config("add/simple-out.toml"))]
 fn in_a_single_repo(repo_sample: TestRepo, expected_config: String) {
     let mut actual_config = Config::load(&repo_sample.config_path()).unwrap();
     let submodule_path = repo_sample.add_submodule("sub-a");

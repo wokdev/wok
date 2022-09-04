@@ -1,0 +1,6 @@
+version = "1.0"
+[repos.sub-a]
+head = "main"
+
+[repos.sub-b]
+head = "main"

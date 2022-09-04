@@ -1,6 +1,0 @@
-version: '1.0'
-repos:
-- path: sub-a
-  head: main
-- path: sub-b
-  head: main

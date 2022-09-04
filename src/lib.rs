@@ -11,4 +11,4 @@ pub mod cmd;
 pub mod config;
 pub mod repo;
 
-pub const DEFAULT_CONFIG_NAME: &str = "wok.yaml";
+pub const DEFAULT_CONFIG_NAME: &str = "wok.toml";
