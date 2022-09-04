@@ -2,7 +2,7 @@ use anyhow::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, path};
 
-const CONFIG_CURRENT_VERSION: &str = "1.0";
+const CONFIG_CURRENT_VERSION: &str = "1.0-experimental";
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
