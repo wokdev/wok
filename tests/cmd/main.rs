@@ -10,6 +10,7 @@ use wok::{repo, DEFAULT_CONFIG_NAME};
 
 mod add;
 mod init;
+mod rm;
 
 #[fixture]
 fn data_dir() -> PathBuf {
@@ -73,6 +74,9 @@ impl TestRepo {
 
     pub fn add_submodule(&self, subrepo_name: &str) -> path::PathBuf {
         Self::create_submodule(&self.repo_path, subrepo_name)
+            .strip_prefix(&self.repo_path)
+            .unwrap()
+            .to_owned()
     }
 
     fn init_repo(repo_path: &PathBuf) {

@@ -29,20 +29,26 @@ impl Config {
         }
     }
 
-    pub fn add_repo(&mut self, path: &path::Path, head: &str) -> bool {
-        assert!(!path.is_absolute());
+    pub fn add_repo(&mut self, subrepo_path: &path::Path, head: &str) -> bool {
+        assert!(!subrepo_path.is_absolute());
 
-        if self.has_repo_path(path) {
+        if self.has_repo_path(subrepo_path) {
             return false;
         }
 
         self.repos.insert(
-            path::PathBuf::from(path),
+            path::PathBuf::from(subrepo_path),
             Repo {
                 head: String::from(head),
             },
         );
         true
+    }
+
+    pub fn remove_repo(&mut self, subrepo_path: &path::PathBuf) -> bool {
+        assert!(!subrepo_path.is_absolute());
+
+        self.repos.remove(subrepo_path).is_some()
     }
 
     /// Loads the workspace config from a file at the `config_path`.

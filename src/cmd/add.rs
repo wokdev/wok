@@ -8,10 +8,11 @@ pub fn add(
     umbrella: &repo::Repo,
     submodule_path: &path::PathBuf,
 ) -> Result<bool> {
+    let subrepo_path = &umbrella.work_dir.join(submodule_path);
     let subrepo = umbrella
-        .get_subrepo_by_path(submodule_path)
+        .get_subrepo_by_path(subrepo_path)
         .with_context(|| {
-            format!("Cannot find submodule at `{}`", submodule_path.display())
+            format!("Cannot find submodule at `{}`", subrepo_path.display())
         })?;
 
     if !wok_config.add_repo(

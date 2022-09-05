@@ -45,6 +45,13 @@ enum WokCommand {
         #[clap(parse(from_os_str))]
         submodule_path: path::PathBuf,
     },
+    /// Removes a submodule from the wok workspace.
+    #[clap(name = "rm")]
+    Remove {
+        /// Path of the submodule relative to the umbrella repo.
+        #[clap(parse(from_os_str))]
+        submodule_path: path::PathBuf,
+    },
 }
 
 fn main() -> Result<()> {
@@ -83,11 +90,12 @@ fn main() -> Result<()> {
             let mut wok_config = wok::config::Config::load(&wok_file_path)?;
 
             if match wok_command {
-                WokCommand::Add { submodule_path } => wok::cmd::add(
-                    &mut wok_config,
-                    &umbrella,
-                    &umbrella.work_dir.join(submodule_path),
-                )?,
+                WokCommand::Add { submodule_path } => {
+                    wok::cmd::add(&mut wok_config, &umbrella, &submodule_path)?
+                },
+                WokCommand::Remove { submodule_path } => {
+                    wok::cmd::rm(&mut wok_config, &submodule_path)?
+                },
             } {
                 wok_config.save(&wok_file_path)?;
             }
