@@ -4,7 +4,7 @@ use std::{fs, path};
 
 const CONFIG_CURRENT_VERSION: &str = "1.0-experimental";
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Repo {
     pub path: path::PathBuf,
@@ -31,32 +31,52 @@ impl Config {
         }
     }
 
-    pub fn add_repo(&mut self, subrepo_path: &path::Path, head: &str) -> bool {
-        assert!(!subrepo_path.is_absolute());
+    pub fn add_repo(&mut self, path: &path::Path, head: &str) -> bool {
+        assert!(!path.is_absolute());
 
-        if self.has_repo_path(subrepo_path) {
+        if self.has_repo_path(path) {
             return false;
         }
 
         self.repos.push(Repo {
-            path: path::PathBuf::from(subrepo_path),
+            path: path::PathBuf::from(path),
             head: String::from(head),
         });
         true
     }
 
-    pub fn remove_repo(&mut self, path: &path::PathBuf) -> bool {
+    pub fn remove_repo(&mut self, path: &path::Path) -> bool {
         assert!(!path.is_absolute());
 
         let mut removed = false;
         self.repos.retain(|r| {
-            if &r.path == path {
-                removed = true;
-                return false;
+            if r.path != path {
+                return true;
             }
-            true
+            removed = true;
+            false
         });
         removed
+    }
+
+    pub fn set_repo_head(&mut self, path: &path::Path, head: &String) -> bool {
+        assert!(!path.is_absolute());
+
+        let mut updated = false;
+        self.repos = self
+            .repos
+            .iter()
+            .map(|r| -> Repo {
+                let mut r = r.to_owned();
+                if r.path != path {
+                    return r;
+                }
+                r.head = head.to_owned();
+                updated = true;
+                r
+            })
+            .collect();
+        updated
     }
 
     /// Loads the workspace config from a file at the `config_path`.

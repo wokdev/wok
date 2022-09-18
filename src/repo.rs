@@ -67,26 +67,35 @@ impl Repo {
         })
     }
 
-    pub fn sync(&self) -> Result<()> {
-        self.git_repo.set_head(
-            self.git_repo
-                .resolve_reference_from_short_name(&self.head)?
-                .name()
-                .with_context(|| {
-                    format!(
-                        "Cannot resolve head reference for repo at `{}`",
-                        self.work_dir.display()
-                    )
-                })?,
-        )?;
-        self.git_repo.checkout_head(None)?;
-        Ok(())
-    }
-
     pub fn get_subrepo_by_path(&self, subrepo_path: &path::PathBuf) -> Option<&Repo> {
         self.subrepos
             .iter()
             .find(|subrepo| (subrepo.work_dir == self.work_dir.join(subrepo_path)))
+    }
+
+    pub fn sync(&self) -> Result<()> {
+        self.switch(&self.head)?;
+        Ok(())
+    }
+
+    pub fn switch(&self, head: &str) -> Result<()> {
+        self.git_repo.set_head(&self.resolve_reference(head)?)?;
+        self.git_repo.checkout_head(None)?;
+        Ok(())
+    }
+
+    fn resolve_reference(&self, short_name: &str) -> Result<String> {
+        Ok(self
+            .git_repo
+            .resolve_reference_from_short_name(short_name)?
+            .name()
+            .with_context(|| {
+                format!(
+                    "Cannot resolve head reference for repo at `{}`",
+                    self.work_dir.display()
+                )
+            })?
+            .to_owned())
     }
 }
 

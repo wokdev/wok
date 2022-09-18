@@ -40,9 +40,19 @@ enum Command {
 
 #[derive(Debug, Parser)]
 enum App {
+    /// Change current subrepos' heads
+    #[clap(subcommand)]
+    Head(Head),
+
     /// Subrepos management
     #[clap(subcommand)]
     Repo(Repo),
+}
+
+#[derive(Debug, Parser)]
+enum Head {
+    /// Switches all subrepos' heads to the current umbrella's head branch.
+    Switch,
 }
 
 #[derive(Debug, Parser)]
@@ -98,6 +108,9 @@ fn main() -> Result<()> {
             let mut wok_config = wok::config::Config::load(&wok_file_path)?;
 
             if match app_cmd {
+                App::Head(head_cmd) => match head_cmd {
+                    Head::Switch => wok::cmd::head::switch(&mut wok_config, &umbrella)?,
+                },
                 App::Repo(repo_cmd) => match repo_cmd {
                     Repo::Add { submodule_path } => wok::cmd::repo::add(
                         &mut wok_config,

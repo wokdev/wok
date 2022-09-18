@@ -8,6 +8,7 @@ use std::{
 };
 use wok::{repo, DEFAULT_CONFIG_NAME};
 
+mod head_switch;
 mod init;
 mod repo_add;
 mod repo_rm;
@@ -91,6 +92,7 @@ impl TestRepo {
             repo_path,
         )
         .unwrap();
+        _run("git branch -c other", repo_path).unwrap();
     }
 
     fn create_submodule(repo_path: &PathBuf, submodule_name: &str) -> PathBuf {
