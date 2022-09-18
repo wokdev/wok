@@ -1,6 +1,9 @@
 version = "1.0-experimental"
-[repos.sub-a]
+
+[[repo]]
+path = "sub-a"
 head = "main"
 
-[repos.sub-b]
+[[repo]]
+path = "sub-b"
 head = "main"

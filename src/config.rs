@@ -1,12 +1,13 @@
 use anyhow::*;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fs, path};
+use std::{fs, path};
 
 const CONFIG_CURRENT_VERSION: &str = "1.0-experimental";
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Repo {
+    pub path: path::PathBuf,
     pub head: String,
 }
 
@@ -18,14 +19,15 @@ pub struct Repo {
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub version: String,
-    pub repos: BTreeMap<path::PathBuf, Repo>,
+    #[serde(rename = "repo")]
+    pub repos: Vec<Repo>,
 }
 
 impl Config {
     pub fn new() -> Self {
         Config {
             version: String::from(CONFIG_CURRENT_VERSION),
-            repos: BTreeMap::new(),
+            repos: vec![],
         }
     }
 
@@ -36,19 +38,25 @@ impl Config {
             return false;
         }
 
-        self.repos.insert(
-            path::PathBuf::from(subrepo_path),
-            Repo {
-                head: String::from(head),
-            },
-        );
+        self.repos.push(Repo {
+            path: path::PathBuf::from(subrepo_path),
+            head: String::from(head),
+        });
         true
     }
 
-    pub fn remove_repo(&mut self, subrepo_path: &path::PathBuf) -> bool {
-        assert!(!subrepo_path.is_absolute());
+    pub fn remove_repo(&mut self, path: &path::PathBuf) -> bool {
+        assert!(!path.is_absolute());
 
-        self.repos.remove(subrepo_path).is_some()
+        let mut removed = false;
+        self.repos.retain(|r| {
+            if &r.path == path {
+                removed = true;
+                return false;
+            }
+            true
+        });
+        removed
     }
 
     /// Loads the workspace config from a file at the `config_path`.
@@ -75,7 +83,8 @@ impl Config {
     }
 
     fn has_repo_path(&self, path: &path::Path) -> bool {
-        self.repos.contains_key(path)
+        assert!(!path.is_absolute());
+        self.repos.iter().any(|r| r.path == path)
     }
 }
 
