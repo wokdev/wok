@@ -6,7 +6,7 @@ use wok::{cmd, config::Config};
 use super::*;
 
 // TODO: see https://github.com/la10736/rstest/issues/29
-#[rstest(repo_sample(), expected_config("init/simple.toml"))]
+#[rstest(repo_sample(), expected_config("empty.toml"))]
 fn in_a_single_repo(repo_sample: TestRepo, expected_config: String) {
     let config_path = repo_sample.config_path();
 
@@ -16,7 +16,7 @@ fn in_a_single_repo(repo_sample: TestRepo, expected_config: String) {
     assert_eq!(actual_config, expected_config);
 }
 
-#[rstest(repo_sample(vec!["sub-a", "sub-b"]), expected_config("init/submodules.toml"))]
+#[rstest(repo_sample(vec!["sub-a", "sub-b"]), expected_config("a-b.toml"))]
 fn with_submodules(repo_sample: TestRepo, expected_config: String) {
     let config_path = repo_sample.config_path();
 
@@ -26,7 +26,7 @@ fn with_submodules(repo_sample: TestRepo, expected_config: String) {
     assert_eq!(actual_config, expected_config);
 }
 
-#[rstest(repo_sample(vec!["deps/sub-a"]), expected_config("init/submodule-subpath.toml"))]
+#[rstest(repo_sample(vec!["deps/sub-a"]), expected_config("deps-a.toml"))]
 fn with_complex_submodule_path(repo_sample: TestRepo, expected_config: String) {
     let config_path = repo_sample.config_path();
 
@@ -36,7 +36,7 @@ fn with_complex_submodule_path(repo_sample: TestRepo, expected_config: String) {
     assert_eq!(actual_config, expected_config);
 }
 
-#[rstest(repo_sample(vec!["sub-a", "sub-b"]), expected_config("init/submodules.toml"))]
+#[rstest(repo_sample(vec!["sub-a", "sub-b"]), expected_config("a-b.toml"))]
 fn with_sync(repo_sample: TestRepo, expected_config: String) {
     _run(
         "git switch -c other-branch",
@@ -59,7 +59,7 @@ fn with_sync(repo_sample: TestRepo, expected_config: String) {
     assert_eq!(sub_a_branch.trim(), String::from("main"));
 }
 
-#[rstest(repo_sample(vec!["sub-a", "sub-b"]), expected_config("init/submodules.toml"))]
+#[rstest(repo_sample(vec!["sub-a", "sub-b"]), expected_config("a-b.toml"))]
 fn without_sync(repo_sample: TestRepo, expected_config: String) {
     _run(
         "git switch -c other-branch",

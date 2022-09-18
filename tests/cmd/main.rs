@@ -8,30 +8,35 @@ use std::{
 };
 use wok::{repo, DEFAULT_CONFIG_NAME};
 
-mod add;
 mod init;
-mod rm;
+mod repo_add;
+mod repo_rm;
 
 #[fixture]
 fn data_dir() -> PathBuf {
     (PathBuf::from(env!("CARGO_MANIFEST_DIR"))).join("tests/data")
 }
 
+#[fixture]
+fn configs_dir(data_dir: PathBuf) -> PathBuf {
+    data_dir.join("configs")
+}
+
 #[fixture(subrepo_names = vec![], with_config = None)]
 fn repo_sample(
     subrepo_names: Vec<&str>,
     with_config: Option<&str>,
-    data_dir: PathBuf,
+    configs_dir: PathBuf,
 ) -> TestRepo {
     TestRepo::new(
         subrepo_names,
-        with_config.map(|config_name| data_dir.join(config_name)),
+        with_config.map(|config_name| configs_dir.join(config_name)),
     )
 }
 
 #[fixture(config_name = "")]
-fn expected_config(config_name: &str, data_dir: PathBuf) -> String {
-    fs::read_to_string(data_dir.join(config_name)).unwrap()
+fn expected_config(config_name: &str, configs_dir: PathBuf) -> String {
+    fs::read_to_string(configs_dir.join(config_name)).unwrap()
 }
 
 struct TestRepo {

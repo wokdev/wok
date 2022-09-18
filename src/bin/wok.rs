@@ -33,12 +33,20 @@ enum Command {
         #[clap(long, action)]
         sync: bool,
     },
+
     #[clap(flatten)]
-    WokCommand(WokCommand),
+    App(App),
 }
 
 #[derive(Debug, Parser)]
-enum WokCommand {
+enum App {
+    /// Subrepos management
+    #[clap(subcommand)]
+    Repo(Repo),
+}
+
+#[derive(Debug, Parser)]
+enum Repo {
     /// Adds an existing submodule to the wok workspace.
     Add {
         /// Path of the submodule relative to the umbrella repo.
@@ -82,19 +90,23 @@ fn main() -> Result<()> {
             };
             wok::cmd::init(&wok_file_path, &umbrella, sync)?
         },
-        Command::WokCommand(wok_command) => {
+        Command::App(app_cmd) => {
             if !wok_file_path.exists() {
                 bail!("Wok file not found at `{}`", wok_file_path.display());
             };
 
             let mut wok_config = wok::config::Config::load(&wok_file_path)?;
 
-            if match wok_command {
-                WokCommand::Add { submodule_path } => {
-                    wok::cmd::add(&mut wok_config, &umbrella, &submodule_path)?
-                },
-                WokCommand::Remove { submodule_path } => {
-                    wok::cmd::rm(&mut wok_config, &submodule_path)?
+            if match app_cmd {
+                App::Repo(repo_cmd) => match repo_cmd {
+                    Repo::Add { submodule_path } => wok::cmd::repo::add(
+                        &mut wok_config,
+                        &umbrella,
+                        &submodule_path,
+                    )?,
+                    Repo::Remove { submodule_path } => {
+                        wok::cmd::repo::rm(&mut wok_config, &submodule_path)?
+                    },
                 },
             } {
                 wok_config.save(&wok_file_path)?;
