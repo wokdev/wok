@@ -60,14 +60,12 @@ enum Repo {
     /// Adds an existing submodule to the wok workspace.
     Add {
         /// Path of the submodule relative to the umbrella repo.
-        #[clap(parse(from_os_str))]
         submodule_path: path::PathBuf,
     },
     /// Removes a submodule from the wok workspace.
     #[clap(name = "rm")]
     Remove {
         /// Path of the submodule relative to the umbrella repo.
-        #[clap(parse(from_os_str))]
         submodule_path: path::PathBuf,
     },
 }
