@@ -1,3 +1,13 @@
+---
+
+name: "Feature Request"
+about: "Propose a new feature"
+title: ""
+labels:
+- suggestion
+
+---
+
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
 

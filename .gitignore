@@ -3,7 +3,7 @@
 !.gitignore
 
 # dot files
-!/.gitlab
+!/.gitea
 !/.pre-commit-config.yaml
 
 # build
