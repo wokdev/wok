@@ -1,0 +1,36 @@
+site_name: Wok
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.tracking
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: light green
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: green
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Open Sans
+    code: Fira Code
+markdown_extensions:
+  - attr_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - toc:
+      permalink: ⚓︎
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
