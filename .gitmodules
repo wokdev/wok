@@ -1,0 +1,4 @@
+[submodule "site"]
+	path = site
+	url = ../wok.git
+	branch = pages
