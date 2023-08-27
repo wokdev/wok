@@ -60,7 +60,7 @@ impl TestRepo {
         }
 
         if let Some(config_path) = config_name {
-            fs::copy(config_path, &repo_path.join(DEFAULT_CONFIG_NAME)).unwrap();
+            fs::copy(config_path, repo_path.join(DEFAULT_CONFIG_NAME)).unwrap();
         }
 
         Self {
@@ -86,7 +86,9 @@ impl TestRepo {
     }
 
     fn init_repo(repo_path: &PathBuf) {
-        _run("git init", repo_path).unwrap();
+        _run("git init -b main", repo_path).unwrap();
+        _run("git config user.email 'test@localhost'", repo_path).unwrap();
+        _run("git config user.name 'Test User'", repo_path).unwrap();
         _run(
             "git commit --allow-empty --allow-empty-message -m ''",
             repo_path,
@@ -96,7 +98,7 @@ impl TestRepo {
     }
 
     fn create_submodule(repo_path: &PathBuf, submodule_name: &str) -> PathBuf {
-        let subrepo_path = repo_path.join(&submodule_name);
+        let subrepo_path = repo_path.join(submodule_name);
         fs::create_dir_all(&subrepo_path).unwrap();
         Self::init_repo(&subrepo_path);
         _run(

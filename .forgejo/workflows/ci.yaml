@@ -1,0 +1,8 @@
+on: [push]
+jobs:
+  test:
+    runs-on: docker
+    container:
+      image: rust:1
+    steps:
+      - run: cargo test

@@ -40,7 +40,7 @@ fn with_complex_submodule_path(repo_sample: TestRepo, expected_config: String) {
 fn with_sync(repo_sample: TestRepo, expected_config: String) {
     _run(
         "git switch -c other-branch",
-        &repo_sample.subrepo_paths.get("sub-a").unwrap(),
+        repo_sample.subrepo_paths.get("sub-a").unwrap(),
     )
     .unwrap();
     let config_path = repo_sample.config_path();
@@ -63,7 +63,7 @@ fn with_sync(repo_sample: TestRepo, expected_config: String) {
 fn without_sync(repo_sample: TestRepo, expected_config: String) {
     _run(
         "git switch -c other-branch",
-        &repo_sample.subrepo_paths.get("sub-a").unwrap(),
+        repo_sample.subrepo_paths.get("sub-a").unwrap(),
     )
     .unwrap();
     let config_path = repo_sample.config_path();
