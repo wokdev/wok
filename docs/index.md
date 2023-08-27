@@ -4,6 +4,8 @@ A multirepo management tool.
 
 ---
 
-Manage a pack of repos as they were in a monorepo while still keeping them standalone and isolated.
+Manage multiple git repos as part of a single workspace.
+
+Wok utilizes git submodules and works as a package manager on top of them.
 
 [Get started](getting-started.md){ .md-button .md-button--primary }
