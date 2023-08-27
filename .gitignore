@@ -3,6 +3,7 @@
 !.gitignore
 
 # dot files
+!/.forgejo
 !/.gitea
 !/.pre-commit-config.yaml
 
