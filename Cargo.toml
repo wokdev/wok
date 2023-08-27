@@ -7,12 +7,12 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.58"
 clap = { version = "4.1.8", features = ["derive"] }
-git2 = "0.16.1"
+git2 = "0.17.2"
 serde = { version = "1.0.143", features = ["derive"] }
 toml = "0.7.2"
 
 [dev-dependencies]
 assert_fs = "1.0.7"
 pretty_assertions = "1.2.1"
-rstest = "0.16.0"
+rstest = "0.18.2"
 shell-words = "1.1.0"
