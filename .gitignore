@@ -6,6 +6,7 @@
 !/.forgejo
 !/.gitea
 !/.pre-commit-config.yaml
+!/.woodpecker.yml
 
 # build
 /target

@@ -1,0 +1,8 @@
+when:
+  event:
+    - push
+steps:
+  test:
+    image: rust:1
+    commands:
+      - cargo test
