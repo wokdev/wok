@@ -1,6 +1,8 @@
 when:
   event:
     - push
+  path:
+    include: ["src/**", "tests/**", ".woodpecker.yml", "Cargo.*"]
 steps:
   test:
     image: rust:1
