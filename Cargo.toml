@@ -1,8 +1,13 @@
 [package]
 name = "wok"
+description = "A multirepo management tool."
 version = "0.3.0-dev"
 authors = ["Serge Matveenko <lig@countzero.co>"]
+license = "MIT"
 edition = "2021"
+documentation = "https://docs.wok.dev/"
+homepage = "https://wok.dev/"
+repository = "https://codeberg.org/wok/wok"
 
 [dependencies]
 anyhow = "1.0.58"
