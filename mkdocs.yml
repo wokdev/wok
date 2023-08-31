@@ -1,4 +1,6 @@
 site_name: Wok
+repo_url: https://codeberg.org/wok/wok
+repo_name: wok/wok
 markdown_extensions:
   - attr_list
   - pymdownx.tasklist:
@@ -38,11 +40,11 @@ extra_css:
   - stylesheets/extra.css
 nav:
   - Home:
-    - Wok Home: index.md
-    - Wok on Codeberg: https://codeberg.org/wok/wok
-    - MIT License: https://codeberg.org/wok/wok/src/branch/main/LICENSE
-    - Code of Conduct: https://codeberg.org/wok/wok/src/branch/main/CODE_OF_CONDUCT.md
+      - Wok Home: index.md
+      - Wok on Codeberg: https://codeberg.org/wok/wok
+      - MIT License: https://codeberg.org/wok/wok/src/branch/main/LICENSE
+      - Code of Conduct: https://codeberg.org/wok/wok/src/branch/main/CODE_OF_CONDUCT.md
   - Getting Started: getting-started.md
   - WIP Docs:
-    - Philosophy behind Wok: wip/philosophy.md
-    - Wokfile specification: wip/wokfile.md
+      - Philosophy behind Wok: wip/philosophy.md
+      - Wokfile specification: wip/wokfile.md
