@@ -1,7 +1,7 @@
 use super::*;
 use pretty_assertions::assert_eq;
 
-use wok::{self, cmd, config::Config};
+use wok_dev::{self, cmd, config::Config};
 
 #[rstest(repo_sample(vec!["sub-a", "sub-b"], Some("a-b.toml")), expected_config("a-b-other.toml"))]
 fn existing_branch(repo_sample: TestRepo, expected_config: String) {

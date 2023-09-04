@@ -6,7 +6,7 @@ use std::{
     path::{self, PathBuf},
     process,
 };
-use wok::{repo, DEFAULT_CONFIG_NAME};
+use wok_dev::{repo, DEFAULT_CONFIG_NAME};
 
 mod head_switch;
 mod init;

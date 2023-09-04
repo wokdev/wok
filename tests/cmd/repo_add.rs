@@ -1,7 +1,7 @@
 use super::*;
 use pretty_assertions::assert_eq;
 
-use wok::{self, cmd, config::Config};
+use wok_dev::{self, cmd, config::Config};
 
 #[rstest(repo_sample(vec![], Some("empty.toml")), expected_config("a.toml"))]
 fn in_a_single_repo(repo_sample: TestRepo, expected_config: String) {

@@ -1,6 +1,7 @@
 use anyhow::{bail, Context, Result};
 use clap::Parser;
 use std::{env, path};
+use wok_dev as wok;
 
 #[derive(Debug, Parser)]
 #[clap(

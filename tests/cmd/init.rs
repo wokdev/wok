@@ -1,7 +1,7 @@
 use pretty_assertions::assert_eq;
 use rstest::*;
 
-use wok::{cmd, config::Config};
+use wok_dev::{cmd, config::Config};
 
 use super::*;
 
