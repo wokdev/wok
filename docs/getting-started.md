@@ -6,8 +6,14 @@ In a nut shell, Wok is a package manager for git submodules. You choose a repo w
 
 ## Installation
 
-TBD
+```sh
+cargo install wok-dev@0.3.0-dev
+```
 
 ## Initializing Workspace
 
-TBD
+```sh
+mkdir my-project-space && cd my-project-space
+git init
+wok init
+```
