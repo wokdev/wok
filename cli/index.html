@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../getting-started/">
       
       
-        <link rel="next" href="../cli/">
+        <link rel="next" href="../wokfile/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Getting Started - Wok</title>
+        <title>Wok CLI - Wok</title>
       
     
     
@@ -77,7 +77,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#getting-started-with-wok" class="md-skip">
+        <a href="#wok-commands-reference" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Getting Started
+              Wok CLI
             
           </span>
         </div>
@@ -227,11 +227,9 @@
         
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="./" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
         
   
     
@@ -246,9 +244,11 @@
         
   
   
+    
   
-    <li class="md-tabs__item">
-      <a href="../cli/" class="md-tabs__link">
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
         
   
     
@@ -473,6 +473,25 @@
       
   
   
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -488,7 +507,7 @@
           
   
   <span class="md-ellipsis">
-    Getting Started
+    Wok CLI
   </span>
   
 
@@ -499,7 +518,7 @@
         
   
   <span class="md-ellipsis">
-    Getting Started
+    Wok CLI
   </span>
   
 
@@ -521,16 +540,83 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    Installation
+  <a href="#-f-wok-file-path" class="md-nav__link">
+    -f / --wok-file-path
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#initializing-workspace" class="md-nav__link">
-    Initializing Workspace
+  <a href="#-help" class="md-nav__link">
+    --help
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#init" class="md-nav__link">
+    init
+  </a>
+  
+    <nav class="md-nav" aria-label="init">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#-sync" class="md-nav__link">
+    --sync
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#head" class="md-nav__link">
+    head
+  </a>
+  
+    <nav class="md-nav" aria-label="head">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#switch" class="md-nav__link">
+    switch
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#repo" class="md-nav__link">
+    repo
+  </a>
+  
+    <nav class="md-nav" aria-label="repo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#add" class="md-nav__link">
+    add
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rm" class="md-nav__link">
+    rm
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -538,25 +624,6 @@
   
 </nav>
       
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../cli/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Wok CLI
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -656,17 +723,52 @@
                   
 
 
-<h1 id="getting-started-with-wok">Getting Started with Wok<a class="headerlink" href="#getting-started-with-wok" title="Permanent link">⚓︎</a></h1>
-<p>Wok is a tool to manage multiple git repositories simultaneously.</p>
-<p>In a nut shell, Wok is a package manager for git submodules. You choose a repo which stores Wok Workspace configuration, add subrepos, and Wok will help you manage them in a way you expect from a package manager to do it.</p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">⚓︎</a></h2>
-<pre><code class="language-sh">cargo install wok-dev@0.3.0-dev
+<h1 id="wok-commands-reference">Wok Commands Reference<a class="headerlink" href="#wok-commands-reference" title="Permanent link">⚓︎</a></h1>
+<pre><code class="language-sh">wok [&lt;OPTIONS&gt;]
 </code></pre>
-<h2 id="initializing-workspace">Initializing Workspace<a class="headerlink" href="#initializing-workspace" title="Permanent link">⚓︎</a></h2>
-<pre><code class="language-sh">mkdir my-project-space &amp;&amp; cd my-project-space
-git init
-wok init
+<h2 id="-f-wok-file-path">-f / --wok-file-path<a class="headerlink" href="#-f-wok-file-path" title="Permanent link">⚓︎</a></h2>
+<pre><code class="language-sh">wok -f &lt;WOK_FILE_PATH&gt;
+wok --wok-file-path &lt;WOK_FILE_PATH&gt;
 </code></pre>
+<div class="admonition abstract">
+<p class="admonition-title">Default</p>
+<p><code>wok.yaml</code></p>
+</div>
+<p>Overrides default path to <a href="../wokfile/">Wokfile</a>.</p>
+<h2 id="-help">--help<a class="headerlink" href="#-help" title="Permanent link">⚓︎</a></h2>
+<pre><code class="language-sh">wok --help
+</code></pre>
+<p>Shows list of possible commands and global options reference. When used with a specific subcommand shows help for that subcommand.</p>
+<h2 id="init">init<a class="headerlink" href="#init" title="Permanent link">⚓︎</a></h2>
+<pre><code class="language-sh">wok init
+</code></pre>
+<p>Initialize Wok configuration in an Umbrella Repo.</p>
+<p>This creates <a href="../wokfile/">Wokfile</a> in the repo and introspects existing submodules adding them to the Wokfile, optionally switching them to the same branch as the current branch.</p>
+<p><code>wok init</code> fails if Wokfile is already present in the repo.</p>
+<h3 id="-sync">--sync<a class="headerlink" href="#-sync" title="Permanent link">⚓︎</a></h3>
+<pre><code class="language-sh">wok init --sync
+</code></pre>
+<p>Switches all introspected submodules to the branch matching the current <code>HEAD</code> branch in the umbrella repo.</p>
+<h2 id="head">head<a class="headerlink" href="#head" title="Permanent link">⚓︎</a></h2>
+<pre><code class="language-sh">wok head
+</code></pre>
+<p>Operate on subrepos heads.</p>
+<h3 id="switch">switch<a class="headerlink" href="#switch" title="Permanent link">⚓︎</a></h3>
+<pre><code class="language-sh">wok head switch
+</code></pre>
+<p>Switch all subrepos heads to the current umbrella repo head.</p>
+<h2 id="repo">repo<a class="headerlink" href="#repo" title="Permanent link">⚓︎</a></h2>
+<pre><code class="language-sh">wok repo
+</code></pre>
+<p>Manage subrepos configuration.</p>
+<h3 id="add">add<a class="headerlink" href="#add" title="Permanent link">⚓︎</a></h3>
+<pre><code class="language-sh">wok repo add &lt;SUBMODULE_PATH&gt;
+</code></pre>
+<p>Add submodule previously configured in the repo at the path <code>&lt;SUBMODULE_PATH&gt;</code> to <a href="../wokfile/">Wokfile</a>.</p>
+<h3 id="rm">rm<a class="headerlink" href="#rm" title="Permanent link">⚓︎</a></h3>
+<pre><code class="language-sh">wok repo rm &lt;SUBMODULE_PATH&gt;
+</code></pre>
+<p>Remove submodule configured in the repo at the path <code>&lt;SUBMODULE_PATH&gt;</code> from <a href="../wokfile/">Wokfile</a>.</p>
 
 
 
