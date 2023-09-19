@@ -14,3 +14,4 @@ packages = [{include = "wok_docs"}]
 [tool.poetry.dependencies]
 python = "^3.11"
 mkdocs-material = "^9.2.4"
+mdx-truly-sane-lists = "^1.3"

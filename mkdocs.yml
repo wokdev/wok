@@ -4,6 +4,7 @@ repo_name: wok/wok
 markdown_extensions:
   - admonition
   - attr_list
+  - mdx_truly_sane_lists
   - pymdownx.tasklist:
       custom_checkbox: true
   - toc:
@@ -49,4 +50,5 @@ nav:
   - Wok CLI: cli.md
   - Wokfile (wok.yaml): wokfile.md
   - WIP Docs:
+      - Planned Wok CLI: wip/cli-next.md
       - Philosophy behind Wok: wip/philosophy.md
