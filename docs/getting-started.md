@@ -1,8 +1,13 @@
 # Getting Started with Wok
 
-Wok is a tool to manage multiple git repositories simultaneously.
+## Introduction
 
-In a nut shell, Wok is a package manager for git submodules. You choose a repo which stores Wok Workspace configuration, add subrepos, and Wok will help you manage them in a way you expect from a package manager to do it.
+**Wok** seamlessly manages multiple Git repositories simultaneously. Its core methodology bears a resemblance to popular package managers such as `cargo`, `poetry`, or `npm`.
+
+In this context, we consider the `wok.yaml` configuration file as equivalent in importance to a package manager's primary configuration file, similar to how `Cargo.toml` is treated in `cargo`.
+
+Submodule objects, once they've been committed to the primary repository, assume the role of a lock file counterpart.
+
 
 ## Installation
 

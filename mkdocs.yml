@@ -51,4 +51,3 @@ nav:
   - Wokfile (wok.yaml): wokfile.md
   - WIP Docs:
       - Planned Wok CLI: wip/cli-next.md
-      - Philosophy behind Wok: wip/philosophy.md
