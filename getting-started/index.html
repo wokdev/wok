@@ -521,6 +521,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    Introduction
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     Installation
   </a>
@@ -634,26 +641,6 @@
 
               
             
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../wip/philosophy/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Philosophy behind Wok
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -677,8 +664,10 @@
 
 
 <h1 id="getting-started-with-wok">Getting Started with Wok<a class="headerlink" href="#getting-started-with-wok" title="Permanent link">⚓︎</a></h1>
-<p>Wok is a tool to manage multiple git repositories simultaneously.</p>
-<p>In a nut shell, Wok is a package manager for git submodules. You choose a repo which stores Wok Workspace configuration, add subrepos, and Wok will help you manage them in a way you expect from a package manager to do it.</p>
+<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">⚓︎</a></h2>
+<p><strong>Wok</strong> seamlessly manages multiple Git repositories simultaneously. Its core methodology bears a resemblance to popular package managers such as <code>cargo</code>, <code>poetry</code>, or <code>npm</code>.</p>
+<p>In this context, we consider the <code>wok.yaml</code> configuration file as equivalent in importance to a package manager's primary configuration file, similar to how <code>Cargo.toml</code> is treated in <code>cargo</code>. </p>
+<p>Submodule objects, once they've been committed to the primary repository, assume the role of a lock file counterpart.</p>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">⚓︎</a></h2>
 <pre><code class="language-sh">cargo install wok-dev@0.3.0-dev
 </code></pre>
