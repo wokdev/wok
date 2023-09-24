@@ -29,11 +29,7 @@ enum Command {
     /// Requires the git repo to be inited already.
     /// Introspects existing submodules and adds them to the workspace config
     /// optionally switching them to the same branch.
-    Init {
-        /// Switch all submodules to the branch matching umbrella's head branch.
-        #[clap(long, action)]
-        sync: bool,
-    },
+    Init {},
 
     #[clap(flatten)]
     App(App),
@@ -93,12 +89,7 @@ fn main() -> Result<()> {
     )?;
 
     match args.cmd {
-        Command::Init { sync } => {
-            if wok_file_path.exists() {
-                bail!("Wok file already exists at `{}`", wok_file_path.display());
-            };
-            wok::cmd::init(&wok_file_path, &umbrella, sync)?
-        },
+        Command::Init {} => wok::cmd::init(&wok_file_path, &umbrella)?,
         Command::App(app_cmd) => {
             if !wok_file_path.exists() {
                 bail!("Wok file not found at `{}`", wok_file_path.display());

@@ -3,22 +3,17 @@ use std::{env, path};
 
 use crate::{config, repo};
 
-pub fn init(config_path: &path::Path, umbrella: &repo::Repo, sync: bool) -> Result<()> {
+pub fn init(config_path: &path::Path, umbrella: &repo::Repo) -> Result<()> {
+    if config_path.exists() {
+        bail!("Wok file already exists at `{}`", config_path.display());
+    };
+
     let mut wok_config: config::Config = Default::default();
 
     for repo in umbrella.subrepos.iter() {
         let repo_path = repo.work_dir.strip_prefix(&umbrella.work_dir)?;
 
         wok_config.add_repo(repo_path, &repo.head);
-
-        if sync {
-            repo.sync()?;
-            println!(
-                "Switched repo at `{}` to the tip of the `{}` branch",
-                repo_path.display(),
-                repo.head
-            );
-        }
     }
 
     wok_config.save(config_path)?;

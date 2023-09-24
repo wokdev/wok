@@ -39,15 +39,6 @@ This creates [Wokfile](./wokfile.md) in the repo and introspects existing submod
 `wok init` fails if Wokfile is already present in the repo.
 
 
-### --sync
-
-```sh
-wok init --sync
-```
-
-Switches all introspected submodules to the branch matching the current `HEAD` branch in the umbrella repo.
-
-
 ## head
 
 ```sh
