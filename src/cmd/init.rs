@@ -1,13 +1,14 @@
 use anyhow::*;
+use std::io::Write;
 use std::{env, path};
 
 use crate::{config, repo};
 
-pub fn init(config_path: &path::Path, umbrella: &repo::Repo) -> Result<()> {
-    if config_path.exists() {
-        bail!("Wok file already exists at `{}`", config_path.display());
-    };
-
+pub fn init<W: Write>(
+    config_path: &path::Path,
+    umbrella: &repo::Repo,
+    stdout: &mut W,
+) -> Result<()> {
     let mut wok_config: config::Config = Default::default();
 
     for repo in umbrella.subrepos.iter() {
@@ -17,12 +18,13 @@ pub fn init(config_path: &path::Path, umbrella: &repo::Repo) -> Result<()> {
     }
 
     wok_config.save(config_path)?;
-    println!(
+    writeln!(
+        stdout,
         "Created config at `{}`",
         config_path
             .strip_prefix(env::current_dir()?)
             .unwrap_or(config_path)
             .display()
-    );
+    )?;
     Ok(())
 }

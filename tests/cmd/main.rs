@@ -1,11 +1,8 @@
 use anyhow::*;
 use rstest::*;
-use std::{
-    collections::HashMap,
-    env, fs,
-    path::{self, PathBuf},
-    process,
-};
+use std::collections::HashMap;
+use std::path::{self, PathBuf};
+use std::{env, fs, process};
 use wok_dev::{repo, DEFAULT_CONFIG_NAME};
 
 mod head_switch;

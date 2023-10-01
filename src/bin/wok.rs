@@ -1,6 +1,6 @@
 use anyhow::{bail, Context, Result};
 use clap::Parser;
-use std::{env, path};
+use std::{env, io::stdout, path};
 use wok_dev as wok;
 
 #[derive(Debug, Parser)]
@@ -17,7 +17,7 @@ struct Args {
         value_parser,
         default_value = wok::DEFAULT_CONFIG_NAME,
     )]
-    wok_file_path: path::PathBuf,
+    wokfile_path: path::PathBuf,
 
     #[clap(subcommand)]
     cmd: Command,
@@ -70,32 +70,40 @@ enum Repo {
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let wok_file_path = {
-        let wok_file_path = args.wok_file_path;
-        if wok_file_path.is_absolute() {
-            wok_file_path
+    let wokfile_path = {
+        let wokfile_path = args.wokfile_path;
+        if wokfile_path.is_absolute() {
+            wokfile_path
         } else {
             env::current_dir()
                 .context("Cannot access the current directory")?
-                .join(wok_file_path)
+                .join(wokfile_path)
         }
     };
 
     let umbrella = wok::repo::Repo::new(
-        wok_file_path.parent().with_context(|| {
-            format!("Cannot open work dir for `{}`", wok_file_path.display())
+        wokfile_path.parent().with_context(|| {
+            format!("Cannot open work dir for `{}`", wokfile_path.display())
         })?,
         None,
     )?;
 
+    let mut output = stdout();
+
     match args.cmd {
-        Command::Init {} => wok::cmd::init(&wok_file_path, &umbrella)?,
-        Command::App(app_cmd) => {
-            if !wok_file_path.exists() {
-                bail!("Wok file not found at `{}`", wok_file_path.display());
+        Command::Init {} => {
+            if wokfile_path.exists() {
+                bail!("Wok file already exists at `{}`", wokfile_path.display());
             };
 
-            let mut wok_config = wok::config::Config::load(&wok_file_path)?;
+            wok::cmd::init(&wokfile_path, &umbrella, &mut output)?
+        },
+        Command::App(app_cmd) => {
+            if !wokfile_path.exists() {
+                bail!("Wok file not found at `{}`", wokfile_path.display());
+            };
+
+            let mut wok_config = wok::config::Config::load(&wokfile_path)?;
 
             if match app_cmd {
                 App::Head(head_cmd) => match head_cmd {
@@ -112,7 +120,7 @@ fn main() -> Result<()> {
                     },
                 },
             } {
-                wok_config.save(&wok_file_path)?;
+                wok_config.save(&wokfile_path)?;
             }
         },
     };
