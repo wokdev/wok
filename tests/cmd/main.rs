@@ -9,6 +9,7 @@ mod head_switch;
 mod init;
 mod repo_add;
 mod repo_rm;
+mod status;
 
 #[fixture]
 fn data_dir() -> PathBuf {
