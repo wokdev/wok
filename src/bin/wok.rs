@@ -44,6 +44,9 @@ enum App {
     /// Subrepos management
     #[clap(subcommand)]
     Repo(Repo),
+
+    /// Lock submodule state by committing current submodule commits
+    Lock,
 }
 
 #[derive(Debug, Parser)]
@@ -118,6 +121,10 @@ fn main() -> Result<()> {
                     Repo::Remove { submodule_path } => {
                         wok::cmd::repo::rm(&mut wok_config, &submodule_path)?
                     },
+                },
+                App::Lock => {
+                    wok::cmd::lock(&mut wok_config, &umbrella, &mut output)?;
+                    false // Don't save config for lock command
                 },
             } {
                 wok_config.save(&wokfile_path)?;

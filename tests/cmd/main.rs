@@ -7,6 +7,7 @@ use wok_dev::{repo, DEFAULT_CONFIG_NAME};
 
 mod head_switch;
 mod init;
+mod lock;
 mod repo_add;
 mod repo_rm;
 mod status;
@@ -107,6 +108,8 @@ impl TestRepo {
             repo_path,
         )
         .unwrap();
+        // Initialize the submodule
+        _run("git submodule update --init", repo_path).unwrap();
         subrepo_path
     }
 }
