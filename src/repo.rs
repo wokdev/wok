@@ -203,7 +203,7 @@ impl Repo {
         }
     }
 
-    fn get_remote_name_for_branch(&self, _branch_name: &str) -> Result<String> {
+    pub fn get_remote_name_for_branch(&self, _branch_name: &str) -> Result<String> {
         // For now, simplify by always using 'origin' as the remote
         // TODO: Implement proper upstream detection
         Ok("origin".to_string())

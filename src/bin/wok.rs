@@ -68,6 +68,24 @@ enum App {
 
     /// Update submodules to latest changes from remotes
     Update,
+
+    /// Push changes from configured repos to remotes
+    Push {
+        /// Set upstream for new branches
+        #[clap(short('u'), long)]
+        set_upstream: bool,
+
+        /// Act on all configured repos
+        #[clap(long)]
+        all: bool,
+
+        /// Use specified branch name instead of current main repo branch
+        #[clap(long)]
+        branch: Option<String>,
+
+        /// Specific repos to push (if not provided, acts on all matching repos)
+        repos: Vec<path::PathBuf>,
+    },
 }
 
 #[derive(Debug, Parser)]
@@ -167,6 +185,23 @@ fn main() -> Result<()> {
                 App::Update => {
                     wok::cmd::update(&mut wok_config, &umbrella, &mut output)?;
                     false // Don't save config for update command
+                },
+                App::Push {
+                    set_upstream,
+                    all,
+                    branch,
+                    repos,
+                } => {
+                    wok::cmd::push(
+                        &mut wok_config,
+                        &umbrella,
+                        &mut output,
+                        set_upstream,
+                        all,
+                        branch.as_deref(),
+                        &repos,
+                    )?;
+                    false // Don't save config for push command
                 },
             } {
                 wok_config.save(&wokfile_path)?;

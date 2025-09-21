@@ -8,6 +8,7 @@ use wok_dev::{repo, DEFAULT_CONFIG_NAME};
 mod head_switch;
 mod init;
 mod lock;
+mod push;
 mod repo_add;
 mod repo_rm;
 mod status;
