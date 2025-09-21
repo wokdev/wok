@@ -1,10 +1,12 @@
 # Wok Roadmap
 
-This document tracks the implementation status of Wok CLI commands and features.
+This document tracks the implementation status and future plans for Wok CLI.
 
-## 🎯 MVP Goals
+## 🎯 Current Status: MVP Complete ✅
 
-The Minimum Viable Product (MVP) aims to provide core functionality for managing multiple git repositories as a single workspace.
+**Version 1.0.0-alpha** - All core functionality implemented and tested.
+
+The Minimum Viable Product (MVP) provides complete functionality for managing multiple git repositories as a single workspace.
 
 ## 📋 Command Implementation Status
 
@@ -26,94 +28,88 @@ The Minimum Viable Product (MVP) aims to provide core functionality for managing
 
 ### ✅ Development Flow Commands
 
-| Command | Status | Description | Priority |
-|---------|--------|-------------|----------|
-| `head switch` | ✅ **Implemented** | Switch all subrepos to umbrella's head branch | ✅ |
-| `switch` | ✅ **Implemented** | Switch specific repos with options (`--create`, `--all`, `--branch`) | ✅ |
-| `push` | ✅ **Implemented** | Push changes from configured repos to remotes | ✅ |
+| Command | Status | Description |
+|---------|--------|-------------|
+| `head switch` | ✅ **Implemented** | Switch all subrepos to umbrella's head branch |
+| `switch` | ✅ **Implemented** | Switch specific repos with options (`--create`, `--all`, `--branch`) |
+| `push` | ✅ **Implemented** | Push changes from configured repos to remotes |
 
 ### ✅ Release Flow Commands
 
-| Command | Status | Description | Priority |
-|---------|--------|-------------|----------|
-| `tag` | ✅ **Implemented** | Add tags to repos, show existing tags, sign and push | ✅ |
+| Command | Status | Description |
+|---------|--------|-------------|
+| `tag` | ✅ **Implemented** | Add tags to repos, show existing tags, sign and push |
 
-## 🚀 Next Steps for MVP
+## 📊 Progress Summary
 
-### Phase 1: Core Development Flow (High Priority)
-- [x] **Implement `switch` command** ✅
-  - [x] Add CLI argument parsing for `--create`, `--all`, `--branch` options
-  - [x] Implement selective repo targeting
-  - [x] Add branch creation logic
-  - [x] Integrate with existing `lock` functionality
-  - [x] Add comprehensive tests
+- **Total Commands Planned**: 9
+- **Implemented**: 9 (100%) ✅
+- **MVP Status**: Complete ✅
+- **Test Coverage**: 37 tests passing ✅
 
-- [x] **Implement `push` command** ✅
-  - [x] Add CLI argument parsing for `-u/--set-upstream`, `--all`, `--branch` options
-  - [x] Implement git push operations using git2
-  - [x] Add upstream configuration logic
-  - [x] Implement selective repo targeting
-  - [x] Add comprehensive tests
+## 🚀 Future Development
 
-### Phase 2: Release Management (Medium Priority)
-- [x] **Implement `tag` command** ✅
-  - [x] Add CLI argument parsing for complex options
-  - [x] Implement tag creation and management
-  - [x] Add tag signing support
-  - [x] Implement tag pushing functionality
-  - [x] Add comprehensive tests
+### Phase 1: Technical Debt & Improvements (High Priority)
 
-## 🔧 Technical Debt & Improvements
-
-### High Priority
+#### High Priority
 - [ ] **Improve remote detection** (`src/repo.rs:208`)
   - Currently hardcoded to use "origin" remote
   - Should detect actual upstream remote for each branch
 
-### Medium Priority
-- [x] **Expose `status` command in CLI** ✅
-  - Command is now accessible via CLI
-  - Added to `src/bin/wok.rs` command structure
-
+#### Medium Priority
 - [ ] **Enhanced error handling**
   - Improve error messages for network operations
   - Add retry logic for fetch operations
   - Better conflict resolution guidance
 
-### Low Priority
 - [ ] **Performance optimizations**
   - Parallel operations where possible
   - Caching for repeated operations
   - Progress indicators for long-running operations
 
-## 📊 Progress Summary
+### Phase 2: Advanced Features (Future Releases)
 
-- **Total Commands Planned**: 9
-- **Implemented**: 9 (100%)
-- **Missing for MVP**: 0 (0%)
-- **Missing Overall**: 0 (0%)
+#### Potential New Commands
+- [ ] **`diff`** - Show differences across repositories
+- [ ] **`log`** - Unified log view across repositories
+- [ ] **`clean`** - Clean untracked files across repositories
+- [ ] **`stash`** - Stash changes across repositories
 
-## 🎯 MVP Completion Criteria
+#### Advanced Features
+- [ ] **Workspace templates** - Predefined workspace configurations
+- [ ] **Plugin system** - Extensible command system
+- [ ] **CI/CD integration** - Integration with popular CI/CD systems
+- [ ] **Advanced filtering** - More sophisticated repo selection
 
-The MVP will be considered complete when:
-- [x] All core package management commands work reliably ✅
-- [x] Development flow commands (`switch` ✅, `push` ✅) are implemented
-- [x] All commands have comprehensive test coverage ✅
-- [x] Documentation is complete and accurate ✅
-- [x] No critical bugs or security issues ✅
+## 🎯 Release Milestones
 
-## 📝 Notes
+### ✅ Alpha Release (1.0.0-alpha) - Current
+- All MVP commands implemented
+- Comprehensive test coverage
+- Basic documentation complete
+
+### 🔄 Beta Release (1.0.0-beta) - Planned
+- Address technical debt
+- Performance improvements
+- Enhanced error handling
+- Real-world testing feedback incorporated
+
+### 🎯 Stable Release (1.0.0) - Future
+- Production-ready stability
+- Complete documentation
+- Performance optimizations
+- Advanced features
+
+## 📝 Development Notes
 
 - The `status` command is implemented and exposed in the CLI interface
 - Remote fetching and merging were recently implemented
-- The `switch` command was implemented with full feature set
-- The `push` command was implemented with full feature set
-- The `tag` command was implemented with full feature set
-- All existing commands have test coverage
+- All commands have comprehensive test coverage
 - The codebase uses git2 for git operations
 - CLI is built with clap for argument parsing
+- All commands support selective repository targeting
 
 ---
 
-*Last updated: $(date)*
+*Last updated: January 21, 2025*
 *Implementation status based on current codebase analysis*

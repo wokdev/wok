@@ -1,7 +1,7 @@
 [package]
 name = "wok-dev"
 description = "A multirepo management tool."
-version = "0.3.0-dev"
+version = "1.0.0-alpha"
 authors = ["Serge Matveenko <lig@countzero.co>"]
 license = "MIT"
 edition = "2021"
