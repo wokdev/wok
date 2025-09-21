@@ -45,6 +45,24 @@ enum App {
     #[clap(subcommand)]
     Repo(Repo),
 
+    /// Switch repos to current main repo branch with options
+    Switch {
+        /// Create the branch in repos if it doesn't exist
+        #[clap(long)]
+        create: bool,
+
+        /// Act on all configured repos
+        #[clap(long)]
+        all: bool,
+
+        /// Use specified branch name instead of current main repo branch
+        #[clap(long)]
+        branch: Option<String>,
+
+        /// Specific repos to switch (if not provided, acts on all matching repos)
+        repos: Vec<path::PathBuf>,
+    },
+
     /// Lock submodule state by committing current submodule commits
     Lock,
 
@@ -124,6 +142,23 @@ fn main() -> Result<()> {
                     Repo::Remove { submodule_path } => {
                         wok::cmd::repo::rm(&mut wok_config, &submodule_path)?
                     },
+                },
+                App::Switch {
+                    create,
+                    all,
+                    branch,
+                    repos,
+                } => {
+                    wok::cmd::switch(
+                        &mut wok_config,
+                        &umbrella,
+                        &mut output,
+                        create,
+                        all,
+                        branch.as_deref(),
+                        &repos,
+                    )?;
+                    false // Don't save config for switch command
                 },
                 App::Lock => {
                     wok::cmd::lock(&mut wok_config, &umbrella, &mut output)?;

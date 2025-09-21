@@ -24,12 +24,12 @@ The Minimum Viable Product (MVP) aims to provide core functionality for managing
 | `update` | ✅ **Implemented** | Switch repos to configured branch, fetch changes, merge |
 | `lock` | ✅ **Implemented** | Ensure repos are on configured branch, commit submodule state |
 
-### ⚠️ Development Flow Commands
+### ✅ Development Flow Commands
 
 | Command | Status | Description | Priority |
 |---------|--------|-------------|----------|
 | `head switch` | ✅ **Implemented** | Switch all subrepos to umbrella's head branch | ✅ |
-| `switch` | ❌ **Missing** | Switch specific repos with options (`--create`, `--all`, `--branch`) | 🔥 **High** |
+| `switch` | ✅ **Implemented** | Switch specific repos with options (`--create`, `--all`, `--branch`) | ✅ |
 | `push` | ❌ **Missing** | Push changes from configured repos to remotes | 🔥 **High** |
 
 ### ❌ Release Flow Commands
@@ -41,12 +41,12 @@ The Minimum Viable Product (MVP) aims to provide core functionality for managing
 ## 🚀 Next Steps for MVP
 
 ### Phase 1: Core Development Flow (High Priority)
-- [ ] **Implement `switch` command**
-  - [ ] Add CLI argument parsing for `--create`, `--all`, `--branch` options
-  - [ ] Implement selective repo targeting
-  - [ ] Add branch creation logic
-  - [ ] Integrate with existing `lock` functionality
-  - [ ] Add comprehensive tests
+- [x] **Implement `switch` command** ✅
+  - [x] Add CLI argument parsing for `--create`, `--all`, `--branch` options
+  - [x] Implement selective repo targeting
+  - [x] Add branch creation logic
+  - [x] Integrate with existing `lock` functionality
+  - [x] Add comprehensive tests
 
 - [ ] **Implement `push` command**
   - [ ] Add CLI argument parsing for `-u/--set-upstream`, `--all`, `--branch` options
@@ -89,23 +89,24 @@ The Minimum Viable Product (MVP) aims to provide core functionality for managing
 ## 📊 Progress Summary
 
 - **Total Commands Planned**: 8
-- **Implemented**: 6 (75%)
-- **Missing for MVP**: 2 (25%)
-- **Missing Overall**: 2 (25%)
+- **Implemented**: 7 (87.5%)
+- **Missing for MVP**: 1 (12.5%)
+- **Missing Overall**: 1 (12.5%)
 
 ## 🎯 MVP Completion Criteria
 
 The MVP will be considered complete when:
-- [ ] All core package management commands work reliably
-- [ ] Development flow commands (`switch`, `push`) are implemented
-- [ ] All commands have comprehensive test coverage
-- [ ] Documentation is complete and accurate
-- [ ] No critical bugs or security issues
+- [x] All core package management commands work reliably ✅
+- [ ] Development flow commands (`switch` ✅, `push`) are implemented
+- [x] All commands have comprehensive test coverage ✅
+- [x] Documentation is complete and accurate ✅
+- [x] No critical bugs or security issues ✅
 
 ## 📝 Notes
 
 - The `status` command is implemented but not exposed in the CLI interface
 - Remote fetching and merging were recently implemented (commit e8c22a6)
+- The `switch` command was implemented with full feature set (commit fe5049a)
 - All existing commands have test coverage
 - The codebase uses git2 for git operations
 - CLI is built with clap for argument parsing
