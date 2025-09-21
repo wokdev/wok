@@ -105,9 +105,9 @@ The MVP will be considered complete when:
 ## 📝 Notes
 
 - The `status` command is implemented but not exposed in the CLI interface
-- Remote fetching and merging were recently implemented (commit e8c22a6)
-- The `switch` command was implemented with full feature set (commit 48af14b)
-- The `push` command was implemented with full feature set (commit ddd7819)
+- Remote fetching and merging were recently implemented
+- The `switch` command was implemented with full feature set
+- The `push` command was implemented with full feature set
 - All existing commands have test coverage
 - The codebase uses git2 for git operations
 - CLI is built with clap for argument parsing
