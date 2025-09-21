@@ -47,6 +47,9 @@ enum App {
 
     /// Lock submodule state by committing current submodule commits
     Lock,
+
+    /// Update submodules to latest changes from remotes
+    Update,
 }
 
 #[derive(Debug, Parser)]
@@ -125,6 +128,10 @@ fn main() -> Result<()> {
                 App::Lock => {
                     wok::cmd::lock(&mut wok_config, &umbrella, &mut output)?;
                     false // Don't save config for lock command
+                },
+                App::Update => {
+                    wok::cmd::update(&mut wok_config, &umbrella, &mut output)?;
+                    false // Don't save config for update command
                 },
             } {
                 wok_config.save(&wokfile_path)?;
