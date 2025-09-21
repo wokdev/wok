@@ -17,7 +17,7 @@ fn update_submodules(repo_sample: TestRepo) {
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(output_str.contains("Updating submodules..."));
-    assert!(output_str.contains("- 'sub-a': switched to 'main', updated to"));
+    assert!(output_str.contains("- 'sub-a': already up to date on 'main'"));
     assert!(output_str.contains("Updated submodule state committed"));
 
     // Verify that a commit was created

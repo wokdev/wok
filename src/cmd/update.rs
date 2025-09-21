@@ -10,22 +10,57 @@ pub fn update<W: Write>(
 ) -> Result<()> {
     writeln!(stdout, "Updating submodules...")?;
 
-    // Step 1: Switch each repo to its configured branch
+    // Step 1: Update each repo with fetch and merge
     for config_repo in &wok_config.repos {
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
-            // Switch to configured branch
+            // Switch to configured branch first
             subrepo.switch(&config_repo.head)?;
+
+            // Attempt to merge with remote changes
+            let merge_result = subrepo.merge(&config_repo.head)?;
 
             // Get the current commit hash for reporting
             let current_commit = get_current_commit_hash(&subrepo.git_repo)?;
 
-            writeln!(
-                stdout,
-                "- '{}': switched to '{}', updated to {}",
-                config_repo.path.display(),
-                config_repo.head,
-                &current_commit[..8]
-            )?;
+            // Report the result based on merge outcome
+            match merge_result {
+                repo::MergeResult::UpToDate => {
+                    writeln!(
+                        stdout,
+                        "- '{}': already up to date on '{}' ({})",
+                        config_repo.path.display(),
+                        config_repo.head,
+                        &current_commit[..8]
+                    )?;
+                },
+                repo::MergeResult::FastForward => {
+                    writeln!(
+                        stdout,
+                        "- '{}': fast-forwarded '{}' to {}",
+                        config_repo.path.display(),
+                        config_repo.head,
+                        &current_commit[..8]
+                    )?;
+                },
+                repo::MergeResult::Merged => {
+                    writeln!(
+                        stdout,
+                        "- '{}': merged '{}' to {}",
+                        config_repo.path.display(),
+                        config_repo.head,
+                        &current_commit[..8]
+                    )?;
+                },
+                repo::MergeResult::Conflicts => {
+                    writeln!(
+                        stdout,
+                        "- '{}': merge conflicts in '{}' ({}), manual resolution required",
+                        config_repo.path.display(),
+                        config_repo.head,
+                        &current_commit[..8]
+                    )?;
+                },
+            }
         }
     }
 
