@@ -89,6 +89,28 @@ enum App {
         /// Specific repos to push (if not provided, acts on all matching repos)
         repos: Vec<path::PathBuf>,
     },
+
+    /// Add tags to repos, show existing tags, sign and push
+    Tag {
+        /// Create a new tag
+        #[clap(long)]
+        create: Option<String>,
+
+        /// Sign the tag with GPG
+        #[clap(long)]
+        sign: bool,
+
+        /// Push tags to remote
+        #[clap(long)]
+        push: bool,
+
+        /// Act on all configured repos
+        #[clap(long)]
+        all: bool,
+
+        /// Specific repos to tag (if not provided, acts on all matching repos)
+        repos: Vec<path::PathBuf>,
+    },
 }
 
 #[derive(Debug, Parser)]
@@ -209,6 +231,25 @@ fn main() -> Result<()> {
                         &repos,
                     )?;
                     false // Don't save config for push command
+                },
+                App::Tag {
+                    create,
+                    sign,
+                    push,
+                    all,
+                    repos,
+                } => {
+                    wok::cmd::tag(
+                        &mut wok_config,
+                        &umbrella,
+                        &mut output,
+                        create.as_deref(),
+                        sign,
+                        push,
+                        all,
+                        &repos,
+                    )?;
+                    false // Don't save config for tag command
                 },
             } {
                 wok_config.save(&wokfile_path)?;

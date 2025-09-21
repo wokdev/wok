@@ -13,6 +13,7 @@ mod repo_add;
 mod repo_rm;
 mod status;
 mod switch;
+mod tag;
 mod update;
 
 #[fixture]
