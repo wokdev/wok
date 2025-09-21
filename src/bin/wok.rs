@@ -69,6 +69,9 @@ enum App {
     /// Update submodules to latest changes from remotes
     Update,
 
+    /// Show subprojects status (clean/dirty, branch info)
+    Status,
+
     /// Push changes from configured repos to remotes
     Push {
         /// Set upstream for new branches
@@ -185,6 +188,10 @@ fn main() -> Result<()> {
                 App::Update => {
                     wok::cmd::update(&mut wok_config, &umbrella, &mut output)?;
                     false // Don't save config for update command
+                },
+                App::Status => {
+                    wok::cmd::status(&mut wok_config, &umbrella, &mut output)?;
+                    false // Don't save config for status command
                 },
                 App::Push {
                     set_upstream,

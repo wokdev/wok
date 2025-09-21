@@ -71,9 +71,9 @@ The Minimum Viable Product (MVP) aims to provide core functionality for managing
   - Should detect actual upstream remote for each branch
 
 ### Medium Priority
-- [ ] **Expose `status` command in CLI**
-  - Command is implemented but not accessible via CLI
-  - Add to `src/bin/wok.rs` command structure
+- [x] **Expose `status` command in CLI** ✅
+  - Command is now accessible via CLI
+  - Added to `src/bin/wok.rs` command structure
 
 - [ ] **Enhanced error handling**
   - Improve error messages for network operations
@@ -104,7 +104,7 @@ The MVP will be considered complete when:
 
 ## 📝 Notes
 
-- The `status` command is implemented but not exposed in the CLI interface
+- The `status` command is implemented and exposed in the CLI interface
 - Remote fetching and merging were recently implemented
 - The `switch` command was implemented with full feature set
 - The `push` command was implemented with full feature set
