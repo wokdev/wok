@@ -49,5 +49,5 @@ nav:
   - Getting Started: getting-started.md
   - Wok CLI: cli.md
   - Wokfile (wok.yaml): wokfile.md
-  - WIP Docs:
-      - Planned Wok CLI: wip/cli-next.md
+  - Development:
+      - Roadmap: ROADMAP.md
