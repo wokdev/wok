@@ -3,7 +3,7 @@ use std::{fmt, path};
 use anyhow::*;
 
 pub struct Repo {
-    git_repo: git2::Repository,
+    pub git_repo: git2::Repository,
     pub work_dir: path::PathBuf,
     pub head: String,
     pub subrepos: Vec<Repo>,
@@ -70,7 +70,7 @@ impl Repo {
     pub fn get_subrepo_by_path(&self, subrepo_path: &path::PathBuf) -> Option<&Repo> {
         self.subrepos
             .iter()
-            .find(|subrepo| (subrepo.work_dir == self.work_dir.join(subrepo_path)))
+            .find(|subrepo| subrepo.work_dir == self.work_dir.join(subrepo_path))
     }
 
     pub fn sync(&self) -> Result<()> {
