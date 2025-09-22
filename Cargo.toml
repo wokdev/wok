@@ -1,10 +1,10 @@
 [package]
 name = "wok-dev"
 description = "A multirepo management tool."
-version = "1.0.0-alpha.1"
+version = "1.0.0-alpha.2"
 authors = ["Serge Matveenko <lig@countzero.co>"]
 license = "MIT"
-edition = "2021"
+edition = "2024"
 documentation = "https://docs.wok.dev/"
 homepage = "https://wok.dev/"
 repository = "https://codeberg.org/wok/wok"
