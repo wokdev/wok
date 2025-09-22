@@ -1,7 +1,7 @@
 [package]
 name = "wok-dev"
 description = "A multirepo management tool."
-version = "1.0.0-alpha"
+version = "1.0.0-alpha.1"
 authors = ["Serge Matveenko <lig@countzero.co>"]
 license = "MIT"
 edition = "2021"
@@ -12,12 +12,12 @@ repository = "https://codeberg.org/wok/wok"
 [dependencies]
 anyhow = "1.0.58"
 clap = { version = "4.1.8", features = ["derive"] }
-git2 = "0.17.2"
+git2 = "0.20.2"
 serde = { version = "1.0.143", features = ["derive"] }
-toml = "0.7.2"
+toml = "0.9.7"
 
 [dev-dependencies]
 assert_fs = "1.0.7"
 pretty_assertions = "1.2.1"
-rstest = "0.18.2"
+rstest = "0.26.1"
 shell-words = "1.1.0"
