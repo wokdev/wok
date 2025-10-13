@@ -1,3 +1,4 @@
+mod assemble;
 mod init;
 mod lock;
 mod push;
@@ -8,6 +9,7 @@ mod update;
 
 pub mod head;
 pub mod repo;
+pub use assemble::assemble;
 pub use init::init;
 pub use lock::lock;
 pub use push::push;

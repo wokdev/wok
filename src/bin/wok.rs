@@ -1,7 +1,15 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use std::{env, io::stdout, path};
 use wok_dev as wok;
+
+fn resolve_path(base: &path::Path, value: &path::Path) -> path::PathBuf {
+    if value.is_absolute() {
+        path::PathBuf::from(value)
+    } else {
+        base.join(value)
+    }
+}
 
 #[derive(Debug, Parser)]
 #[clap(
@@ -30,6 +38,12 @@ enum Command {
     /// Introspects existing submodules and adds them to the workspace config
     /// optionally switching them to the same branch.
     Init {},
+
+    /// Assemble a workspace by initializing subrepos and generating config.
+    Assemble {
+        /// Path to the workspace directory to assemble.
+        directory: path::PathBuf,
+    },
 
     #[clap(flatten)]
     App(App),
@@ -135,42 +149,51 @@ enum Repo {
 }
 
 fn main() -> Result<()> {
-    let args = Args::parse();
-
-    let wokfile_path = {
-        let wokfile_path = args.wokfile_path;
-        if wokfile_path.is_absolute() {
-            wokfile_path
-        } else {
-            env::current_dir()
-                .context("Cannot access the current directory")?
-                .join(wokfile_path)
-        }
-    };
-
-    let umbrella = wok::repo::Repo::new(
-        wokfile_path.parent().with_context(|| {
-            format!("Cannot open work dir for `{}`", wokfile_path.display())
-        })?,
-        None,
-    )?;
-
+    let Args { wokfile_path, cmd } = Args::parse();
+    let cwd = env::current_dir().context("Cannot access the current directory")?;
     let mut output = stdout();
 
-    match args.cmd {
+    match cmd {
         Command::Init {} => {
-            if wokfile_path.exists() {
-                bail!("Wok file already exists at `{}`", wokfile_path.display());
+            let config_path = resolve_path(&cwd, &wokfile_path);
+
+            if config_path.exists() {
+                bail!("Wok file already exists at `{}`", config_path.display());
             };
 
-            wok::cmd::init(&wokfile_path, &umbrella, &mut output)?
+            let repo_dir = config_path.parent().with_context(|| {
+                format!("Cannot open work dir for `{}`", config_path.display())
+            })?;
+
+            let umbrella = wok::repo::Repo::new(repo_dir, None)?;
+
+            wok::cmd::init(&config_path, &umbrella, &mut output)?
+        },
+        Command::Assemble { directory } => {
+            let workspace_dir = resolve_path(&cwd, &directory);
+
+            let config_path = if wokfile_path.is_absolute() {
+                wokfile_path.clone()
+            } else {
+                workspace_dir.join(&wokfile_path)
+            };
+
+            wok::cmd::assemble(&workspace_dir, &config_path, &mut output)?
         },
         Command::App(app_cmd) => {
-            if !wokfile_path.exists() {
-                bail!("Wok file not found at `{}`", wokfile_path.display());
+            let config_path = resolve_path(&cwd, &wokfile_path);
+
+            if !config_path.exists() {
+                bail!("Wok file not found at `{}`", config_path.display());
             };
 
-            let mut wok_config = wok::config::Config::load(&wokfile_path)?;
+            let repo_dir = config_path.parent().with_context(|| {
+                format!("Cannot open work dir for `{}`", config_path.display())
+            })?;
+
+            let umbrella = wok::repo::Repo::new(repo_dir, None)?;
+
+            let mut wok_config = wok::config::Config::load(&config_path)?;
 
             if match app_cmd {
                 App::Head(head_cmd) => match head_cmd {
@@ -252,7 +275,7 @@ fn main() -> Result<()> {
                     false // Don't save config for tag command
                 },
             } {
-                wok_config.save(&wokfile_path)?;
+                wok_config.save(&config_path)?;
             }
         },
     };

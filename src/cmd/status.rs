@@ -60,17 +60,14 @@ fn is_repo_clean(
         }
 
         // If it's a newly added submodule directory, we can consider the repo clean
-        if status == git2::Status::INDEX_NEW {
-            if let Some(path_str) = path {
-                if let Some(config_repos) = config_repos {
-                    if config_repos
-                        .iter()
-                        .any(|r| r.path.to_string_lossy() == path_str)
-                    {
-                        continue;
-                    }
-                }
-            }
+        if status == git2::Status::INDEX_NEW
+            && let Some(path_str) = path
+            && let Some(config_repos) = config_repos
+            && config_repos
+                .iter()
+                .any(|r| r.path.to_string_lossy() == path_str)
+        {
+            continue;
         }
 
         // Any other status means the repo is not clean
