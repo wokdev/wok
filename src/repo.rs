@@ -1,4 +1,4 @@
-use std::{fmt, path, sync::Arc};
+use std::{fmt, path};
 
 use anyhow::*;
 use std::result::Result::Ok;
@@ -112,13 +112,15 @@ impl Repo {
                 let mut fetch_options = git2::FetchOptions::new();
                 fetch_options.remote_callbacks(self.remote_callbacks()?);
 
-                remote.fetch(refspecs, Some(&mut fetch_options), None).with_context(|| {
-                    format!(
-                        "Failed to fetch from remote '{}' for repo at `{}`",
-                        remote_name,
-                        self.work_dir.display()
-                    )
-                })?;
+                remote
+                    .fetch(refspecs, Some(&mut fetch_options), None)
+                    .with_context(|| {
+                        format!(
+                            "Failed to fetch from remote '{}' for repo at `{}`",
+                            remote_name,
+                            self.work_dir.display()
+                        )
+                    })?;
             },
             Err(_) => {
                 // No remote configured, skip fetch
@@ -209,27 +211,24 @@ impl Repo {
     }
 
     pub fn remote_callbacks(&self) -> Result<git2::RemoteCallbacks<'static>> {
-        let config = Arc::new(self.git_repo.config()?);
+        let config = self.git_repo.config()?;
 
         let mut callbacks = git2::RemoteCallbacks::new();
         callbacks.credentials(move |url, username_from_url, allowed| {
-            if allowed.contains(git2::CredentialType::SSH_KEY) {
-                if let Some(username) = username_from_url {
-                    if let Ok(cred) = git2::Cred::ssh_key_from_agent(username) {
-                        return Ok(cred);
-                    }
-                }
+            if allowed.contains(git2::CredentialType::SSH_KEY)
+                && let Some(username) = username_from_url
+                && let Ok(cred) = git2::Cred::ssh_key_from_agent(username)
+            {
+                return Ok(cred);
             }
 
-            if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT)
+            if (allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT)
                 || allowed.contains(git2::CredentialType::SSH_KEY)
-                || allowed.contains(git2::CredentialType::DEFAULT)
-            {
-                if let Ok(cred) =
+                || allowed.contains(git2::CredentialType::DEFAULT))
+                && let Ok(cred) =
                     git2::Cred::credential_helper(&config, url, username_from_url)
-                {
-                    return Ok(cred);
-                }
+            {
+                return Ok(cred);
             }
 
             if allowed.contains(git2::CredentialType::USERNAME) {
