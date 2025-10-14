@@ -129,7 +129,7 @@ fn switch_repo(
     create: bool,
 ) -> Result<SwitchResult> {
     // Check if we're already on the target branch
-    if repo.head == branch_name {
+    if repo_on_branch(repo, branch_name)? {
         return Ok(SwitchResult::AlreadyOnBranch);
     }
 
@@ -165,6 +165,31 @@ fn create_and_switch_branch(repo: &repo::Repo, branch_name: &str) -> Result<()> 
     repo.git_repo.checkout_head(None)?;
 
     Ok(())
+}
+
+fn repo_on_branch(repo: &repo::Repo, branch_name: &str) -> Result<bool> {
+    if repo
+        .git_repo
+        .head_detached()
+        .with_context(|| format!("Cannot determine head state for repo at `{}`", repo.work_dir.display()))?
+    {
+        return Ok(false);
+    }
+
+    let current = repo
+        .git_repo
+        .head()
+        .with_context(|| format!("Cannot find the head branch for repo at `{}`", repo.work_dir.display()))?
+        .shorthand()
+        .with_context(|| {
+            format!(
+                "Cannot resolve the head reference for repo at `{}`",
+                repo.work_dir.display()
+            )
+        })?
+        .to_owned();
+
+    Ok(current == branch_name)
 }
 
 fn lock_switched_repos(

@@ -156,6 +156,41 @@ fn switch_with_branch_option(repo_sample: TestRepo) {
     assert!(output_str.contains("Successfully switched and locked 1 repositories"));
 }
 
+#[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
+fn switch_all_repos_moves_repo_when_cached_head_matches_target(
+    repo_sample: TestRepo,
+) {
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+
+    _run("git switch -c test", &repo_sample.repo_path).unwrap();
+    _run(
+        "git switch -c test",
+        &repo_sample.subrepo_paths["sub-a"],
+    )
+    .unwrap();
+    _run("git switch main", &repo_sample.subrepo_paths["sub-a"]).unwrap();
+
+    cmd::switch(
+        &mut actual_config,
+        &repo_sample.repo(),
+        &mut output,
+        false, // create
+        true,  // all
+        None,  // branch
+        &[],   // repos
+    )
+    .unwrap();
+
+    let subrepo_branch = _run(
+        "git branch --show-current",
+        &repo_sample.subrepo_paths["sub-a"],
+    )
+    .unwrap();
+
+    assert_eq!(subrepo_branch.trim(), "test");
+}
+
 #[rstest(repo_sample(vec![], Some("empty.toml")))]
 fn switch_with_no_repos(repo_sample: TestRepo) {
     let mut output = Cursor::new(Vec::new());
