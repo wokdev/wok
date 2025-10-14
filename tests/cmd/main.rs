@@ -1,9 +1,9 @@
 use anyhow::*;
+use git_wok::{DEFAULT_CONFIG_NAME, repo};
 use rstest::*;
 use std::collections::HashMap;
 use std::path::{self, PathBuf};
 use std::{env, fs, process};
-use wok_dev::{DEFAULT_CONFIG_NAME, repo};
 
 mod assemble;
 mod head_switch;

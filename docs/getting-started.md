@@ -1,8 +1,8 @@
-# Getting Started with Wok
+# Getting Started with Git Wok
 
 ## Introduction
 
-**Wok** seamlessly manages multiple Git repositories simultaneously. Its core methodology bears a resemblance to popular package managers such as `cargo`, `poetry`, or `npm`.
+**Git Wok** seamlessly manages multiple Git repositories simultaneously. Its core methodology bears a resemblance to popular package managers such as `cargo`, `poetry`, or `npm`.
 
 In this context, we consider the `wok.yaml` configuration file as equivalent in importance to a package manager's primary configuration file, similar to how `Cargo.toml` is treated in `cargo`.
 
@@ -12,7 +12,7 @@ Submodule objects, once they've been committed to the primary repository, assume
 ## Installation
 
 ```sh
-cargo install wok-dev@0.3.0-dev
+cargo install git-wok@0.3.0-dev
 ```
 
 ## Initializing Workspace
@@ -20,5 +20,5 @@ cargo install wok-dev@0.3.0-dev
 ```sh
 mkdir my-project-space && cd my-project-space
 git init
-wok init
+git-wok init
 ```

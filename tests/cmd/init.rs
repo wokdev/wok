@@ -3,7 +3,7 @@ use std::io::Cursor;
 use pretty_assertions::assert_eq;
 use rstest::*;
 
-use wok_dev::{cmd, config::Config};
+use git_wok::{cmd, config::Config};
 
 use super::*;
 

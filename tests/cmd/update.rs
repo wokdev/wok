@@ -2,7 +2,7 @@ use std::{fs, io::Cursor};
 
 use rstest::*;
 
-use wok_dev::{cmd, config};
+use git_wok::{cmd, config};
 
 use super::*;
 

@@ -7,9 +7,9 @@ use std::io::Write;
 use std::path::{self, PathBuf};
 use std::process::Command;
 
-const INITIAL_COMMIT_MESSAGE: &str = "Initial commit (wok assemble)";
-const DEFAULT_AUTHOR_NAME: &str = "wok assemble";
-const DEFAULT_AUTHOR_EMAIL: &str = "assemble@wok.dev";
+const INITIAL_COMMIT_MESSAGE: &str = "Initial commit (git-wok assemble)";
+const DEFAULT_AUTHOR_NAME: &str = "git-wok assemble";
+const DEFAULT_AUTHOR_EMAIL: &str = "assemble@git-wok.dev";
 
 pub fn assemble<W: Write>(
     workspace_dir: &path::Path,

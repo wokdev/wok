@@ -1,4 +1,4 @@
-site_name: Wok
+site_name: Git Wok
 repo_url: https://codeberg.org/wok/wok
 repo_name: wok/wok
 markdown_extensions:
@@ -42,12 +42,12 @@ extra_css:
   - stylesheets/extra.css
 nav:
   - Home:
-      - Wok Home: index.md
-      - Wok on Codeberg: https://codeberg.org/wok/wok
+      - Git Wok Home: index.md
+      - Git Wok on Codeberg: https://codeberg.org/wok/wok
       - MIT License: https://codeberg.org/wok/wok/src/branch/main/LICENSE
       - Code of Conduct: https://codeberg.org/wok/wok/src/branch/main/CODE_OF_CONDUCT.md
   - Getting Started: getting-started.md
-  - Wok CLI: cli.md
+  - Git Wok CLI: cli.md
   - Wokfile (wok.yaml): wokfile.md
   - Development:
       - Roadmap: ROADMAP.md

@@ -1,8 +1,8 @@
-# Wok
+# Git Wok
 
 [![status-badge](https://ci.codeberg.org/api/badges/12553/status.svg)](https://ci.codeberg.org/repos/12553)
 
-**Wok** helps to organize multiple git repositories into a single multi-project workspace.
+**Git Wok** helps to organize multiple git repositories into a single multi-project workspace.
 
 ## 🚀 Version 1.0.0-alpha
 
@@ -23,19 +23,19 @@
 
 ```bash
 # Initialize a workspace
-wok init
+git-wok init
 
 # Add a submodule
-wok repo add path/to/submodule
+git-wok repo add path/to/submodule
 
 # Switch all repos to current branch
-wok head switch
+git-wok head switch
 
 # Push changes to all repos
-wok push --all
+git-wok push --all
 
 # Create and push a signed tag
-wok tag --all v1.0.0 --sign --push
+git-wok tag --all v1.0.0 --sign --push
 ```
 
 ### 📚 Documentation

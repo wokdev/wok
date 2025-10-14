@@ -1,13 +1,17 @@
 [package]
-name = "wok-dev"
+name = "git-wok"
 description = "A multirepo management tool."
 version = "1.0.0-beta.3"
 authors = ["Serge Matveenko <lig@countzero.co>"]
 license = "MIT"
 edition = "2024"
-documentation = "https://docs.wok.dev/"
-homepage = "https://wok.dev/"
+documentation = "https://git-wok.dev/"
+homepage = "https://git-wok.dev/"
 repository = "https://codeberg.org/wok/wok"
+
+[[bin]]
+name = "git-wok"
+path = "src/bin/git_wok.rs"
 
 [dependencies]
 anyhow = "1.0.58"

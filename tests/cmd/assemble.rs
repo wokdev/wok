@@ -5,7 +5,7 @@ use std::{fs, process};
 use assert_fs::prelude::*;
 use pretty_assertions::assert_eq;
 
-use wok_dev::{DEFAULT_CONFIG_NAME, cmd, config::Config};
+use git_wok::{DEFAULT_CONFIG_NAME, cmd, config::Config};
 
 #[test]
 fn assemble_creates_workspace_config() {

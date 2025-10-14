@@ -1,7 +1,7 @@
 use anyhow::{Context, Result, anyhow, bail};
 use clap::Parser;
+use git_wok as wok;
 use std::{env, io::stdout, path};
-use wok_dev as wok;
 
 fn resolve_path(base: &path::Path, value: &path::Path) -> path::PathBuf {
     if value.is_absolute() {
@@ -13,11 +13,11 @@ fn resolve_path(base: &path::Path, value: &path::Path) -> path::PathBuf {
 
 #[derive(Debug, Parser)]
 #[clap(
-    name = "wok",
-    about = "Wok -- control several git repositories as a single project."
+    name = "git-wok",
+    about = "Git Wok -- control several git repositories as a single project."
 )]
 struct Args {
-    /// Wok file path.
+    /// Git Wok file path.
     #[clap(
         global = true,
         short('f'),
@@ -211,7 +211,7 @@ fn main() -> Result<()> {
             let config_path = resolve_path(&cwd, &wokfile_path);
 
             if config_path.exists() {
-                bail!("Wok file already exists at `{}`", config_path.display());
+                bail!("Git Wok file already exists at `{}`", config_path.display());
             };
 
             let repo_dir = config_path.parent().with_context(|| {
@@ -237,7 +237,7 @@ fn main() -> Result<()> {
             let config_path = resolve_path(&cwd, &wokfile_path);
 
             if !config_path.exists() {
-                bail!("Wok file not found at `{}`", config_path.display());
+                bail!("Git Wok file not found at `{}`", config_path.display());
             };
 
             let repo_dir = config_path.parent().with_context(|| {

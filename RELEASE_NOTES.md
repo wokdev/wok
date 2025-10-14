@@ -64,22 +64,22 @@ cargo build --release
 
 ```bash
 # Initialize a new workspace
-wok init
+git-wok init
 
 # Add a submodule
-wok repo add path/to/submodule
+git-wok repo add path/to/submodule
 
 # Check status of all repos
-wok status
+git-wok status
 
 # Switch all repos to current branch
-wok head switch
+git-wok head switch
 
 # Push changes to all repos
-wok push --all
+git-wok push --all
 
 # Create and push a signed tag
-wok tag --all v1.0.0 --sign --push
+git-wok tag --all v1.0.0 --sign --push
 ```
 
 ## ⚠️ Known Limitations
@@ -172,7 +172,7 @@ We welcome contributions! Please see our contributing guidelines and consider:
 
 - **Community Chat**: [#wok:matrix.org](https://matrix.to/#/#wok:matrix.org)
 - **Issue Tracker**: [Codeberg Issues](https://codeberg.org/wok/wok/issues)
-- **Documentation**: [docs.wok.dev](https://docs.wok.dev/)
+- **Documentation**: [git-wok.dev](https://git-wok.dev/)
 
 ---
 
