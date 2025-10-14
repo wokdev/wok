@@ -267,17 +267,15 @@ fn main() -> Result<()> {
                     all,
                     branch,
                     repos,
-                } => {
-                    wok::cmd::switch(
-                        &mut wok_config,
-                        &umbrella,
-                        &mut output,
-                        create,
-                        all,
-                        branch.as_deref(),
-                        &repos,
-                    )?
-                },
+                } => wok::cmd::switch(
+                    &mut wok_config,
+                    &umbrella,
+                    &mut output,
+                    create,
+                    all,
+                    branch.as_deref(),
+                    &repos,
+                )?,
                 App::Lock => {
                     wok::cmd::lock(&mut wok_config, &umbrella, &mut output)?;
                     false // Don't save config for lock command

@@ -14,6 +14,7 @@ pub fn switch<W: Write>(
     target_repos: &[std::path::PathBuf],
 ) -> Result<bool> {
     let mut config_updated = false;
+    let mut submodule_changed = false;
 
     // Determine the target branch
     let target_branch = match branch_name {
@@ -68,10 +69,8 @@ pub fn switch<W: Write>(
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
             match switch_repo(subrepo, &target_branch, create) {
                 Ok(result) => {
-                    config_updated |= wok_config.set_repo_head(
-                        config_repo.path.as_path(),
-                        &target_branch,
-                    );
+                    config_updated |= wok_config
+                        .set_repo_head(config_repo.path.as_path(), &target_branch);
 
                     match result {
                         SwitchResult::Switched => {
@@ -81,6 +80,7 @@ pub fn switch<W: Write>(
                                 config_repo.path.display(),
                                 target_branch
                             )?;
+                            submodule_changed = true;
                         },
                         SwitchResult::Created => {
                             writeln!(
@@ -89,6 +89,7 @@ pub fn switch<W: Write>(
                                 config_repo.path.display(),
                                 target_branch
                             )?;
+                            submodule_changed = true;
                         },
                         SwitchResult::AlreadyOnBranch => {
                             writeln!(
@@ -113,15 +114,25 @@ pub fn switch<W: Write>(
         }
     }
 
-    // Perform lock operation on switched repos
-    writeln!(stdout, "Locking submodule state...")?;
-    lock_switched_repos(umbrella, &repos_to_switch)?;
+    if submodule_changed {
+        // Perform lock operation on switched repos
+        writeln!(stdout, "Locking submodule state...")?;
+        lock_switched_repos(umbrella, &repos_to_switch)?;
 
-    writeln!(
-        stdout,
-        "Successfully switched and locked {} repositories",
-        repos_to_switch.len()
-    )?;
+        writeln!(
+            stdout,
+            "Successfully switched and locked {} repositories",
+            repos_to_switch.len()
+        )?;
+    } else {
+        writeln!(stdout, "No submodule changes detected; skipping lock")?;
+        writeln!(
+            stdout,
+            "Successfully processed {} repositories",
+            repos_to_switch.len()
+        )?;
+    }
+
     Ok(config_updated)
 }
 
@@ -177,18 +188,24 @@ fn create_and_switch_branch(repo: &repo::Repo, branch_name: &str) -> Result<()> 
 }
 
 fn repo_on_branch(repo: &repo::Repo, branch_name: &str) -> Result<bool> {
-    if repo
-        .git_repo
-        .head_detached()
-        .with_context(|| format!("Cannot determine head state for repo at `{}`", repo.work_dir.display()))?
-    {
+    if repo.git_repo.head_detached().with_context(|| {
+        format!(
+            "Cannot determine head state for repo at `{}`",
+            repo.work_dir.display()
+        )
+    })? {
         return Ok(false);
     }
 
     let current = repo
         .git_repo
         .head()
-        .with_context(|| format!("Cannot find the head branch for repo at `{}`", repo.work_dir.display()))?
+        .with_context(|| {
+            format!(
+                "Cannot find the head branch for repo at `{}`",
+                repo.work_dir.display()
+            )
+        })?
         .shorthand()
         .with_context(|| {
             format!(
@@ -226,6 +243,11 @@ fn lock_switched_repos(
 
     let head_ref = umbrella.git_repo.head()?;
     let parent_commit = head_ref.peel_to_commit()?;
+    let parent_tree = parent_commit.tree()?;
+
+    if tree.id() == parent_tree.id() {
+        return Ok(());
+    }
 
     umbrella.git_repo.commit(
         Some("HEAD"),

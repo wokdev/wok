@@ -74,6 +74,9 @@ impl Config {
                 if r.path != path {
                     return r;
                 }
+                if r.head == *head {
+                    return r;
+                }
                 r.head = head.to_owned();
                 updated = true;
                 r
