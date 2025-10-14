@@ -276,8 +276,7 @@ fn main() -> Result<()> {
                         all,
                         branch.as_deref(),
                         &repos,
-                    )?;
-                    false // Don't save config for switch command
+                    )?
                 },
                 App::Lock => {
                     wok::cmd::lock(&mut wok_config, &umbrella, &mut output)?;

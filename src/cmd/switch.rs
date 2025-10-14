@@ -12,7 +12,9 @@ pub fn switch<W: Write>(
     all: bool,
     branch_name: Option<&str>,
     target_repos: &[std::path::PathBuf],
-) -> Result<()> {
+) -> Result<bool> {
+    let mut config_updated = false;
+
     // Determine the target branch
     let target_branch = match branch_name {
         Some(name) => name.to_string(),
@@ -51,7 +53,7 @@ pub fn switch<W: Write>(
 
     if repos_to_switch.is_empty() {
         writeln!(stdout, "No repositories to switch")?;
-        return Ok(());
+        return Ok(config_updated);
     }
 
     writeln!(
@@ -65,31 +67,38 @@ pub fn switch<W: Write>(
     for config_repo in &repos_to_switch {
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
             match switch_repo(subrepo, &target_branch, create) {
-                Ok(result) => match result {
-                    SwitchResult::Switched => {
-                        writeln!(
-                            stdout,
-                            "- '{}': switched to '{}'",
-                            config_repo.path.display(),
-                            target_branch
-                        )?;
-                    },
-                    SwitchResult::Created => {
-                        writeln!(
-                            stdout,
-                            "- '{}': created and switched to '{}'",
-                            config_repo.path.display(),
-                            target_branch
-                        )?;
-                    },
-                    SwitchResult::AlreadyOnBranch => {
-                        writeln!(
-                            stdout,
-                            "- '{}': already on '{}'",
-                            config_repo.path.display(),
-                            target_branch
-                        )?;
-                    },
+                Ok(result) => {
+                    config_updated |= wok_config.set_repo_head(
+                        config_repo.path.as_path(),
+                        &target_branch,
+                    );
+
+                    match result {
+                        SwitchResult::Switched => {
+                            writeln!(
+                                stdout,
+                                "- '{}': switched to '{}'",
+                                config_repo.path.display(),
+                                target_branch
+                            )?;
+                        },
+                        SwitchResult::Created => {
+                            writeln!(
+                                stdout,
+                                "- '{}': created and switched to '{}'",
+                                config_repo.path.display(),
+                                target_branch
+                            )?;
+                        },
+                        SwitchResult::AlreadyOnBranch => {
+                            writeln!(
+                                stdout,
+                                "- '{}': already on '{}'",
+                                config_repo.path.display(),
+                                target_branch
+                            )?;
+                        },
+                    };
                 },
                 Err(e) => {
                     writeln!(
@@ -113,7 +122,7 @@ pub fn switch<W: Write>(
         "Successfully switched and locked {} repositories",
         repos_to_switch.len()
     )?;
-    Ok(())
+    Ok(config_updated)
 }
 
 #[derive(Debug, Clone, PartialEq)]

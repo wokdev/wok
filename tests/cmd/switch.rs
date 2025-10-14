@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{io::Cursor, path::Path};
 
 use rstest::*;
 
@@ -12,7 +12,7 @@ fn switch_all_repos(repo_sample: TestRepo) {
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
 
     // Run the switch command with --all
-    cmd::switch(
+    let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
         &mut output,
@@ -22,6 +22,14 @@ fn switch_all_repos(repo_sample: TestRepo) {
         &[],   // repos
     )
     .unwrap();
+
+    assert!(config_changed);
+    let repo_entry = actual_config
+        .repos
+        .iter()
+        .find(|r| r.path == Path::new("sub-a"))
+        .unwrap();
+    assert_eq!(repo_entry.head, "main");
 
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
@@ -40,7 +48,7 @@ fn switch_all_skips_configured_repo(repo_sample: TestRepo) {
     let mut output = Cursor::new(Vec::new());
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
 
-    cmd::switch(
+    let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
         &mut output,
@@ -51,6 +59,7 @@ fn switch_all_skips_configured_repo(repo_sample: TestRepo) {
     )
     .unwrap();
 
+    assert!(config_changed);
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(output_str.contains("Switching 1 repositories to branch 'main'"));
     assert!(!output_str.contains("- 'sub-a':"));
@@ -63,7 +72,7 @@ fn switch_all_includes_explicit_repo_overrides_skip(repo_sample: TestRepo) {
     let mut output = Cursor::new(Vec::new());
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
 
-    cmd::switch(
+    let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
         &mut output,
@@ -74,6 +83,7 @@ fn switch_all_includes_explicit_repo_overrides_skip(repo_sample: TestRepo) {
     )
     .unwrap();
 
+    assert!(config_changed);
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(output_str.contains("Switching 2 repositories to branch 'main'"));
     assert!(output_str.contains("- 'sub-a':"));
@@ -87,7 +97,7 @@ fn switch_specific_repo(repo_sample: TestRepo) {
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
 
     // Run the switch command with specific repo
-    cmd::switch(
+    let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
         &mut output,
@@ -97,6 +107,14 @@ fn switch_specific_repo(repo_sample: TestRepo) {
         &[std::path::PathBuf::from("sub-a")], // repos
     )
     .unwrap();
+
+    assert!(config_changed);
+    let repo_entry = actual_config
+        .repos
+        .iter()
+        .find(|r| r.path == Path::new("sub-a"))
+        .unwrap();
+    assert_eq!(repo_entry.head, "main");
 
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
@@ -115,7 +133,7 @@ fn switch_with_create_option(repo_sample: TestRepo) {
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
 
     // Run the switch command with --create and a new branch name
-    cmd::switch(
+    let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
         &mut output,
@@ -125,6 +143,14 @@ fn switch_with_create_option(repo_sample: TestRepo) {
         &[],                    // repos
     )
     .unwrap();
+
+    assert!(config_changed);
+    let repo_entry = actual_config
+        .repos
+        .iter()
+        .find(|r| r.path == Path::new("sub-a"))
+        .unwrap();
+    assert_eq!(repo_entry.head, "feature-branch");
 
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
@@ -138,8 +164,15 @@ fn switch_with_branch_option(repo_sample: TestRepo) {
     let mut output = Cursor::new(Vec::new());
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
 
+    _run(
+        "git switch -c develop",
+        &repo_sample.subrepo_paths["sub-a"],
+    )
+    .unwrap();
+    _run("git switch main", &repo_sample.subrepo_paths["sub-a"]).unwrap();
+
     // Run the switch command with --branch option
-    cmd::switch(
+    let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
         &mut output,
@@ -149,6 +182,14 @@ fn switch_with_branch_option(repo_sample: TestRepo) {
         &[],             // repos
     )
     .unwrap();
+
+    assert!(config_changed);
+    let repo_entry = actual_config
+        .repos
+        .iter()
+        .find(|r| r.path == Path::new("sub-a"))
+        .unwrap();
+    assert_eq!(repo_entry.head, "develop");
 
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
@@ -171,7 +212,7 @@ fn switch_all_repos_moves_repo_when_cached_head_matches_target(
     .unwrap();
     _run("git switch main", &repo_sample.subrepo_paths["sub-a"]).unwrap();
 
-    cmd::switch(
+    let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
         &mut output,
@@ -181,6 +222,14 @@ fn switch_all_repos_moves_repo_when_cached_head_matches_target(
         &[],   // repos
     )
     .unwrap();
+
+    assert!(config_changed);
+    let repo_entry = actual_config
+        .repos
+        .iter()
+        .find(|r| r.path == Path::new("sub-a"))
+        .unwrap();
+    assert_eq!(repo_entry.head, "test");
 
     let subrepo_branch = _run(
         "git branch --show-current",
@@ -197,7 +246,7 @@ fn switch_with_no_repos(repo_sample: TestRepo) {
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
 
     // Run the switch command with no repos configured
-    cmd::switch(
+    let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
         &mut output,
@@ -208,6 +257,7 @@ fn switch_with_no_repos(repo_sample: TestRepo) {
     )
     .unwrap();
 
+    assert!(!config_changed);
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(output_str.contains("No repositories to switch"));
@@ -219,7 +269,7 @@ fn switch_nonexistent_repo(repo_sample: TestRepo) {
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
 
     // Run the switch command with a non-existent repo
-    cmd::switch(
+    let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
         &mut output,
@@ -230,6 +280,7 @@ fn switch_nonexistent_repo(repo_sample: TestRepo) {
     )
     .unwrap();
 
+    assert!(!config_changed);
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(output_str.contains("No repositories to switch"));
