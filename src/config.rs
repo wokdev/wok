@@ -9,6 +9,8 @@ const CONFIG_CURRENT_VERSION: &str = "1.0-experimental";
 pub struct Repo {
     pub path: path::PathBuf,
     pub head: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub skip_for: Vec<String>,
 }
 
 /// Config schema for `wok.toml`
@@ -41,6 +43,7 @@ impl Config {
         self.repos.push(Repo {
             path: path::PathBuf::from(path),
             head: String::from(head),
+            skip_for: vec![],
         });
         true
     }
@@ -105,6 +108,14 @@ impl Config {
     fn has_repo_path(&self, path: &path::Path) -> bool {
         assert!(!path.is_absolute());
         self.repos.iter().any(|r| r.path == path)
+    }
+}
+
+impl Repo {
+    pub fn is_skipped_for(&self, command: &str) -> bool {
+        self.skip_for
+            .iter()
+            .any(|skip| skip.eq_ignore_ascii_case(command))
     }
 }
 

@@ -102,6 +102,23 @@ fn update_with_no_submodules(repo_sample: TestRepo) {
     assert_eq!(head_before, head_after);
 }
 
+#[rstest(repo_sample(vec!["sub-a", "sub-b"], Some("a-b-skip.toml")))]
+fn update_skips_configured_repo(repo_sample: TestRepo) {
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+    let umbrella = repo_sample.repo();
+
+    cmd::update(&mut actual_config, &umbrella, &mut output, false).unwrap();
+
+    let output_str = String::from_utf8_lossy(output.get_ref());
+    assert!(
+        output_str.contains("Updating submodules..."),
+        "Output: {output_str}"
+    );
+    assert!(!output_str.contains("- 'sub-a':"), "Output: {output_str}");
+    assert!(output_str.contains("- 'sub-b':"), "Output: {output_str}");
+}
+
 #[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
 fn update_with_no_commit_flag_skips_commit(repo_sample: TestRepo) {
     let mut output = Cursor::new(Vec::new());

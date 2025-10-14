@@ -16,6 +16,7 @@
 - **Development Flow**: `head switch`, `switch`, `push`
 - **Release Management**: `tag`
 - **Advanced Options**: Selective repo targeting, branch creation, GPG signing
+- **Config Controls**: Per-repo skip lists to exclude projects from bulk operations without losing explicit access
 - **Comprehensive Testing**: 37 tests covering all functionality
 
 ### 🎯 Quick Start

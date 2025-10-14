@@ -185,6 +185,52 @@ fn push_multiple_repos(repo_sample: TestRepo) {
     assert!(output_str.contains("Successfully processed 2 repositories"));
 }
 
+#[rstest(repo_sample(vec!["sub-a", "sub-b"], Some("a-b-skip.toml")))]
+fn push_all_skips_configured_repo(repo_sample: TestRepo) {
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+
+    cmd::push(
+        &mut actual_config,
+        &repo_sample.repo(),
+        &mut output,
+        false,
+        true,
+        None,
+        &[],
+    )
+    .unwrap();
+
+    let output_str = String::from_utf8_lossy(output.get_ref());
+    assert!(output_str.contains("Pushing 1 repositories to branch 'main'"));
+    assert!(!output_str.contains("- 'sub-a':"));
+    assert!(output_str.contains("- 'sub-b':"));
+    assert!(output_str.contains("Successfully processed 1 repositories"));
+}
+
+#[rstest(repo_sample(vec!["sub-a", "sub-b"], Some("a-b-skip.toml")))]
+fn push_all_includes_explicit_repo_overrides_skip(repo_sample: TestRepo) {
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+
+    cmd::push(
+        &mut actual_config,
+        &repo_sample.repo(),
+        &mut output,
+        false,
+        true,
+        None,
+        &[std::path::PathBuf::from("sub-a")],
+    )
+    .unwrap();
+
+    let output_str = String::from_utf8_lossy(output.get_ref());
+    assert!(output_str.contains("Pushing 2 repositories to branch 'main'"));
+    assert!(output_str.contains("- 'sub-a':"));
+    assert!(output_str.contains("- 'sub-b':"));
+    assert!(output_str.contains("Successfully processed 2 repositories"));
+}
+
 #[rstest(repo_sample(vec!["sub-a", "sub-b"], Some("a-b.toml")))]
 fn push_specific_multiple_repos(repo_sample: TestRepo) {
     let mut output = Cursor::new(Vec::new());

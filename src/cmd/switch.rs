@@ -20,9 +20,17 @@ pub fn switch<W: Write>(
     };
 
     // Determine which repos to switch
-    let repos_to_switch = if all {
-        // Switch all configured repos
-        wok_config.repos.clone()
+    let repos_to_switch: Vec<config::Repo> = if all {
+        // Switch all configured repos, skipping those opted out unless explicitly targeted
+        wok_config
+            .repos
+            .iter()
+            .filter(|config_repo| {
+                !config_repo.is_skipped_for("switch")
+                    || target_repos.contains(&config_repo.path)
+            })
+            .cloned()
+            .collect()
     } else if !target_repos.is_empty() {
         // Switch only specified repos
         wok_config

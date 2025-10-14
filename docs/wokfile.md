@@ -28,3 +28,4 @@ Wok will try to find the `wok.yaml` file using alternative paths in the followin
 
 - `path` -- String -- path to the configured submodule
 - `ref` -- String -- current branch configured for the `HEAD` reference of the submodule to point to
+- `skip_for` -- List of Strings (optional) -- command names that should skip this repo when `--all` is used. The repo is still processed if it is explicitly listed. Currently honoured by `tag`, `push`, `switch`, and `update`.

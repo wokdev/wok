@@ -173,13 +173,6 @@ fn resolve_tag_arguments<'a>(
                     anyhow!("Tag name '{}' is not valid UTF-8", first_arg.display())
                 })?
                 .to_owned();
-
-            if !rest.is_empty() {
-                bail!(
-                    "Cannot specify repositories when using --all and a positional tag name"
-                );
-            }
-
             return Ok((Some(tag), rest));
         }
 
@@ -375,6 +368,18 @@ mod tests {
     }
 
     #[test]
+    fn allows_explicit_repos_with_all_when_tag_is_positional() {
+        let config = config_with_repo("api");
+        let repos = vec![path::PathBuf::from("v2.0.0"), path::PathBuf::from("api")];
+
+        let (positional_tag, remaining) =
+            resolve_tag_arguments(&None, true, &repos, &config).unwrap();
+
+        assert_eq!(positional_tag.as_deref(), Some("v2.0.0"));
+        assert_eq!(remaining, &repos[1..]);
+    }
+
+    #[test]
     fn keeps_repo_arguments_for_listing() {
         let config = config_with_repo("api");
         let repos = vec![path::PathBuf::from("api")];
@@ -409,11 +414,19 @@ mod tests {
     }
 
     #[test]
-    fn rejects_multiple_arguments_with_all_when_no_create() {
-        let config = config_with_repo("api");
-        let repos = vec![path::PathBuf::from("v2.0.0"), path::PathBuf::from("api")];
+    fn allows_multiple_repos_with_all_when_no_create() {
+        let mut config = config_with_repo("api");
+        config.add_repo(path::Path::new("docs"), "main");
+        let repos = vec![
+            path::PathBuf::from("v2.0.0"),
+            path::PathBuf::from("api"),
+            path::PathBuf::from("docs"),
+        ];
 
-        let result = resolve_tag_arguments(&None, true, &repos, &config);
-        assert!(result.is_err());
+        let (positional_tag, remaining) =
+            resolve_tag_arguments(&None, true, &repos, &config).unwrap();
+
+        assert_eq!(positional_tag.as_deref(), Some("v2.0.0"));
+        assert_eq!(remaining, &repos[1..]);
     }
 }

@@ -20,9 +20,17 @@ pub fn push<W: Write>(
     };
 
     // Determine which repos to push
-    let repos_to_push = if all {
-        // Push all configured repos
-        wok_config.repos.clone()
+    let repos_to_push: Vec<config::Repo> = if all {
+        // Push all configured repos, skipping those opted out unless explicitly targeted
+        wok_config
+            .repos
+            .iter()
+            .filter(|config_repo| {
+                !config_repo.is_skipped_for("push")
+                    || target_repos.contains(&config_repo.path)
+            })
+            .cloned()
+            .collect()
     } else if !target_repos.is_empty() {
         // Push only specified repos
         wok_config

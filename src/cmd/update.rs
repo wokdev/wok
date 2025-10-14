@@ -16,6 +16,10 @@ pub fn update<W: Write>(
 
     // Step 1: Update each repo with fetch and merge
     for config_repo in &wok_config.repos {
+        if config_repo.is_skipped_for("update") {
+            continue;
+        }
+
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
             // Switch to configured branch first
             subrepo.switch(&config_repo.head)?;

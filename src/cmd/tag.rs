@@ -16,9 +16,17 @@ pub fn tag<W: Write>(
     target_repos: &[std::path::PathBuf],
 ) -> Result<()> {
     // Determine which repos to tag
-    let repos_to_tag = if all {
-        // Tag all configured repos
-        wok_config.repos.clone()
+    let repos_to_tag: Vec<config::Repo> = if all {
+        // Tag all configured repos, skipping those opted out unless explicitly targeted
+        wok_config
+            .repos
+            .iter()
+            .filter(|config_repo| {
+                !config_repo.is_skipped_for("tag")
+                    || target_repos.contains(&config_repo.path)
+            })
+            .cloned()
+            .collect()
     } else if !target_repos.is_empty() {
         // Tag only specified repos
         wok_config
