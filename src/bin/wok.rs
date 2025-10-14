@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use clap::Parser;
 use std::{env, io::stdout, path};
 use wok_dev as wok;
@@ -148,6 +148,62 @@ enum Repo {
     },
 }
 
+fn resolve_tag_arguments<'a>(
+    create: &'a Option<String>,
+    all: bool,
+    repos: &'a [path::PathBuf],
+    config: &wok::config::Config,
+) -> Result<(Option<String>, &'a [path::PathBuf])> {
+    if create.is_some() {
+        if all && !repos.is_empty() {
+            bail!("Cannot specify repositories when using --all");
+        }
+        return Ok((None, repos));
+    }
+
+    if all {
+        if let Some((first_arg, rest)) = repos.split_first() {
+            let tag = first_arg
+                .to_str()
+                .ok_or_else(|| {
+                    anyhow!("Tag name '{}' is not valid UTF-8", first_arg.display())
+                })?
+                .to_owned();
+
+            if !rest.is_empty() {
+                bail!(
+                    "Cannot specify repositories when using --all and a positional tag name"
+                );
+            }
+
+            return Ok((Some(tag), rest));
+        }
+
+        return Ok((None, repos));
+    }
+
+    if let Some((first_arg, rest)) = repos.split_first() {
+        let matches_repo = config
+            .repos
+            .iter()
+            .any(|config_repo| config_repo.path == *first_arg);
+
+        if matches_repo {
+            Ok((None, repos))
+        } else {
+            let tag = first_arg
+                .to_str()
+                .ok_or_else(|| {
+                    anyhow!("Tag name '{}' is not valid UTF-8", first_arg.display())
+                })?
+                .to_owned();
+            Ok((Some(tag), rest))
+        }
+    } else {
+        Ok((None, repos))
+    }
+}
+
 fn main() -> Result<()> {
     let Args { wokfile_path, cmd } = Args::parse();
     let cwd = env::current_dir().context("Cannot access the current directory")?;
@@ -262,15 +318,19 @@ fn main() -> Result<()> {
                     all,
                     repos,
                 } => {
+                    let (positional_tag, repo_args) =
+                        resolve_tag_arguments(&create, all, &repos, &wok_config)?;
+                    let tag_name = create.as_deref().or(positional_tag.as_deref());
+
                     wok::cmd::tag(
                         &mut wok_config,
                         &umbrella,
                         &mut output,
-                        create.as_deref(),
+                        tag_name,
                         sign,
                         push,
                         all,
-                        &repos,
+                        repo_args,
                     )?;
                     false // Don't save config for tag command
                 },
@@ -281,4 +341,70 @@ fn main() -> Result<()> {
     };
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config_with_repo(path: &str) -> wok::config::Config {
+        let mut config = wok::config::Config::new();
+        config.add_repo(path::Path::new(path), "main");
+        config
+    }
+
+    #[test]
+    fn derive_tag_from_positional_when_all() {
+        let config = config_with_repo("api");
+        let repos = vec![path::PathBuf::from("v2.0.0")];
+
+        let (positional_tag, remaining) =
+            resolve_tag_arguments(&None, true, &repos, &config).unwrap();
+
+        assert_eq!(positional_tag.as_deref(), Some("v2.0.0"));
+        assert!(remaining.is_empty());
+    }
+
+    #[test]
+    fn keeps_repo_arguments_for_listing() {
+        let config = config_with_repo("api");
+        let repos = vec![path::PathBuf::from("api")];
+
+        let (positional_tag, remaining) =
+            resolve_tag_arguments(&None, false, &repos, &config).unwrap();
+
+        assert!(positional_tag.is_none());
+        assert_eq!(remaining, repos.as_slice());
+    }
+
+    #[test]
+    fn rejects_repos_with_all_when_create_present() {
+        let config = config_with_repo("api");
+        let repos = vec![path::PathBuf::from("api")];
+        let create = Some(String::from("v2.0.0"));
+
+        let result = resolve_tag_arguments(&create, true, &repos, &config);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn derives_tag_from_first_non_repo_argument() {
+        let config = config_with_repo("api");
+        let repos = vec![path::PathBuf::from("v2.0.0"), path::PathBuf::from("api")];
+
+        let (positional_tag, remaining) =
+            resolve_tag_arguments(&None, false, &repos, &config).unwrap();
+
+        assert_eq!(positional_tag.as_deref(), Some("v2.0.0"));
+        assert_eq!(remaining, &repos[1..]);
+    }
+
+    #[test]
+    fn rejects_multiple_arguments_with_all_when_no_create() {
+        let config = config_with_repo("api");
+        let repos = vec![path::PathBuf::from("v2.0.0"), path::PathBuf::from("api")];
+
+        let result = resolve_tag_arguments(&None, true, &repos, &config);
+        assert!(result.is_err());
+    }
 }

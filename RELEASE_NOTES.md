@@ -79,7 +79,7 @@ wok head switch
 wok push --all
 
 # Create and push a signed tag
-wok tag --create v1.0.0 --sign --push --all
+wok tag --all v1.0.0 --sign --push
 ```
 
 ## ⚠️ Known Limitations
