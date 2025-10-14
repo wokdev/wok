@@ -1,6 +1,7 @@
 use std::{fmt, path};
 
 use anyhow::*;
+use git2::build::CheckoutBuilder;
 use std::result::Result::Ok;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -99,25 +100,26 @@ impl Repo {
             )
         })?;
 
-        let remote_name = self.get_remote_name_for_branch(branch_name)?;
+        let tracking = match self.tracking_branch(branch_name)? {
+            Some(tracking) => tracking,
+            None => {
+                // No upstream configured, skip fetch
+                return Ok(());
+            },
+        };
 
         // Check if remote exists
-        match self.git_repo.find_remote(&remote_name) {
+        match self.git_repo.find_remote(&tracking.remote) {
             Ok(mut remote) => {
-                let refspecs = &[format!(
-                    "refs/heads/{}:refs/remotes/{}/{}",
-                    branch_name, remote_name, branch_name
-                )];
-
                 let mut fetch_options = git2::FetchOptions::new();
                 fetch_options.remote_callbacks(self.remote_callbacks()?);
 
                 remote
-                    .fetch(refspecs, Some(&mut fetch_options), None)
+                    .fetch::<&str>(&[], Some(&mut fetch_options), None)
                     .with_context(|| {
                         format!(
                             "Failed to fetch from remote '{}' for repo at `{}`",
-                            remote_name,
+                            tracking.remote,
                             self.work_dir.display()
                         )
                     })?;
@@ -135,12 +137,18 @@ impl Repo {
         // First, fetch the latest changes
         self.fetch()?;
 
-        // Get the remote branch reference
-        let remote_name = self.get_remote_name_for_branch(branch_name)?;
-        let remote_branch_ref = format!("{}/{}", remote_name, branch_name);
+        // Resolve the tracking branch reference
+        let tracking = match self.tracking_branch(branch_name)? {
+            Some(tracking) => tracking,
+            None => {
+                // No upstream configured, treat as up to date
+                return Ok(MergeResult::UpToDate);
+            },
+        };
 
         // Check if remote branch exists
-        let remote_branch_oid = match self.git_repo.refname_to_id(&remote_branch_ref) {
+        let remote_branch_oid = match self.git_repo.refname_to_id(&tracking.remote_ref)
+        {
             Ok(oid) => oid,
             Err(_) => {
                 // No remote branch, just return up to date
@@ -159,12 +167,20 @@ impl Repo {
         // Check if we can fast-forward
         if self
             .git_repo
-            .graph_descendant_of(local_commit.id(), remote_commit.id())?
+            .graph_descendant_of(remote_commit.id(), local_commit.id())?
         {
             // Fast-forward merge
+            self.git_repo.reference(
+                &format!("refs/heads/{}", branch_name),
+                remote_commit.id(),
+                true,
+                &format!("Fast-forward '{}' to {}", branch_name, tracking.remote_ref),
+            )?;
             self.git_repo
                 .set_head(&format!("refs/heads/{}", branch_name))?;
-            self.git_repo.checkout_head(None)?;
+            let mut checkout = CheckoutBuilder::new();
+            checkout.force();
+            self.git_repo.checkout_head(Some(&mut checkout))?;
             return Ok(MergeResult::FastForward);
         }
 
@@ -192,10 +208,12 @@ impl Repo {
                 Some(&format!("refs/heads/{}", branch_name)),
                 &signature,
                 &signature,
-                &format!("Merge remote-tracking branch '{}'", remote_branch_ref),
+                &format!("Merge remote-tracking branch '{}'", tracking.remote_ref),
                 &tree,
                 &[&local_commit, &remote_commit],
             )?;
+
+            self.git_repo.cleanup_state()?;
 
             Ok(MergeResult::Merged)
         } else {
@@ -204,10 +222,13 @@ impl Repo {
         }
     }
 
-    pub fn get_remote_name_for_branch(&self, _branch_name: &str) -> Result<String> {
-        // For now, simplify by always using 'origin' as the remote
-        // TODO: Implement proper upstream detection
-        Ok("origin".to_string())
+    pub fn get_remote_name_for_branch(&self, branch_name: &str) -> Result<String> {
+        if let Some(tracking) = self.tracking_branch(branch_name)? {
+            Ok(tracking.remote)
+        } else {
+            // Fall back to origin if no tracking branch is configured
+            Ok("origin".to_string())
+        }
     }
 
     pub fn remote_callbacks(&self) -> Result<git2::RemoteCallbacks<'static>> {
@@ -258,6 +279,34 @@ impl Repo {
             })?
             .to_owned())
     }
+
+    fn tracking_branch(&self, branch_name: &str) -> Result<Option<TrackingBranch>> {
+        let config = self.git_repo.config()?;
+
+        let remote_key = format!("branch.{}.remote", branch_name);
+        let merge_key = format!("branch.{}.merge", branch_name);
+
+        let remote = match config.get_string(&remote_key) {
+            Ok(name) => name,
+            Err(err) if err.code() == git2::ErrorCode::NotFound => return Ok(None),
+            Err(err) => return Err(err.into()),
+        };
+
+        let merge_ref = match config.get_string(&merge_key) {
+            Ok(name) => name,
+            Err(err) if err.code() == git2::ErrorCode::NotFound => return Ok(None),
+            Err(err) => return Err(err.into()),
+        };
+
+        let branch_short = merge_ref
+            .strip_prefix("refs/heads/")
+            .unwrap_or(&merge_ref)
+            .to_owned();
+
+        let remote_ref = format!("refs/remotes/{}/{}", remote, branch_short);
+
+        Ok(Some(TrackingBranch { remote, remote_ref }))
+    }
 }
 
 impl fmt::Debug for Repo {
@@ -268,4 +317,9 @@ impl fmt::Debug for Repo {
             .field("subrepos", &self.subrepos)
             .finish()
     }
+}
+
+struct TrackingBranch {
+    remote: String,
+    remote_ref: String,
 }
