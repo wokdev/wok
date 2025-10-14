@@ -7,8 +7,12 @@ pub fn update<W: Write>(
     wok_config: &mut config::Config,
     umbrella: &repo::Repo,
     stdout: &mut W,
+    no_commit: bool,
 ) -> Result<()> {
     writeln!(stdout, "Updating submodules...")?;
+
+    let mut saw_updates = false;
+    let mut saw_conflicts = false;
 
     // Step 1: Update each repo with fetch and merge
     for config_repo in &wok_config.repos {
@@ -34,6 +38,7 @@ pub fn update<W: Write>(
                     )?;
                 },
                 repo::MergeResult::FastForward => {
+                    saw_updates = true;
                     writeln!(
                         stdout,
                         "- '{}': fast-forwarded '{}' to {}",
@@ -43,6 +48,7 @@ pub fn update<W: Write>(
                     )?;
                 },
                 repo::MergeResult::Merged => {
+                    saw_updates = true;
                     writeln!(
                         stdout,
                         "- '{}': merged '{}' to {}",
@@ -52,6 +58,7 @@ pub fn update<W: Write>(
                     )?;
                 },
                 repo::MergeResult::Conflicts => {
+                    saw_conflicts = true;
                     writeln!(
                         stdout,
                         "- '{}': merge conflicts in '{}' ({}), manual resolution required",
@@ -65,9 +72,34 @@ pub fn update<W: Write>(
     }
 
     // Step 2: Stage all submodule changes in umbrella repo
-    stage_submodule_changes(&umbrella.git_repo)?;
+    let staged_changes = stage_submodule_changes(&umbrella.git_repo)?;
+
+    if saw_conflicts {
+        writeln!(
+            stdout,
+            "Skipped committing umbrella repo due to merge conflicts in subrepos"
+        )?;
+        return Ok(());
+    }
+
+    if no_commit {
+        if staged_changes || saw_updates {
+            writeln!(
+                stdout,
+                "Changes staged; commit skipped because --no-commit was provided"
+            )?;
+        } else {
+            writeln!(stdout, "No submodule updates detected; nothing to commit")?;
+        }
+        return Ok(());
+    }
 
     // Step 3: Commit the updated submodule state
+    if !staged_changes {
+        writeln!(stdout, "No submodule updates detected; nothing to commit")?;
+        return Ok(());
+    }
+
     commit_submodule_updates(&umbrella.git_repo)?;
 
     writeln!(stdout, "Updated submodule state committed")?;
@@ -80,7 +112,11 @@ fn get_current_commit_hash(git_repo: &git2::Repository) -> Result<String> {
     Ok(commit.id().to_string())
 }
 
-fn stage_submodule_changes(git_repo: &git2::Repository) -> Result<()> {
+fn stage_submodule_changes(git_repo: &git2::Repository) -> Result<bool> {
+    let head_tree = git_repo
+        .head()
+        .ok()
+        .and_then(|head| head.peel_to_tree().ok());
     let mut index = git_repo.index()?;
 
     for submodule in git_repo.submodules()? {
@@ -93,7 +129,13 @@ fn stage_submodule_changes(git_repo: &git2::Repository) -> Result<()> {
     }
 
     index.write()?;
-    Ok(())
+
+    if let Some(tree) = head_tree.as_ref() {
+        let diff = git_repo.diff_tree_to_index(Some(tree), Some(&index), None)?;
+        Ok(diff.deltas().len() > 0)
+    } else {
+        Ok(!index.is_empty())
+    }
 }
 
 fn commit_submodule_updates(git_repo: &git2::Repository) -> Result<()> {

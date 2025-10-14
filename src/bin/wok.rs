@@ -81,7 +81,11 @@ enum App {
     Lock,
 
     /// Update submodules to latest changes from remotes
-    Update,
+    Update {
+        /// Skip creating a commit with submodule updates
+        #[clap(long = "no-commit")]
+        no_commit: bool,
+    },
 
     /// Show subprojects status (clean/dirty, branch info)
     Status,
@@ -286,8 +290,13 @@ fn main() -> Result<()> {
                     wok::cmd::lock(&mut wok_config, &umbrella, &mut output)?;
                     false // Don't save config for lock command
                 },
-                App::Update => {
-                    wok::cmd::update(&mut wok_config, &umbrella, &mut output)?;
+                App::Update { no_commit } => {
+                    wok::cmd::update(
+                        &mut wok_config,
+                        &umbrella,
+                        &mut output,
+                        no_commit,
+                    )?;
                     false // Don't save config for update command
                 },
                 App::Status => {
