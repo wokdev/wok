@@ -1,4 +1,4 @@
-use std::{fmt, path};
+use std::{fmt, path, sync::Arc};
 
 use anyhow::*;
 use std::result::Result::Ok;
@@ -113,7 +113,10 @@ impl Repo {
                     branch_name, remote_name, branch_name
                 )];
 
-                remote.fetch(refspecs, None, None).with_context(|| {
+                let mut fetch_options = git2::FetchOptions::new();
+                fetch_options.remote_callbacks(self.remote_callbacks()?);
+
+                remote.fetch(refspecs, Some(&mut fetch_options), None).with_context(|| {
                     format!(
                         "Failed to fetch from remote '{}' for repo at `{}`",
                         remote_name,
@@ -207,6 +210,44 @@ impl Repo {
         // For now, simplify by always using 'origin' as the remote
         // TODO: Implement proper upstream detection
         Ok("origin".to_string())
+    }
+
+    pub fn remote_callbacks(&self) -> Result<git2::RemoteCallbacks<'static>> {
+        let config = Arc::new(self.git_repo.config()?);
+
+        let mut callbacks = git2::RemoteCallbacks::new();
+        callbacks.credentials(move |url, username_from_url, allowed| {
+            if allowed.contains(git2::CredentialType::SSH_KEY) {
+                if let Some(username) = username_from_url {
+                    if let Ok(cred) = git2::Cred::ssh_key_from_agent(username) {
+                        return Ok(cred);
+                    }
+                }
+            }
+
+            if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT)
+                || allowed.contains(git2::CredentialType::SSH_KEY)
+                || allowed.contains(git2::CredentialType::DEFAULT)
+            {
+                if let Ok(cred) =
+                    git2::Cred::credential_helper(&config, url, username_from_url)
+                {
+                    return Ok(cred);
+                }
+            }
+
+            if allowed.contains(git2::CredentialType::USERNAME) {
+                if let Some(username) = username_from_url {
+                    return git2::Cred::username(username);
+                } else {
+                    return git2::Cred::username("git");
+                }
+            }
+
+            git2::Cred::default()
+        });
+
+        Ok(callbacks)
     }
 
     fn resolve_reference(&self, short_name: &str) -> Result<String> {

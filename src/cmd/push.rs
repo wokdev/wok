@@ -147,7 +147,7 @@ fn push_repo(
 
     // Perform the push
     let mut push_options = git2::PushOptions::new();
-    push_options.remote_callbacks(git2::RemoteCallbacks::new());
+    push_options.remote_callbacks(repo.remote_callbacks()?);
 
     match remote.push(&[&refspec], Some(&mut push_options)) {
         Ok(_) => {

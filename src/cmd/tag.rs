@@ -240,7 +240,7 @@ fn push_tags(repo: &repo::Repo) -> Result<()> {
     // Push all tags
     let refspecs = &["refs/tags/*:refs/tags/*"];
     let mut push_options = git2::PushOptions::new();
-    push_options.remote_callbacks(git2::RemoteCallbacks::new());
+    push_options.remote_callbacks(repo.remote_callbacks()?);
 
     remote.push(refspecs, Some(&mut push_options))?;
 
