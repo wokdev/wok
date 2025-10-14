@@ -1,5 +1,7 @@
 use anyhow::*;
+use std::collections::HashMap;
 use std::io::Write;
+use std::panic::{self, AssertUnwindSafe};
 use std::result::Result::Ok;
 
 use crate::{config, repo};
@@ -40,7 +42,9 @@ pub fn tag<W: Write>(
         wok_config
             .repos
             .iter()
-            .filter(|config_repo| config_repo.head == umbrella.head)
+            .filter(|config_repo| {
+                config_repo.head == umbrella.head && !config_repo.is_skipped_for("tag")
+            })
             .cloned()
             .collect()
     };
@@ -141,10 +145,17 @@ pub fn tag<W: Write>(
         for config_repo in &repos_to_tag {
             if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
                 match push_tags(subrepo) {
-                    Ok(_) => {
+                    Ok(PushResult::Pushed) => {
                         writeln!(
                             stdout,
                             "- '{}': pushed tags",
+                            config_repo.path.display()
+                        )?;
+                    },
+                    Ok(PushResult::Skipped) => {
+                        writeln!(
+                            stdout,
+                            "- '{}': no tags to push",
                             config_repo.path.display()
                         )?;
                     },
@@ -173,6 +184,12 @@ pub fn tag<W: Write>(
 enum TagResult {
     Created,
     AlreadyExists,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PushResult {
+    Pushed,
+    Skipped,
 }
 
 fn create_tag(repo: &repo::Repo, tag_name: &str, sign: bool) -> Result<TagResult> {
@@ -225,7 +242,7 @@ fn list_tags(repo: &repo::Repo) -> Result<Vec<String>> {
     Ok(tags)
 }
 
-fn push_tags(repo: &repo::Repo) -> Result<()> {
+fn push_tags(repo: &repo::Repo) -> Result<PushResult> {
     // Get the remote name for the current branch
     let head_ref = repo.git_repo.head()?;
     let branch_name = head_ref.shorthand().with_context(|| {
@@ -245,12 +262,65 @@ fn push_tags(repo: &repo::Repo) -> Result<()> {
         },
     };
 
-    // Push all tags
-    let refspecs = &["refs/tags/*:refs/tags/*"];
+    // Collect explicit tag refspecs; libgit2 does not expand wildcards automatically.
+    let tag_names = repo.git_repo.tag_names(None)?;
+    if tag_names.is_empty() {
+        return Ok(PushResult::Skipped);
+    }
+
+    // Discover which tags already exist on the remote so we avoid redundant pushes.
+    let connection = remote.connect_auth(
+        git2::Direction::Push,
+        Some(repo.remote_callbacks()?),
+        None,
+    )?;
+
+    let remote_tags =
+        match panic::catch_unwind(AssertUnwindSafe(|| -> Result<_, git2::Error> {
+            let mut tags = HashMap::new();
+            for head in connection.list()?.iter() {
+                let name = head.name();
+                if name.starts_with("refs/tags/") {
+                    tags.insert(name.to_string(), head.oid());
+                }
+            }
+            Ok(tags)
+        })) {
+            Ok(Ok(tags)) => tags,
+            Ok(Err(err)) => return Err(err.into()),
+            Err(_) => HashMap::new(),
+        };
+    drop(connection);
+
+    let mut refspecs: Vec<String> = Vec::new();
+    for tag_name in tag_names.iter().flatten() {
+        let refname = format!("refs/tags/{tag_name}");
+        let reference = repo.git_repo.find_reference(&refname)?;
+        let target_oid = reference.target().with_context(|| {
+            format!("Tag '{}' does not point to an object", tag_name)
+        })?;
+
+        match remote_tags.get(&refname) {
+            Some(remote_oid) if *remote_oid == target_oid => {
+                // Remote already has this tag pointing at the same object.
+            },
+            _ => refspecs.push(format!("{refname}:{refname}")),
+        }
+    }
+
+    if refspecs.is_empty() {
+        return Ok(PushResult::Skipped);
+    }
+
+    let refspec_refs: Vec<&str> =
+        refspecs.iter().map(|refspec| refspec.as_str()).collect();
     let mut push_options = git2::PushOptions::new();
     push_options.remote_callbacks(repo.remote_callbacks()?);
 
-    remote.push(refspecs, Some(&mut push_options))?;
+    let push_result = remote.push(&refspec_refs, Some(&mut push_options));
+    let disconnect_result = remote.disconnect();
+    push_result?;
+    disconnect_result?;
 
-    Ok(())
+    Ok(PushResult::Pushed)
 }
