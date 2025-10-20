@@ -4,6 +4,299 @@ This directory contains utility scripts for maintaining the Wok project.
 
 ## Available Scripts
 
+### bump-version.sh
+
+Updates the version number in both `Cargo.toml` and `pyproject.toml` to ensure consistency across the project.
+
+#### Purpose
+
+This script simplifies version management by:
+
+1. Validating the provided version number follows semantic versioning
+2. Updating the version in `Cargo.toml`
+3. Updating the version in `pyproject.toml`
+4. Verifying both files have the same version after update
+
+#### Prerequisites
+
+- **sed**: Standard Unix text processing tool (pre-installed on Linux/macOS)
+
+#### Usage
+
+##### Basic Usage
+
+Bump the version to a new number:
+
+```bash
+./scripts/bump-version.sh 1.0.0
+```
+
+##### Pre-release Versions
+
+Update to a pre-release version:
+
+```bash
+./scripts/bump-version.sh 1.0.0-beta.5
+./scripts/bump-version.sh 2.0.0-rc.1
+./scripts/bump-version.sh 1.5.0-alpha.3
+```
+
+##### Build Metadata
+
+Include build metadata (following semver):
+
+```bash
+./scripts/bump-version.sh 1.0.0+20231020
+./scripts/bump-version.sh 1.0.0-beta.4+abc123
+```
+
+##### Dry Run Mode
+
+Preview what changes would be made without modifying files:
+
+```bash
+./scripts/bump-version.sh --dry-run 1.0.0
+```
+
+This is useful for:
+- Verifying the version format is valid
+- Checking current versions in both files
+- Testing the script before making actual changes
+
+#### Command-Line Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--help` | `-h` | Show help message and exit |
+| `--dry-run` | | Preview changes without modifying files |
+
+#### What the Script Does
+
+1. **Version Validation**
+   - Checks that the provided version follows semantic versioning format
+   - Accepts: `X.Y.Z`, `X.Y.Z-prerelease`, `X.Y.Z-prerelease+build`
+
+2. **Prerequisites Check**
+   - Verifies `Cargo.toml` exists
+   - Verifies `pyproject.toml` exists
+   - Checks that `sed` is available
+
+3. **Show Current Versions**
+   - Displays the current version in `Cargo.toml`
+   - Displays the current version in `pyproject.toml`
+   - Warns if versions are mismatched
+
+4. **Update Files**
+   - Updates the first `version = "..."` line in `Cargo.toml`
+   - Updates the first `version = "..."` line in `pyproject.toml`
+   - Works on both Linux and macOS
+
+5. **Verify Changes**
+   - Confirms both files were updated
+   - Ensures versions match after the update
+
+#### Workflow Integration
+
+##### Release Process
+
+Typical workflow for creating a new release:
+
+```bash
+# 1. Update version
+./scripts/bump-version.sh 1.0.0
+
+# 2. Review changes
+git diff Cargo.toml pyproject.toml
+
+# 3. Run tests to ensure everything still works
+cargo test --all
+
+# 4. Commit the version bump
+git add Cargo.toml pyproject.toml
+git commit -m "Bump version to 1.0.0"
+
+# 5. Create a git tag
+git tag v1.0.0
+
+# 6. Push changes and tag
+git push origin main
+git push origin v1.0.0
+```
+
+##### Pre-release Workflow
+
+For beta or release candidate versions:
+
+```bash
+# Bump to beta version
+./scripts/bump-version.sh 1.0.0-beta.5
+
+# Test and verify
+cargo test --all
+
+# Commit and tag
+git add Cargo.toml pyproject.toml
+git commit -m "Bump version to 1.0.0-beta.5"
+git tag v1.0.0-beta.5
+git push origin main --tags
+```
+
+#### Troubleshooting
+
+##### "Invalid version format"
+
+**Problem**: The version doesn't follow semantic versioning.
+
+**Solution**: Use the format `X.Y.Z` or `X.Y.Z-prerelease`:
+```bash
+# Good
+./scripts/bump-version.sh 1.0.0
+./scripts/bump-version.sh 1.0.0-beta.4
+
+# Bad
+./scripts/bump-version.sh 1.0      # Missing patch version
+./scripts/bump-version.sh v1.0.0   # Don't include 'v' prefix
+./scripts/bump-version.sh 1.0.0_beta  # Use hyphen, not underscore
+```
+
+##### "Cargo.toml not found"
+
+**Problem**: The script can't find the configuration files.
+
+**Solution**: Run the script from the repository root:
+```bash
+cd /path/to/wok
+./scripts/bump-version.sh 1.0.0
+```
+
+##### "Version mismatch detected"
+
+**Problem**: `Cargo.toml` and `pyproject.toml` have different versions before the bump.
+
+**Action**: This is just a warning. The script will update both files to the new version, ensuring they match afterward.
+
+##### "Permission denied"
+
+**Problem**: The script doesn't have execute permissions.
+
+**Solution**: Make the script executable:
+```bash
+chmod +x scripts/bump-version.sh
+```
+
+#### Script Output
+
+The script provides color-coded output for easy reading:
+
+- ✓ **Green**: Successful operations
+- ✗ **Red**: Errors (will exit)
+- ⚠ **Yellow**: Warnings
+- ℹ **Blue**: Informational messages
+
+Example output:
+
+```
+==> Checking prerequisites
+✓ Found Cargo.toml
+✓ Found pyproject.toml
+
+==> Current versions
+ℹ Cargo.toml:     1.0.0-beta.4
+ℹ pyproject.toml: 1.0.0-beta.4
+
+==> Bumping version to 1.0.0
+✓ Updated Cargo.toml
+✓ Updated pyproject.toml
+
+==> Verifying changes
+ℹ Cargo.toml:     1.0.0
+ℹ pyproject.toml: 1.0.0
+✓ Versions are in sync
+
+✓ Version bump complete!
+ℹ Version updated to: 1.0.0
+
+ℹ Next steps:
+  1. Review the changes: git diff
+  2. Run tests: cargo test --all
+  3. Commit the changes: git add Cargo.toml pyproject.toml
+  4. Create a commit: git commit -m "Bump version to 1.0.0"
+  5. Create a tag: git tag v1.0.0
+```
+
+#### Best Practices
+
+1. **Always test after bumping**: Run the full test suite to ensure nothing broke:
+   ```bash
+   ./scripts/bump-version.sh 1.0.0
+   cargo test --all
+   ```
+
+2. **Use semantic versioning**: Follow [semver](https://semver.org/) conventions:
+   - **MAJOR**: Breaking changes
+   - **MINOR**: New features (backward compatible)
+   - **PATCH**: Bug fixes (backward compatible)
+
+3. **Dry run for important releases**: Preview changes first:
+   ```bash
+   ./scripts/bump-version.sh --dry-run 2.0.0
+   ```
+
+4. **Tag releases**: Create git tags for all releases:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+5. **Keep changelog updated**: Update `CHANGELOG.md` or release notes when bumping versions
+
+6. **Review before committing**: Always check the diff:
+   ```bash
+   git diff Cargo.toml pyproject.toml
+   ```
+
+#### Version Numbering Guidelines
+
+Following semantic versioning (semver):
+
+**Format**: `MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]`
+
+- **MAJOR** (1.0.0): Breaking changes that require users to modify their code
+- **MINOR** (1.1.0): New features that are backward compatible
+- **PATCH** (1.0.1): Bug fixes that are backward compatible
+- **PRERELEASE** (1.0.0-beta.1): Pre-release identifiers (alpha, beta, rc)
+- **BUILD** (1.0.0+abc123): Build metadata
+
+Examples:
+- `1.0.0` - First stable release
+- `1.1.0` - Added new features
+- `1.1.1` - Fixed bugs in 1.1.0
+- `2.0.0` - Breaking changes from 1.x
+- `2.0.0-beta.1` - First beta of version 2.0.0
+- `2.0.0-rc.1` - Release candidate for 2.0.0
+
+#### Future Enhancements
+
+Potential improvements for this script:
+
+- **Changelog integration**: Automatically update CHANGELOG.md
+- **Git integration**: Optionally create commit and tag automatically
+- **Version increment**: Support `--major`, `--minor`, `--patch` flags to auto-increment
+- **Lockfile update**: Automatically update Cargo.lock
+- **Dependency check**: Verify all dependencies are compatible with new version
+- **Rollback**: Ability to revert to previous version
+
+#### Contributing
+
+When modifying this script:
+
+1. Test with various version formats (stable, pre-release, build metadata)
+2. Ensure it works on both Linux and macOS
+3. Update this README with any new features or changes
+4. Follow the project's bash scripting conventions
+
+---
+
 ### update-site.sh
 
 Automates the process of building documentation with MkDocs and generating the static site files.
