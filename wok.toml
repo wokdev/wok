@@ -2,4 +2,4 @@ version = "1.0-experimental"
 
 [[repo]]
 path = "site"
-head = "pages"
+head = "main"
