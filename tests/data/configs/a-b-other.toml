@@ -1,9 +1,0 @@
-version = "1.0-experimental"
-
-[[repo]]
-path = "sub-a"
-head = "other"
-
-[[repo]]
-path = "sub-b"
-head = "other"

@@ -1,50 +1,30 @@
-# Git Wok
+# wok-dev (Deprecated)
 
-[![status-badge](https://ci.codeberg.org/api/badges/12553/status.svg)](https://ci.codeberg.org/repos/12553)
+**⚠️ This package has been renamed to `git-wok`**
 
-**Git Wok** helps to organize multiple git repositories into a single multi-project workspace.
+## What happened?
 
-## 🚀 Version 1.0.0-alpha
+The package formerly known as `wok-dev` has been officially renamed to `git-wok`.
 
-**MVP Complete!** All core functionality is implemented and tested.
+This placeholder package exists only to inform users of the name change.
 
-### ✨ Features
+## What you need to do
 
-- **9 Complete Commands** for comprehensive multi-repo management
-- **Housekeeping**: `init`, `status`
-- **Package Management**: `add`, `remove`, `update`, `lock`
-- **Development Flow**: `head switch`, `switch`, `push`
-- **Release Management**: `tag`
-- **Advanced Options**: Selective repo targeting, branch creation, GPG signing
-- **Config Controls**: Per-repo skip lists to exclude projects from bulk operations without losing explicit access
-- **Comprehensive Testing**: 37 tests covering all functionality
+1. Uninstall this package:
+   ```bash
+   cargo uninstall wok-dev
+   ```
 
-### 🎯 Quick Start
+2. Install the new package:
+   ```bash
+   cargo install git-wok
+   ```
 
-```bash
-# Initialize a workspace
-git-wok init
+## Learn more
 
-# Add a submodule
-git-wok repo add path/to/submodule
+Visit the official Git Wok website: **https://git-wok.dev/**
 
-# Switch all repos to current branch
-git-wok head switch
+---
 
-# Push changes to all repos
-git-wok push --all
-
-# Create and push a signed tag
-git-wok tag --all v1.0.0 --sign --push
-```
-
-### 📚 Documentation
-
-- [Getting Started Guide](docs/getting-started.md)
-- [CLI Reference](docs/cli.md)
-- [Configuration Guide](docs/wokfile.md)
-- [Changelog](CHANGELOG.md)
-
-## Community
-
-Meet us in the chat room: [#wok:matrix.org](https://matrix.to/#/#wok:matrix.org)
+For the actual Git Wok source code and documentation, visit:
+https://codeberg.org/wok/wok

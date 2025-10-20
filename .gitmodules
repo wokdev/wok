@@ -1,4 +1,0 @@
-[submodule "site"]
-	path = site
-	url = ../pages.git
-	branch = main

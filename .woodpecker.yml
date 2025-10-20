@@ -1,10 +1,12 @@
+# CI for placeholder package
 when:
   event:
     - push
   path:
-    include: ["src/**", "tests/**", ".woodpecker.yml", "Cargo.*"]
+    include: ["src/**", ".woodpecker.yml", "Cargo.*"]
 steps:
-  test:
+  build:
     image: rust:1
     commands:
-      - cargo test
+      - cargo build --release
+      - echo "Placeholder package built successfully"
