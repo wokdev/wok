@@ -1,4 +1,5 @@
 mod assemble;
+mod completion;
 mod init;
 mod lock;
 mod push;
@@ -10,6 +11,7 @@ mod update;
 pub mod head;
 pub mod repo;
 pub use assemble::assemble;
+pub use completion::{CompletionShell, completion};
 pub use init::init;
 pub use lock::lock;
 pub use push::push;

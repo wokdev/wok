@@ -6,6 +6,7 @@ use std::path::{self, PathBuf};
 use std::{env, fs, process};
 
 mod assemble;
+mod completion;
 mod head_switch;
 mod init;
 mod lock;

@@ -47,6 +47,13 @@ enum Command {
         directory: path::PathBuf,
     },
 
+    /// Generate shell completion script.
+    Completion {
+        /// Shell to generate completion script for (bash, fish, zsh).
+        #[clap(default_value = "bash")]
+        shell: wok::cmd::CompletionShell,
+    },
+
     #[clap(flatten)]
     App(App),
 }
@@ -235,6 +242,7 @@ fn main() -> Result<()> {
 
             wok::cmd::assemble(&workspace_dir, &config_path, &mut output)?
         },
+        Command::Completion { shell } => wok::cmd::completion::<Args>(shell)?,
         Command::App(app_cmd) => {
             let config_path = resolve_path(&cwd, &wokfile_path);
 
