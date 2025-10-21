@@ -4,9 +4,9 @@
 
 **Git Wok** helps to organize multiple git repositories into a single multi-project workspace.
 
-## 🚀 Version 1.0.0-alpha
+## 🚀 Beta Release
 
-**MVP Complete!** All core functionality is implemented and tested.
+**Production Ready!** All core functionality is implemented, tested, and documented.
 
 ### ✨ Features
 

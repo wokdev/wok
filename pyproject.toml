@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "wok-docs"
-version = "1.0.0-beta.4"
+version = "1.0.0-beta.5"
 description = ""
 authors = ["Your Name <you@example.com>"]
 license = "MIT"
