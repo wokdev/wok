@@ -16,6 +16,7 @@ mod status;
 mod switch;
 mod tag;
 mod update;
+mod version;
 
 #[fixture]
 fn data_dir() -> PathBuf {
