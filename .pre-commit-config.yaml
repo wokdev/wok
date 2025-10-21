@@ -1,11 +1,24 @@
+default_install_hook_types:
+  - pre-commit
+  - pre-push
+
+default_stages:
+  - pre-commit
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
       - id: trailing-whitespace
+        stages:
+          - pre-commit
       - id: end-of-file-fixer
+        stages:
+          - pre-commit
       - id: check-yaml
       - id: check-added-large-files
+        stages:
+          - pre-commit
   - repo: https://github.com/doublify/pre-commit-rust
     rev: v1.0
     hooks:
@@ -13,3 +26,12 @@ repos:
       - id: cargo-check
       - id: clippy
         args: ["--all-targets", "--", "-D", "warnings"]
+  - repo: local
+    hooks:
+      - id: test
+        name: cargo test
+        entry: cargo test
+        language: system
+        pass_filenames: false
+        stages:
+          - pre-push
