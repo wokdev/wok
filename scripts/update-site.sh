@@ -74,34 +74,34 @@ EOF
 }
 
 check_prerequisites() {
-    print_step "Checking prerequisites"
+    print_step "Checking prerequisites" >&2
 
     # Check if we're in the repository root
     if [[ ! -f "$REPO_ROOT/Cargo.toml" ]]; then
         print_error "Not in repository root. Please run this script from the wok repository."
     fi
-    log_verbose "Repository root: $REPO_ROOT"
-    print_success "Running from repository root"
+    log_verbose "Repository root: $REPO_ROOT" >&2
+    print_success "Running from repository root" >&2
 
     # Check if docs directory exists
     if [[ ! -d "$DOCS_DIR" ]]; then
         print_error "Documentation directory not found at: $DOCS_DIR"
     fi
-    log_verbose "Docs directory: $DOCS_DIR"
-    print_success "Documentation directory found"
+    log_verbose "Docs directory: $DOCS_DIR" >&2
+    print_success "Documentation directory found" >&2
 
     # Check for mkdocs (try poetry first, then system)
     local mkdocs_cmd=""
     if command -v poetry &> /dev/null; then
         if poetry run mkdocs --version &> /dev/null; then
             mkdocs_cmd="poetry run mkdocs"
-            log_verbose "Using mkdocs via poetry"
+            log_verbose "Using mkdocs via poetry" >&2
         fi
     fi
 
     if [[ -z "$mkdocs_cmd" ]] && command -v mkdocs &> /dev/null; then
         mkdocs_cmd="mkdocs"
-        log_verbose "Using system mkdocs"
+        log_verbose "Using system mkdocs" >&2
     fi
 
     if [[ -z "$mkdocs_cmd" ]]; then
