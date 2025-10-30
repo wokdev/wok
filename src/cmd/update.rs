@@ -61,6 +61,16 @@ pub fn update<W: Write>(
                         &current_commit[..8]
                     )?;
                 },
+                repo::MergeResult::Rebased => {
+                    saw_updates = true;
+                    writeln!(
+                        stdout,
+                        "- '{}': rebased '{}' to {}",
+                        config_repo.path.display(),
+                        config_repo.head,
+                        &current_commit[..8]
+                    )?;
+                },
                 repo::MergeResult::Conflicts => {
                     saw_conflicts = true;
                     writeln!(

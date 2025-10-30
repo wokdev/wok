@@ -9,6 +9,7 @@ pub enum MergeResult {
     UpToDate,
     FastForward,
     Merged,
+    Rebased,
     Conflicts,
 }
 
@@ -133,6 +134,62 @@ impl Repo {
         Ok(())
     }
 
+    fn rebase(
+        &self,
+        _branch_name: &str,
+        remote_commit: &git2::Commit,
+    ) -> Result<MergeResult> {
+        let _local_commit = self.git_repo.head()?.peel_to_commit()?;
+        let remote_oid = remote_commit.id();
+
+        // Prepare annotated commit for rebase
+        let remote_annotated = self.git_repo.find_annotated_commit(remote_oid)?;
+
+        // Initialize rebase operation
+        let signature = self.git_repo.signature()?;
+        let mut rebase = self.git_repo.rebase(
+            None,                    // branch to rebase (None = HEAD)
+            Some(&remote_annotated), // upstream
+            None,                    // onto (None = upstream)
+            None,                    // options
+        )?;
+
+        // Process each commit in the rebase
+        let mut has_conflicts = false;
+        while let Some(op) = rebase.next() {
+            match op {
+                Ok(_rebase_op) => {
+                    // Check for conflicts
+                    let index = self.git_repo.index()?;
+                    if index.has_conflicts() {
+                        has_conflicts = true;
+                        break;
+                    }
+
+                    // Commit the rebased changes
+                    if rebase.commit(None, &signature, None).is_err() {
+                        has_conflicts = true;
+                        break;
+                    }
+                },
+                Err(_) => {
+                    has_conflicts = true;
+                    break;
+                },
+            }
+        }
+
+        if has_conflicts {
+            // Leave repository in state with conflicts for user to resolve
+            return Ok(MergeResult::Conflicts);
+        }
+
+        // Finish the rebase
+        rebase.finish(Some(&signature))?;
+
+        Ok(MergeResult::Rebased)
+    }
+
     pub fn merge(&self, branch_name: &str) -> Result<MergeResult> {
         // First, fetch the latest changes
         self.fetch()?;
@@ -164,7 +221,7 @@ impl Repo {
             return Ok(MergeResult::UpToDate);
         }
 
-        // Check if we can fast-forward
+        // Check if we can fast-forward (works for both merge and rebase)
         if self
             .git_repo
             .graph_descendant_of(remote_commit.id(), local_commit.id())?
@@ -184,13 +241,35 @@ impl Repo {
             return Ok(MergeResult::FastForward);
         }
 
+        // Determine pull strategy from git config
+        let pull_strategy = self.get_pull_strategy(branch_name)?;
+
+        match pull_strategy {
+            PullStrategy::Rebase => {
+                // Perform rebase
+                self.rebase(branch_name, &remote_commit)
+            },
+            PullStrategy::Merge => {
+                // Perform merge (existing logic)
+                self.do_merge(branch_name, &local_commit, &remote_commit, &tracking)
+            },
+        }
+    }
+
+    fn do_merge(
+        &self,
+        branch_name: &str,
+        local_commit: &git2::Commit,
+        remote_commit: &git2::Commit,
+        tracking: &TrackingBranch,
+    ) -> Result<MergeResult> {
         // Perform a merge
         let mut merge_opts = git2::MergeOptions::new();
         merge_opts.fail_on_conflict(false); // Don't fail on conflicts, we'll handle them
 
         let _merge_result = self.git_repo.merge_commits(
-            &local_commit,
-            &remote_commit,
+            local_commit,
+            remote_commit,
             Some(&merge_opts),
         )?;
 
@@ -210,7 +289,7 @@ impl Repo {
                 &signature,
                 &format!("Merge remote-tracking branch '{}'", tracking.remote_ref),
                 &tree,
-                &[&local_commit, &remote_commit],
+                &[local_commit, remote_commit],
             )?;
 
             self.git_repo.cleanup_state()?;
@@ -307,6 +386,33 @@ impl Repo {
 
         Ok(Some(TrackingBranch { remote, remote_ref }))
     }
+
+    fn get_pull_strategy(&self, branch_name: &str) -> Result<PullStrategy> {
+        let config = self.git_repo.config()?;
+
+        // First check branch-specific rebase setting (highest priority)
+        let branch_rebase_key = format!("branch.{}.rebase", branch_name);
+        if let Ok(value) = config.get_string(&branch_rebase_key) {
+            return Ok(parse_rebase_config(&value));
+        }
+
+        // Then check global pull.rebase setting
+        if let Ok(value) = config.get_string("pull.rebase") {
+            return Ok(parse_rebase_config(&value));
+        }
+
+        // Try as boolean for backward compatibility
+        if let Ok(value) = config.get_bool("pull.rebase") {
+            return Ok(if value {
+                PullStrategy::Rebase
+            } else {
+                PullStrategy::Merge
+            });
+        }
+
+        // Default to merge
+        Ok(PullStrategy::Merge)
+    }
 }
 
 impl fmt::Debug for Repo {
@@ -322,4 +428,18 @@ impl fmt::Debug for Repo {
 struct TrackingBranch {
     remote: String,
     remote_ref: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum PullStrategy {
+    Merge,
+    Rebase,
+}
+
+fn parse_rebase_config(value: &str) -> PullStrategy {
+    match value.to_lowercase().as_str() {
+        "true" | "interactive" | "i" | "merges" | "m" => PullStrategy::Rebase,
+        "false" => PullStrategy::Merge,
+        _ => PullStrategy::Merge, // Default to merge for unknown values
+    }
 }

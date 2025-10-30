@@ -307,7 +307,7 @@ Update submodules by fetching and merging latest changes from remotes.
 **What it does:**
 - Switches each repo to its configured branch
 - Fetches changes from the remote
-- Merges changes into the local branch
+- Merges or rebases changes into the local branch (respects `pull.rebase` and `branch.<name>.rebase` config)
 - Stages submodule updates in the umbrella repository
 - Commits the updated state (unless `--no-commit` is used)
 
@@ -341,10 +341,30 @@ git commit -m "Update submodules"
 ```
 Updating submodules...
 - 'api': fast-forwarded 'main' to a1b2c3d4
-- 'frontend': merged 'develop' to e5f6g7h8
+- 'frontend': rebased 'develop' to e5f6g7h8
 - 'docs': already up to date on 'main' (i9j0k1l2)
 Updated submodule state committed
 ```
+
+**Pull Strategy:**
+
+`wok update` respects your git configuration for pull strategy:
+
+- By default, or when `pull.rebase = false`, changes are merged
+- When `pull.rebase = true`, changes are rebased
+- Per-branch configuration with `branch.<name>.rebase` takes precedence over global `pull.rebase`
+
+Example configurations:
+```sh
+# Set global preference to rebase
+git config --global pull.rebase true
+
+# Set specific branch to use merge in a subrepo
+cd api/
+git config branch.main.rebase false
+```
+
+**Note:** Interactive rebase (`pull.rebase = interactive`) and preserve-merges rebase (`pull.rebase = merges`) are treated as standard rebase in the current implementation.
 
 ---
 

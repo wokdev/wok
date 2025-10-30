@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Support for git rebase strategy during `update` operations, respecting user's pull strategy preferences configured via `pull.rebase` and `branch.<name>.rebase` settings
+
+### Changed
+- `update` command now respects git's `pull.rebase` and `branch.<name>.rebase` configuration settings. Repositories configured to use rebase will have their changes rebased instead of merged when updating
+
 ## [1.0.0-alpha] - 2025-01-21
 
 ### Added
