@@ -126,6 +126,54 @@ enum PushResult {
     NoRemote,
 }
 
+/// Check if the local branch has new commits compared to the remote branch.
+/// Returns Ok(true) if push is needed, Ok(false) if already up-to-date, Err on failure.
+fn needs_push(
+    repo: &repo::Repo,
+    remote: &mut git2::Remote,
+    branch_name: &str,
+) -> Result<bool> {
+    // Get local branch OID
+    let local_branch_ref = format!("refs/heads/{}", branch_name);
+    let local_oid = repo.git_repo.refname_to_id(&local_branch_ref)?;
+
+    // Connect to remote to check remote branch state
+    let connection = remote.connect_auth(
+        git2::Direction::Push,
+        Some(repo.remote_callbacks()?),
+        None,
+    )?;
+
+    // Check if remote branch exists and get its OID
+    let remote_branch_ref = format!("refs/heads/{}", branch_name);
+    let mut remote_oid: Option<git2::Oid> = None;
+
+    for head in connection.list()?.iter() {
+        if head.name() == remote_branch_ref {
+            remote_oid = Some(head.oid());
+            break;
+        }
+    }
+
+    drop(connection);
+
+    // If remote branch doesn't exist, we need to push
+    let remote_oid = match remote_oid {
+        Some(oid) => oid,
+        None => return Ok(true), // New branch, push needed
+    };
+
+    // If OIDs match, no push needed
+    if local_oid == remote_oid {
+        return Ok(false);
+    }
+
+    // Check if local is ahead of remote (can fast-forward)
+    // If remote is ahead or diverged, we still return true because
+    // git push will fail with proper error message
+    Ok(true)
+}
+
 fn push_repo(
     repo: &repo::Repo,
     branch_name: &str,
@@ -148,6 +196,23 @@ fn push_repo(
     // Check if the branch exists locally
     if repo.git_repo.refname_to_id(&branch_ref).is_err() {
         return Err(anyhow!("Branch '{}' does not exist locally", branch_name));
+    }
+
+    // Check if push is actually needed
+    match needs_push(repo, &mut remote, branch_name) {
+        Ok(false) => {
+            // Already up to date, skip the push entirely
+            return Ok(PushResult::UpToDate);
+        },
+        Ok(true) => {
+            // Push is needed, continue
+        },
+        Err(e) => {
+            // If we can't check remote state (e.g., network issue),
+            // proceed with push attempt and let git2 handle it
+            // This maintains backwards compatibility
+            eprintln!("Warning: Could not check remote state: {}", e);
+        },
     }
 
     // Prepare the refspec for pushing

@@ -394,6 +394,8 @@ git-wok push <REPO1> <REPO2> ...
 Specific repositories to push. If not provided and `--all` is not used, pushes repos matching the current umbrella branch.
 
 **Behavior:**
+- Checks remote state before pushing to avoid unnecessary operations
+- Skips push entirely if the remote branch already matches the local branch
 - Skips repos with `push` in their `skip_for` list (unless explicitly targeted)
 - Reports which repos were pushed successfully
 - Handles "up to date" and error cases gracefully
