@@ -245,8 +245,8 @@ In most cases, you won't need to edit `wok.toml` manually. Git Wok commands upda
 
 - `git-wok init` - Creates the file and populates it with existing submodules
 - `git-wok assemble` - Creates the file with discovered repos
-- `git-wok repo add` - Adds a new repo entry
-- `git-wok repo rm` - Removes a repo entry
+- `git-wok add` - Adds a new repo entry
+- `git-wok rm` - Removes a repo entry
 - `git-wok switch` - Updates the `head` field for switched repos
 - `git-wok head switch` - Updates all `head` fields to match umbrella branch
 

@@ -26,7 +26,7 @@
 git-wok init
 
 # Add a submodule
-git-wok repo add path/to/submodule
+git-wok add path/to/submodule
 
 # Switch all repos to current branch
 git-wok head switch

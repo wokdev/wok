@@ -64,9 +64,18 @@ enum App {
     #[clap(subcommand)]
     Head(Head),
 
-    /// Subrepos management
-    #[clap(subcommand)]
-    Repo(Repo),
+    /// Add an existing submodule to the wok workspace
+    Add {
+        /// Path of the submodule relative to the umbrella repo
+        submodule_path: path::PathBuf,
+    },
+
+    /// Remove a submodule from the wok workspace
+    #[clap(alias = "rm")]
+    Remove {
+        /// Path of the submodule relative to the umbrella repo
+        submodule_path: path::PathBuf,
+    },
 
     /// Switch repos to current main repo branch with options
     Switch {
@@ -144,21 +153,6 @@ enum App {
 enum Head {
     /// Switches all subrepos' heads to the current umbrella's head branch.
     Switch,
-}
-
-#[derive(Debug, Parser)]
-enum Repo {
-    /// Adds an existing submodule to the wok workspace.
-    Add {
-        /// Path of the submodule relative to the umbrella repo.
-        submodule_path: path::PathBuf,
-    },
-    /// Removes a submodule from the wok workspace.
-    #[clap(name = "rm")]
-    Remove {
-        /// Path of the submodule relative to the umbrella repo.
-        submodule_path: path::PathBuf,
-    },
 }
 
 fn resolve_tag_arguments<'a>(
@@ -262,15 +256,11 @@ fn main() -> Result<()> {
                 App::Head(head_cmd) => match head_cmd {
                     Head::Switch => wok::cmd::head::switch(&mut wok_config, &umbrella)?,
                 },
-                App::Repo(repo_cmd) => match repo_cmd {
-                    Repo::Add { submodule_path } => wok::cmd::repo::add(
-                        &mut wok_config,
-                        &umbrella,
-                        &submodule_path,
-                    )?,
-                    Repo::Remove { submodule_path } => {
-                        wok::cmd::repo::rm(&mut wok_config, &submodule_path)?
-                    },
+                App::Add { submodule_path } => {
+                    wok::cmd::repo::add(&mut wok_config, &umbrella, &submodule_path)?
+                },
+                App::Remove { submodule_path } => {
+                    wok::cmd::repo::rm(&mut wok_config, &submodule_path)?
                 },
                 App::Switch {
                     create,

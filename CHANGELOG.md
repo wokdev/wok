@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for git rebase strategy during `update` operations, respecting user's pull strategy preferences configured via `pull.rebase` and `branch.<name>.rebase` settings
 
 ### Changed
+- **BREAKING:** Commands `repo add` and `repo rm` have been promoted to first-level commands `add` and `rm` respectively. The `repo` subcommand has been removed. Users should now use `git-wok add <path>` instead of `git-wok repo add <path>`, and `git-wok rm <path>` instead of `git-wok repo rm <path>`. The `rm` alias is also available for the `remove` command.
 - `update` command now respects git's `pull.rebase` and `branch.<name>.rebase` configuration settings. Repositories configured to use rebase will have their changes rebased instead of merged when updating
 
 ## [1.0.0-alpha] - 2025-01-21

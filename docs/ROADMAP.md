@@ -15,8 +15,8 @@ All 9 commands are fully implemented and tested:
 | **Workspace Setup** | `init` | Initialize workspace from existing submodules |
 | | `assemble` | Assemble workspace from directory of repos |
 | **Housekeeping** | `status` | Show workspace and repo status |
-| **Repository Management** | `repo add` | Add submodule to configuration |
-| | `repo rm` | Remove submodule from configuration |
+| **Repository Management** | `add` | Add submodule to configuration |
+| | `rm` | Remove submodule from configuration |
 | **Branch Management** | `head switch` | Switch all repos to umbrella's branch |
 | | `switch` | Switch repos with fine-grained control |
 | **Synchronization** | `lock` | Commit current submodule state |

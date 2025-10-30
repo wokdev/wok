@@ -128,10 +128,10 @@ On branch 'main', all clean
 
 ## Repository Management Commands
 
-### repo add
+### add
 
 ```sh
-git-wok repo add <SUBMODULE_PATH>
+git-wok add <SUBMODULE_PATH>
 ```
 
 Add a submodule previously configured in the repository to [Wokfile](./wokfile.md).
@@ -146,13 +146,13 @@ Add a submodule previously configured in the repository to [Wokfile](./wokfile.m
 **Example:**
 ```sh
 git submodule add https://github.com/user/component component
-git-wok repo add component
+git-wok add component
 ```
 
-### repo rm
+### rm
 
 ```sh
-git-wok repo rm <SUBMODULE_PATH>
+git-wok rm <SUBMODULE_PATH>
 ```
 
 Remove a submodule from [Wokfile](./wokfile.md) configuration.
@@ -164,7 +164,7 @@ Remove a submodule from [Wokfile](./wokfile.md) configuration.
 
 **Example:**
 ```sh
-git-wok repo rm component
+git-wok rm component
 # Then, if desired:
 git submodule deinit component
 git rm component
@@ -603,8 +603,8 @@ git-wok completion fish > ~/.config/fish/completions/git-wok.fish
 - `update` - Fetch and merge from remotes
 
 ### Repository Management
-- `repo add` - Add submodule to config
-- `repo rm` - Remove submodule from config
+- `add` - Add submodule to config
+- `rm` - Remove submodule from config
 
 ### Remote Operations
 - `push` - Push changes to remotes

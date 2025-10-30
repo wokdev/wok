@@ -90,7 +90,7 @@ Add an existing submodule to your workspace configuration:
 
 ```sh
 git submodule add https://github.com/user/new-component.git component
-git-wok repo add component
+git-wok add component
 ```
 
 ### Switch Branches
@@ -283,7 +283,7 @@ git push
 git submodule add https://github.com/user/new-repo.git new-repo
 
 # Register with wok
-git-wok repo add new-repo
+git-wok add new-repo
 
 # Initialize and switch to current branch
 git-wok switch --create new-repo
