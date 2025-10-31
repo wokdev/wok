@@ -60,10 +60,6 @@ enum Command {
 
 #[derive(Debug, Parser)]
 enum App {
-    /// Change current subrepos' heads
-    #[clap(subcommand)]
-    Head(Head),
-
     /// Add an existing submodule to the wok workspace
     Add {
         /// Path of the submodule relative to the umbrella repo
@@ -147,12 +143,6 @@ enum App {
         /// Specific repos to tag (if not provided, acts on all matching repos)
         repos: Vec<path::PathBuf>,
     },
-}
-
-#[derive(Debug, Parser)]
-enum Head {
-    /// Switches all subrepos' heads to the current umbrella's head branch.
-    Switch,
 }
 
 fn resolve_tag_arguments<'a>(
@@ -253,9 +243,6 @@ fn main() -> Result<()> {
             let mut wok_config = wok::config::Config::load(&config_path)?;
 
             if match app_cmd {
-                App::Head(head_cmd) => match head_cmd {
-                    Head::Switch => wok::cmd::head::switch(&mut wok_config, &umbrella)?,
-                },
                 App::Add { submodule_path } => {
                     wok::cmd::repo::add(&mut wok_config, &umbrella, &submodule_path)?
                 },

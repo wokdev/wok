@@ -174,30 +174,6 @@ git rm component
 
 ## Branch Management Commands
 
-### head switch
-
-```sh
-git-wok head switch
-```
-
-Switch all configured subrepos to match the current umbrella repository branch.
-
-**What it does:**
-- Reads the current branch of the umbrella repository
-- Switches all configured subrepos to that same branch
-- Updates the Wokfile configuration
-- Commits the submodule state changes
-
-**Use case:**
-Quick synchronization after checking out a branch in the umbrella repository.
-
-**Example:**
-```sh
-git checkout feature-x
-git-wok head switch
-# All subrepos now on 'feature-x'
-```
-
 ### switch
 
 ```sh
@@ -215,6 +191,8 @@ git-wok switch --all
 ```
 
 Act on all configured repos, respecting `skip_for` settings. Repos in the skip list can still be targeted explicitly.
+
+**Note:** This flag replaces the deprecated `head switch` command. Use `git-wok switch --all` to switch all repositories to the umbrella's current branch.
 
 #### --create
 
@@ -597,8 +575,7 @@ git-wok completion fish > ~/.config/fish/completions/git-wok.fish
 
 ### Daily Operations
 - `status` - Check workspace status
-- `switch` - Change branches with options
-- `head switch` - Quick branch sync
+- `switch` - Change branches with options (use `--all` for quick branch sync)
 - `lock` - Capture current state
 - `update` - Fetch and merge from remotes
 

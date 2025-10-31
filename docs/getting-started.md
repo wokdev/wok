@@ -99,7 +99,7 @@ Switch all repositories to match the umbrella's branch:
 
 ```sh
 git checkout feature-x
-git-wok head switch
+git-wok switch --all
 ```
 
 Or switch with more control:

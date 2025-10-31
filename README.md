@@ -13,7 +13,7 @@
 - **9 Complete Commands** for comprehensive multi-repo management
 - **Housekeeping**: `init`, `status`
 - **Package Management**: `add`, `remove`, `update`, `lock`
-- **Development Flow**: `head switch`, `switch`, `push`
+- **Development Flow**: `switch`, `push`
 - **Release Management**: `tag`
 - **Advanced Options**: Selective repo targeting, branch creation, GPG signing
 - **Config Controls**: Per-repo skip lists to exclude projects from bulk operations without losing explicit access
@@ -29,7 +29,7 @@ git-wok init
 git-wok add path/to/submodule
 
 # Switch all repos to current branch
-git-wok head switch
+git-wok switch --all
 
 # Push changes to all repos
 git-wok push --all

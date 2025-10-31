@@ -17,8 +17,7 @@ All 9 commands are fully implemented and tested:
 | **Housekeeping** | `status` | Show workspace and repo status |
 | **Repository Management** | `add` | Add submodule to configuration |
 | | `rm` | Remove submodule from configuration |
-| **Branch Management** | `head switch` | Switch all repos to umbrella's branch |
-| | `switch` | Switch repos with fine-grained control |
+| **Branch Management** | `switch` | Switch repos with fine-grained control (use `--all` for bulk operations) |
 | **Synchronization** | `lock` | Commit current submodule state |
 | | `update` | Fetch and merge from remotes |
 | **Remote Operations** | `push` | Push changes to remotes |

@@ -8,7 +8,6 @@ mod switch;
 mod tag;
 mod update;
 
-pub mod head;
 pub mod repo;
 pub use assemble::assemble;
 pub use completion::{CompletionShell, completion};
