@@ -38,6 +38,8 @@ theme:
   font:
     text: Open Sans
     code: Fira Code
+  logo: assets/images/logo.png
+  favicon: assets/images/favicon.png
 extra_css:
   - stylesheets/extra.css
 nav:
