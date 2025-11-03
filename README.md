@@ -47,4 +47,4 @@ git-wok tag --all v1.0.0 --sign --push
 
 ## Community
 
-Meet us in the chat room: [#wok:matrix.org](https://matrix.to/#/#wok:matrix.org)
+- Join the Delta Chat group: [Git Wok on Delta Chat](https://i.delta.chat/#667BD2FB6B122F4138F29A17861B4E257DCDFDB9&a=lig%40countzero.co&g=Git%20Wok&x=0FgEK_cMRZ6NMvG1PAekdJE3&i=9Jn9KZM9tErF-O0k8xvadsn_&s=DyV77Vq3p4y86HX9rRuOMvm2)
