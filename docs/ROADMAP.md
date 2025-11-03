@@ -79,7 +79,7 @@ Git Wok is open to contributions! If you encounter bugs or have feature requests
 
 1. Check existing issues on Codeberg
 2. Open a new issue with clear description
-3. Join the discussion in [#wok:matrix.org](https://matrix.to/#/#wok:matrix.org)
+3. Join the discussion in [Git Wok on Delta Chat](https://i.delta.chat/#667BD2FB6B122F4138F29A17861B4E257DCDFDB9&a=lig%40countzero.co&g=Git%20Wok&x=0FgEK_cMRZ6NMvG1PAekdJE3&i=9Jn9KZM9tErF-O0k8xvadsn_&s=DyV77Vq3p4y86HX9rRuOMvm2)
 
 ## 📈 Release History
 

@@ -17,3 +17,7 @@ Git Wok manages multiple git repositories as part of a single workspace, using g
 
 [Get started](getting-started.md){ .md-button .md-button--primary }
 [View Commands](cli.md){ .md-button }
+
+## Community
+
+Need help or want to share feedback? Join the [Git Wok group on Delta Chat](https://i.delta.chat/#667BD2FB6B122F4138F29A17861B4E257DCDFDB9&a=lig%40countzero.co&g=Git%20Wok&x=0FgEK_cMRZ6NMvG1PAekdJE3&i=9Jn9KZM9tErF-O0k8xvadsn_&s=DyV77Vq3p4y86HX9rRuOMvm2).
