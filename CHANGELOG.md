@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** Commands `repo add` and `repo rm` have been promoted to first-level commands `add` and `rm` respectively. The `repo` subcommand has been removed. Users should now use `git-wok add <path>` instead of `git-wok repo add <path>`, and `git-wok rm <path>` instead of `git-wok repo rm <path>`. The `rm` alias is also available for the `remove` command.
 - `update` command now respects git's `pull.rebase` and `branch.<name>.rebase` configuration settings. Repositories configured to use rebase will have their changes rebased instead of merged when updating
 - **BREAKING:** The `head switch` command has been removed in favor of the more flexible `switch` command. Users should now use `git-wok switch --all` instead of `git-wok head switch`. The `switch` command provides the same functionality with additional options for fine-grained control, including `--create` for creating branches, `--branch` for specifying a target branch, and the ability to target specific repositories. Note that `switch --all` respects `skip_for` settings by default, while the old `head switch` did not.
+- `push` and `tag` now include the umbrella repository by default and expose `--no-umbrella`/`--umbrella` flags to opt out or opt back in explicitly
 
 ## [1.0.0-alpha] - 2025-01-21
 

@@ -4,6 +4,7 @@ use std::result::Result::Ok;
 
 use crate::{config, repo};
 
+#[allow(clippy::too_many_arguments)]
 pub fn push<W: Write>(
     wok_config: &mut config::Config,
     umbrella: &repo::Repo,
@@ -11,6 +12,7 @@ pub fn push<W: Write>(
     set_upstream: bool,
     all: bool,
     branch_name: Option<&str>,
+    include_umbrella: bool,
     target_repos: &[std::path::PathBuf],
 ) -> Result<()> {
     // Determine the target branch
@@ -49,7 +51,9 @@ pub fn push<W: Write>(
             .collect()
     };
 
-    if repos_to_push.is_empty() {
+    let total_targets = repos_to_push.len() + usize::from(include_umbrella);
+
+    if total_targets == 0 {
         writeln!(stdout, "No repositories to push")?;
         return Ok(());
     }
@@ -57,9 +61,38 @@ pub fn push<W: Write>(
     writeln!(
         stdout,
         "Pushing {} repositories to branch '{}'...",
-        repos_to_push.len(),
-        target_branch
+        total_targets, target_branch
     )?;
+
+    if include_umbrella {
+        match push_repo(umbrella, &target_branch, set_upstream) {
+            Ok(result) => match result {
+                PushResult::Pushed => {
+                    writeln!(stdout, "- 'umbrella': pushed to '{}'", target_branch)?;
+                },
+                PushResult::UpstreamSet => {
+                    writeln!(
+                        stdout,
+                        "- 'umbrella': pushed to '{}' and set upstream",
+                        target_branch
+                    )?;
+                },
+                PushResult::UpToDate => {
+                    writeln!(stdout, "- 'umbrella': already up to date")?;
+                },
+                PushResult::NoRemote => {
+                    writeln!(stdout, "- 'umbrella': no remote configured, skipping")?;
+                },
+            },
+            Err(e) => {
+                writeln!(
+                    stdout,
+                    "- 'umbrella': failed to push to '{}' - {}",
+                    target_branch, e
+                )?;
+            },
+        }
+    }
 
     // Push each repo
     for config_repo in &repos_to_push {
@@ -113,7 +146,7 @@ pub fn push<W: Write>(
     writeln!(
         stdout,
         "Successfully processed {} repositories",
-        repos_to_push.len()
+        total_targets
     )?;
     Ok(())
 }

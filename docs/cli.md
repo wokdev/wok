@@ -383,6 +383,15 @@ git-wok push --branch <BRANCH_NAME>
 
 Push the specified branch instead of the current umbrella repository branch.
 
+#### --umbrella / --no-umbrella
+
+```sh
+git-wok push --no-umbrella
+git-wok push --umbrella
+```
+
+Control whether the umbrella repository is included in the push. The umbrella repo is included by default; pass `--no-umbrella` to skip it.
+
 #### repos
 
 ```sh
@@ -397,6 +406,7 @@ Specific repositories to push. If not provided and `--all` is not used, pushes r
 - Skips repos with `push` in their `skip_for` list (unless explicitly targeted)
 - Reports which repos were pushed successfully
 - Handles "up to date" and error cases gracefully
+- Includes the umbrella repository by default so workspace-level changes are pushed alongside subrepos (unless `--no-umbrella` is specified)
 
 **Examples:**
 ```sh
@@ -414,6 +424,9 @@ git-wok push --all -u
 
 # Push specific branch
 git-wok push --all --branch release/v2
+
+# Push only subrepos, skip umbrella
+git-wok push --all --no-umbrella
 ```
 
 ---
@@ -467,6 +480,15 @@ git-wok tag --all
 
 Act on all configured repos, respecting `skip_for` settings.
 
+#### --umbrella / --no-umbrella
+
+```sh
+git-wok tag --no-umbrella
+git-wok tag --umbrella
+```
+
+Control whether the umbrella repository participates in listing or tagging. Enabled by default; use `--no-umbrella` to limit operations to subrepos.
+
 #### Positional Arguments
 
 The command accepts flexible positional argument formats:
@@ -481,6 +503,7 @@ The command accepts flexible positional argument formats:
 - Skips repos with `tag` in their `skip_for` list (unless explicitly targeted)
 - Reports existing tags or creation status for each repo
 - Handles tag conflicts gracefully
+- Includes the umbrella repository in listing, creation, and push flows by default (disable with `--no-umbrella`)
 
 **Examples:**
 
@@ -512,6 +535,9 @@ git-wok tag --create v1.0.0 --all --sign --push
 
 # Create in specific repos
 git-wok tag --create v2.0.0 api docs
+
+# Create only in subrepos, skip umbrella
+git-wok tag --create v2.0.0 --all --no-umbrella
 ```
 
 Alternative syntax (positional tag argument):

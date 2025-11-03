@@ -1,5 +1,5 @@
 use anyhow::{Context, Result, anyhow, bail};
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use git_wok as wok;
 use std::{env, io::stdout, path};
 
@@ -118,6 +118,18 @@ enum App {
         #[clap(long)]
         branch: Option<String>,
 
+        /// Include the umbrella repository (enabled by default)
+        #[clap(long, action = ArgAction::SetTrue, conflicts_with = "no_umbrella")]
+        umbrella: bool,
+
+        /// Skip the umbrella repository
+        #[clap(
+            long = "no-umbrella",
+            action = ArgAction::SetTrue,
+            conflicts_with = "umbrella"
+        )]
+        no_umbrella: bool,
+
         /// Specific repos to push (if not provided, acts on all matching repos)
         repos: Vec<path::PathBuf>,
     },
@@ -139,6 +151,18 @@ enum App {
         /// Act on all configured repos
         #[clap(long)]
         all: bool,
+
+        /// Include the umbrella repository (enabled by default)
+        #[clap(long, action = ArgAction::SetTrue, conflicts_with = "no_umbrella")]
+        umbrella: bool,
+
+        /// Skip the umbrella repository
+        #[clap(
+            long = "no-umbrella",
+            action = ArgAction::SetTrue,
+            conflicts_with = "umbrella"
+        )]
+        no_umbrella: bool,
 
         /// Specific repos to tag (if not provided, acts on all matching repos)
         repos: Vec<path::PathBuf>,
@@ -191,6 +215,14 @@ fn resolve_tag_arguments<'a>(
         }
     } else {
         Ok((None, repos))
+    }
+}
+
+fn resolve_include_umbrella(umbrella_flag: bool, no_umbrella_flag: bool) -> bool {
+    if umbrella_flag {
+        true
+    } else {
+        !no_umbrella_flag
     }
 }
 
@@ -284,8 +316,13 @@ fn main() -> Result<()> {
                     set_upstream,
                     all,
                     branch,
+                    umbrella: umbrella_flag,
+                    no_umbrella: no_umbrella_flag,
                     repos,
                 } => {
+                    let include_umbrella =
+                        resolve_include_umbrella(umbrella_flag, no_umbrella_flag);
+
                     wok::cmd::push(
                         &mut wok_config,
                         &umbrella,
@@ -293,6 +330,7 @@ fn main() -> Result<()> {
                         set_upstream,
                         all,
                         branch.as_deref(),
+                        include_umbrella,
                         &repos,
                     )?;
                     false // Don't save config for push command
@@ -302,11 +340,16 @@ fn main() -> Result<()> {
                     sign,
                     push,
                     all,
+                    umbrella: umbrella_flag,
+                    no_umbrella: no_umbrella_flag,
                     repos,
                 } => {
                     let (positional_tag, repo_args) =
                         resolve_tag_arguments(&create, all, &repos, &wok_config)?;
                     let tag_name = create.as_deref().or(positional_tag.as_deref());
+
+                    let include_umbrella =
+                        resolve_include_umbrella(umbrella_flag, no_umbrella_flag);
 
                     wok::cmd::tag(
                         &mut wok_config,
@@ -316,6 +359,7 @@ fn main() -> Result<()> {
                         sign,
                         push,
                         all,
+                        include_umbrella,
                         repo_args,
                     )?;
                     false // Don't save config for tag command
@@ -349,6 +393,26 @@ mod tests {
 
         assert_eq!(positional_tag.as_deref(), Some("v2.0.0"));
         assert!(remaining.is_empty());
+    }
+
+    #[test]
+    fn resolve_include_umbrella_defaults_to_true() {
+        assert!(resolve_include_umbrella(false, false));
+    }
+
+    #[test]
+    fn resolve_include_umbrella_respects_no_flag() {
+        assert!(!resolve_include_umbrella(false, true));
+    }
+
+    #[test]
+    fn resolve_include_umbrella_respects_umbrella_flag() {
+        assert!(resolve_include_umbrella(true, false));
+    }
+
+    #[test]
+    fn resolve_include_umbrella_prefers_explicit_umbrella_over_exclusion() {
+        assert!(resolve_include_umbrella(true, true));
     }
 
     #[test]

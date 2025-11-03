@@ -15,6 +15,7 @@ pub fn tag<W: Write>(
     sign: bool,
     push: bool,
     all: bool,
+    include_umbrella: bool,
     target_repos: &[std::path::PathBuf],
 ) -> Result<()> {
     // Determine which repos to tag
@@ -49,7 +50,9 @@ pub fn tag<W: Write>(
             .collect()
     };
 
-    if repos_to_tag.is_empty() {
+    let total_targets = repos_to_tag.len() + usize::from(include_umbrella);
+
+    if total_targets == 0 {
         writeln!(stdout, "No repositories to tag")?;
         return Ok(());
     }
@@ -60,9 +63,32 @@ pub fn tag<W: Write>(
             writeln!(
                 stdout,
                 "Creating tag '{}' in {} repositories...",
-                name,
-                repos_to_tag.len()
+                name, total_targets
             )?;
+
+            if include_umbrella {
+                match create_tag(umbrella, name, sign) {
+                    Ok(result) => match result {
+                        TagResult::Created => {
+                            writeln!(stdout, "- 'umbrella': created tag '{}'", name)?;
+                        },
+                        TagResult::AlreadyExists => {
+                            writeln!(
+                                stdout,
+                                "- 'umbrella': tag '{}' already exists",
+                                name
+                            )?;
+                        },
+                    },
+                    Err(e) => {
+                        writeln!(
+                            stdout,
+                            "- 'umbrella': failed to create tag '{}' - {}",
+                            name, e
+                        )?;
+                    },
+                }
+            }
 
             for config_repo in &repos_to_tag {
                 if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
@@ -100,11 +126,22 @@ pub fn tag<W: Write>(
         },
         None => {
             // List existing tags
-            writeln!(
-                stdout,
-                "Listing tags in {} repositories...",
-                repos_to_tag.len()
-            )?;
+            writeln!(stdout, "Listing tags in {} repositories...", total_targets)?;
+
+            if include_umbrella {
+                match list_tags(umbrella) {
+                    Ok(tags) => {
+                        if tags.is_empty() {
+                            writeln!(stdout, "- 'umbrella': no tags found")?;
+                        } else {
+                            writeln!(stdout, "- 'umbrella': {}", tags.join(", "))?;
+                        }
+                    },
+                    Err(e) => {
+                        writeln!(stdout, "- 'umbrella': failed to list tags - {}", e)?;
+                    },
+                }
+            }
 
             for config_repo in &repos_to_tag {
                 if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
@@ -142,6 +179,21 @@ pub fn tag<W: Write>(
     // Push tags if requested
     if push {
         writeln!(stdout, "Pushing tags to remotes...")?;
+
+        if include_umbrella {
+            match push_tags(umbrella) {
+                Ok(PushResult::Pushed) => {
+                    writeln!(stdout, "- 'umbrella': pushed tags")?;
+                },
+                Ok(PushResult::Skipped) => {
+                    writeln!(stdout, "- 'umbrella': no tags to push")?;
+                },
+                Err(e) => {
+                    writeln!(stdout, "- 'umbrella': failed to push tags - {}", e)?;
+                },
+            }
+        }
+
         for config_repo in &repos_to_tag {
             if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
                 match push_tags(subrepo) {
@@ -175,7 +227,7 @@ pub fn tag<W: Write>(
     writeln!(
         stdout,
         "Successfully processed {} repositories",
-        repos_to_tag.len()
+        total_targets
     )?;
     Ok(())
 }
