@@ -43,7 +43,6 @@ git-wok tag --all v1.0.0 --sign --push
 - [Getting Started Guide](docs/getting-started.md)
 - [CLI Reference](docs/cli.md)
 - [Configuration Guide](docs/wokfile.md)
-- [Changelog](CHANGELOG.md)
 
 ## Community
 

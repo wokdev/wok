@@ -248,9 +248,7 @@ Example output:
    git push origin v1.0.0
    ```
 
-5. **Keep changelog updated**: Update `CHANGELOG.md` or release notes when bumping versions
-
-6. **Review before committing**: Always check the diff:
+5. **Review before committing**: Always check the diff:
    ```bash
    git diff Cargo.toml pyproject.toml
    ```
@@ -279,7 +277,6 @@ Examples:
 
 Potential improvements for this script:
 
-- **Changelog integration**: Automatically update CHANGELOG.md
 - **Git integration**: Optionally create commit and tag automatically
 - **Version increment**: Support `--major`, `--minor`, `--patch` flags to auto-increment
 - **Lockfile update**: Automatically update Cargo.lock
