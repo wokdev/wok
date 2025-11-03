@@ -130,6 +130,7 @@ This will:
 - Fetch changes from remote for each repository
 - Merge changes into the configured branch
 - Commit updated submodule state to umbrella repo
+- Fetch and merge the umbrella repository itself (use `--no-umbrella` to skip it)
 
 Use `--no-commit` to stage changes without committing:
 

@@ -8,11 +8,17 @@ pub fn update<W: Write>(
     umbrella: &repo::Repo,
     stdout: &mut W,
     no_commit: bool,
+    include_umbrella: bool,
 ) -> Result<()> {
     writeln!(stdout, "Updating submodules...")?;
 
-    let mut saw_updates = false;
+    let mut saw_subrepo_updates = false;
     let mut saw_conflicts = false;
+
+    if include_umbrella {
+        let (_, conflicts) = update_repo(umbrella, &umbrella.head, "umbrella", stdout)?;
+        saw_conflicts |= conflicts;
+    }
 
     // Step 1: Update each repo with fetch and merge
     for config_repo in &wok_config.repos {
@@ -21,67 +27,11 @@ pub fn update<W: Write>(
         }
 
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
-            // Switch to configured branch first
-            subrepo.switch(&config_repo.head)?;
-
-            // Attempt to merge with remote changes
-            let merge_result = subrepo.merge(&config_repo.head)?;
-
-            // Get the current commit hash for reporting
-            let current_commit = get_current_commit_hash(&subrepo.git_repo)?;
-
-            // Report the result based on merge outcome
-            match merge_result {
-                repo::MergeResult::UpToDate => {
-                    writeln!(
-                        stdout,
-                        "- '{}': already up to date on '{}' ({})",
-                        config_repo.path.display(),
-                        config_repo.head,
-                        &current_commit[..8]
-                    )?;
-                },
-                repo::MergeResult::FastForward => {
-                    saw_updates = true;
-                    writeln!(
-                        stdout,
-                        "- '{}': fast-forwarded '{}' to {}",
-                        config_repo.path.display(),
-                        config_repo.head,
-                        &current_commit[..8]
-                    )?;
-                },
-                repo::MergeResult::Merged => {
-                    saw_updates = true;
-                    writeln!(
-                        stdout,
-                        "- '{}': merged '{}' to {}",
-                        config_repo.path.display(),
-                        config_repo.head,
-                        &current_commit[..8]
-                    )?;
-                },
-                repo::MergeResult::Rebased => {
-                    saw_updates = true;
-                    writeln!(
-                        stdout,
-                        "- '{}': rebased '{}' to {}",
-                        config_repo.path.display(),
-                        config_repo.head,
-                        &current_commit[..8]
-                    )?;
-                },
-                repo::MergeResult::Conflicts => {
-                    saw_conflicts = true;
-                    writeln!(
-                        stdout,
-                        "- '{}': merge conflicts in '{}' ({}), manual resolution required",
-                        config_repo.path.display(),
-                        config_repo.head,
-                        &current_commit[..8]
-                    )?;
-                },
-            }
+            let label = config_repo.path.display().to_string();
+            let (updated, conflicts) =
+                update_repo(subrepo, &config_repo.head, &label, stdout)?;
+            saw_subrepo_updates |= updated;
+            saw_conflicts |= conflicts;
         }
     }
 
@@ -91,13 +41,13 @@ pub fn update<W: Write>(
     if saw_conflicts {
         writeln!(
             stdout,
-            "Skipped committing umbrella repo due to merge conflicts in subrepos"
+            "Skipped committing umbrella repo due to merge conflicts"
         )?;
         return Ok(());
     }
 
     if no_commit {
-        if staged_changes || saw_updates {
+        if staged_changes || saw_subrepo_updates {
             writeln!(
                 stdout,
                 "Changes staged; commit skipped because --no-commit was provided"
@@ -118,6 +68,70 @@ pub fn update<W: Write>(
 
     writeln!(stdout, "Updated submodule state committed")?;
     Ok(())
+}
+
+fn update_repo<W: Write>(
+    repo: &repo::Repo,
+    branch_name: &str,
+    label: &str,
+    stdout: &mut W,
+) -> Result<(bool, bool)> {
+    // Switch to the desired branch first
+    repo.switch(branch_name)?;
+
+    // Attempt to merge with remote changes
+    let merge_result = repo.merge(branch_name)?;
+
+    // Get the current commit hash for reporting
+    let current_commit = get_current_commit_hash(&repo.git_repo)?;
+    let short_commit = &current_commit[..std::cmp::min(8, current_commit.len())];
+
+    let mut updated = false;
+    let mut conflicts = false;
+
+    match merge_result {
+        repo::MergeResult::UpToDate => {
+            writeln!(
+                stdout,
+                "- '{}': already up to date on '{}' ({})",
+                label, branch_name, short_commit
+            )?;
+        },
+        repo::MergeResult::FastForward => {
+            updated = true;
+            writeln!(
+                stdout,
+                "- '{}': fast-forwarded '{}' to {}",
+                label, branch_name, short_commit
+            )?;
+        },
+        repo::MergeResult::Merged => {
+            updated = true;
+            writeln!(
+                stdout,
+                "- '{}': merged '{}' to {}",
+                label, branch_name, short_commit
+            )?;
+        },
+        repo::MergeResult::Rebased => {
+            updated = true;
+            writeln!(
+                stdout,
+                "- '{}': rebased '{}' to {}",
+                label, branch_name, short_commit
+            )?;
+        },
+        repo::MergeResult::Conflicts => {
+            conflicts = true;
+            writeln!(
+                stdout,
+                "- '{}': merge conflicts in '{}' ({}), manual resolution required",
+                label, branch_name, short_commit
+            )?;
+        },
+    }
+
+    Ok((updated, conflicts))
 }
 
 fn get_current_commit_hash(git_repo: &git2::Repository) -> Result<String> {

@@ -50,7 +50,7 @@ fn update_pulls_tracking_branch(repo_sample: TestRepo) {
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
     let umbrella = repo_sample.repo();
 
-    cmd::update(&mut actual_config, &umbrella, &mut output, false).unwrap();
+    cmd::update(&mut actual_config, &umbrella, &mut output, false, true).unwrap();
 
     let local_after = _run("git rev-parse HEAD", subrepo_path).unwrap();
     let remote_tip = _run("git rev-parse origin/main", subrepo_path).unwrap();
@@ -66,6 +66,7 @@ fn update_pulls_tracking_branch(repo_sample: TestRepo) {
         output_str.contains("- 'sub-a': fast-forwarded 'main'"),
         "Output: {output_str}"
     );
+    assert!(output_str.contains("- 'umbrella':"), "Output: {output_str}");
     assert!(
         output_str.contains("Updated submodule state committed"),
         "Output: {output_str}"
@@ -95,12 +96,16 @@ fn update_submodules(repo_sample: TestRepo) {
         .id();
 
     // Run the update command
-    cmd::update(&mut actual_config, &umbrella, &mut output, false).unwrap();
+    cmd::update(&mut actual_config, &umbrella, &mut output, false, true).unwrap();
 
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
         output_str.contains("Updating submodules..."),
+        "Output: {output_str}"
+    );
+    assert!(
+        output_str.contains("- 'umbrella': already up to date"),
         "Output: {output_str}"
     );
     assert!(
@@ -141,12 +146,16 @@ fn update_with_no_submodules(repo_sample: TestRepo) {
         .id();
 
     // Run the update command with no submodules
-    cmd::update(&mut actual_config, &umbrella, &mut output, false).unwrap();
+    cmd::update(&mut actual_config, &umbrella, &mut output, false, true).unwrap();
 
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
         output_str.contains("Updating submodules..."),
+        "Output: {output_str}"
+    );
+    assert!(
+        output_str.contains("- 'umbrella': already up to date"),
         "Output: {output_str}"
     );
     assert!(
@@ -174,13 +183,14 @@ fn update_skips_configured_repo(repo_sample: TestRepo) {
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
     let umbrella = repo_sample.repo();
 
-    cmd::update(&mut actual_config, &umbrella, &mut output, false).unwrap();
+    cmd::update(&mut actual_config, &umbrella, &mut output, false, true).unwrap();
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
         output_str.contains("Updating submodules..."),
         "Output: {output_str}"
     );
+    assert!(output_str.contains("- 'umbrella':"), "Output: {output_str}");
     assert!(!output_str.contains("- 'sub-a':"), "Output: {output_str}");
     assert!(output_str.contains("- 'sub-b':"), "Output: {output_str}");
 }
@@ -203,13 +213,14 @@ fn update_with_no_commit_flag_skips_commit(repo_sample: TestRepo) {
         .unwrap()
         .id();
 
-    cmd::update(&mut actual_config, &umbrella, &mut output, true).unwrap();
+    cmd::update(&mut actual_config, &umbrella, &mut output, true, true).unwrap();
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
         output_str.contains("Updating submodules..."),
         "Output: {output_str}"
     );
+    assert!(output_str.contains("- 'umbrella':"), "Output: {output_str}");
     assert!(
         output_str.contains(
             "Changes staged; commit skipped because --no-commit was provided",
@@ -280,7 +291,7 @@ fn update_respects_rebase_config(repo_sample: TestRepo) {
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
     let umbrella = repo_sample.repo();
 
-    cmd::update(&mut actual_config, &umbrella, &mut output, false).unwrap();
+    cmd::update(&mut actual_config, &umbrella, &mut output, false, true).unwrap();
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     // Should say "rebased" not "merged"
@@ -288,6 +299,7 @@ fn update_respects_rebase_config(repo_sample: TestRepo) {
         output_str.contains("- 'sub-a': rebased 'main'"),
         "Output: {output_str}"
     );
+    assert!(output_str.contains("- 'umbrella':"), "Output: {output_str}");
     assert!(
         output_str.contains("Updated submodule state committed"),
         "Output: {output_str}"
@@ -350,12 +362,52 @@ fn update_uses_merge_by_default(repo_sample: TestRepo) {
     let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
     let umbrella = repo_sample.repo();
 
-    cmd::update(&mut actual_config, &umbrella, &mut output, false).unwrap();
+    cmd::update(&mut actual_config, &umbrella, &mut output, false, true).unwrap();
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     // Should say "merged" when pull.rebase is false
     assert!(
         output_str.contains("- 'sub-a': merged 'main'"),
+        "Output: {output_str}"
+    );
+    assert!(output_str.contains("- 'umbrella':"), "Output: {output_str}");
+    assert!(
+        output_str.contains("Updated submodule state committed"),
+        "Output: {output_str}"
+    );
+}
+
+#[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
+fn update_skips_umbrella_when_disabled(repo_sample: TestRepo) {
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+    let umbrella = repo_sample.repo();
+
+    cmd::update(&mut actual_config, &umbrella, &mut output, false, false).unwrap();
+
+    let output_str = String::from_utf8_lossy(output.get_ref());
+    assert!(output_str.contains("- 'sub-a':"), "Output: {output_str}");
+    assert!(
+        !output_str.contains("- 'umbrella':"),
+        "Output: {output_str}"
+    );
+}
+
+#[rstest(repo_sample(vec![], Some("empty.toml")))]
+fn update_without_umbrella_when_no_submodules(repo_sample: TestRepo) {
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+    let umbrella = repo_sample.repo();
+
+    cmd::update(&mut actual_config, &umbrella, &mut output, false, false).unwrap();
+
+    let output_str = String::from_utf8_lossy(output.get_ref());
+    assert!(
+        output_str.contains("No submodule updates detected; nothing to commit"),
+        "Output: {output_str}"
+    );
+    assert!(
+        !output_str.contains("- 'umbrella':"),
         "Output: {output_str}"
     );
 }

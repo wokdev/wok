@@ -299,10 +299,20 @@ git-wok update --no-commit
 
 Stage submodule updates without creating a commit in the umbrella repository.
 
+#### --umbrella / --no-umbrella
+
+```sh
+git-wok update --no-umbrella
+git-wok update --umbrella
+```
+
+Control whether the umbrella repository is fetched and merged alongside subrepos. Enabled by default; use `--no-umbrella` to skip updating the umbrella repo.
+
 **Behavior:**
 - Skips repos with `update` in their `skip_for` list
 - Reports merge conflicts if any occur
 - Does not commit umbrella repo if conflicts are detected
+- Includes the umbrella repository in the update process unless `--no-umbrella` is provided
 
 **Examples:**
 ```sh
@@ -313,11 +323,15 @@ git-wok update
 git-wok update --no-commit
 git diff --staged
 git commit -m "Update submodules"
+
+# Update only subrepos, skip umbrella
+git-wok update --no-umbrella
 ```
 
 **Example output:**
 ```
 Updating submodules...
+- 'umbrella': already up to date on 'main' (12345678)
 - 'api': fast-forwarded 'main' to a1b2c3d4
 - 'frontend': rebased 'develop' to e5f6g7h8
 - 'docs': already up to date on 'main' (i9j0k1l2)

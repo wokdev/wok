@@ -99,6 +99,18 @@ enum App {
         /// Skip creating a commit with submodule updates
         #[clap(long = "no-commit")]
         no_commit: bool,
+
+        /// Include the umbrella repository (enabled by default)
+        #[clap(long, action = ArgAction::SetTrue, conflicts_with = "no_umbrella")]
+        umbrella: bool,
+
+        /// Skip the umbrella repository
+        #[clap(
+              long = "no-umbrella",
+              action = ArgAction::SetTrue,
+              conflicts_with = "umbrella"
+          )]
+        no_umbrella: bool,
     },
 
     /// Show subprojects status (clean/dirty, branch info)
@@ -299,12 +311,19 @@ fn main() -> Result<()> {
                     wok::cmd::lock(&mut wok_config, &umbrella, &mut output)?;
                     false // Don't save config for lock command
                 },
-                App::Update { no_commit } => {
+                App::Update {
+                    no_commit,
+                    umbrella: umbrella_flag,
+                    no_umbrella: no_umbrella_flag,
+                } => {
+                    let include_umbrella =
+                        resolve_include_umbrella(umbrella_flag, no_umbrella_flag);
                     wok::cmd::update(
                         &mut wok_config,
                         &umbrella,
                         &mut output,
                         no_commit,
+                        include_umbrella,
                     )?;
                     false // Don't save config for update command
                 },
