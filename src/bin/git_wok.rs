@@ -114,7 +114,11 @@ enum App {
     },
 
     /// Show subprojects status (clean/dirty, branch info)
-    Status,
+    Status {
+        /// Fetch from remotes before comparing
+        #[clap(long)]
+        fetch: bool,
+    },
 
     /// Push changes from configured repos to remotes
     Push {
@@ -327,8 +331,8 @@ fn main() -> Result<()> {
                     )?;
                     false // Don't save config for update command
                 },
-                App::Status => {
-                    wok::cmd::status(&mut wok_config, &umbrella, &mut output)?;
+                App::Status { fetch } => {
+                    wok::cmd::status(&mut wok_config, &umbrella, &mut output, fetch)?;
                     false // Don't save config for status command
                 },
                 App::Push {

@@ -7,30 +7,96 @@ pub fn status<W: Write>(
     wok_config: &mut config::Config,
     umbrella: &repo::Repo,
     stdout: &mut W,
+    fetch: bool,
 ) -> Result<()> {
+    // Fetch from remotes if requested
+    if fetch {
+        umbrella.fetch()?;
+        for config_repo in &wok_config.repos {
+            if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
+                subrepo.fetch()?;
+            }
+        }
+    }
+
     // Check if umbrella repo is clean
     let umbrella_clean = is_repo_clean(&umbrella.git_repo, Some(&wok_config.repos))?;
     let clean_status = if umbrella_clean { ", all clean" } else { "" };
 
-    writeln!(stdout, "On branch '{}'{}", &umbrella.head, clean_status)?;
+    // Get remote status for umbrella
+    let remote_status = get_remote_status_string(umbrella, &umbrella.head)?;
+
+    writeln!(
+        stdout,
+        "On branch '{}'{}{}",
+        &umbrella.head, clean_status, remote_status
+    )?;
 
     // Show status for each configured subrepo
     for config_repo in &wok_config.repos {
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
             let subrepo_clean = is_repo_clean(&subrepo.git_repo, None)?;
             let subrepo_clean_status = if subrepo_clean { ", all clean" } else { "" };
+            let subrepo_remote_status =
+                get_remote_status_string(subrepo, &subrepo.head)?;
 
             writeln!(
                 stdout,
-                "- '{}' is on branch '{}'{}",
+                "- '{}' is on branch '{}'{}{}",
                 config_repo.path.display(),
                 &subrepo.head,
-                subrepo_clean_status
+                subrepo_clean_status,
+                subrepo_remote_status
             )?;
         }
     }
 
     Ok(())
+}
+
+fn get_remote_status_string(
+    repo_obj: &repo::Repo,
+    branch_name: &str,
+) -> Result<String> {
+    let tracking = match repo_obj.tracking_branch(branch_name)? {
+        Some(tracking) => tracking,
+        None => return Ok(String::new()), // No tracking branch, no status to show
+    };
+
+    match repo_obj.get_remote_comparison(branch_name)? {
+        Some(repo::RemoteComparison::UpToDate) => Ok(format!(
+            ", up to date with '{}'",
+            tracking.remote_ref.replace("refs/remotes/", "")
+        )),
+        Some(repo::RemoteComparison::Ahead(count)) => {
+            let commits = if count == 1 { "commit" } else { "commits" };
+            Ok(format!(
+                ", ahead of '{}' by {} {}",
+                tracking.remote_ref.replace("refs/remotes/", ""),
+                count,
+                commits
+            ))
+        },
+        Some(repo::RemoteComparison::Behind(count)) => {
+            let commits = if count == 1 { "commit" } else { "commits" };
+            Ok(format!(
+                ", behind '{}' by {} {}",
+                tracking.remote_ref.replace("refs/remotes/", ""),
+                count,
+                commits
+            ))
+        },
+        Some(repo::RemoteComparison::Diverged(ahead, behind)) => Ok(format!(
+            ", diverged from '{}' ({} ahead, {} behind)",
+            tracking.remote_ref.replace("refs/remotes/", ""),
+            ahead,
+            behind
+        )),
+        Some(repo::RemoteComparison::NoRemote) => {
+            Ok(String::new()) // Remote branch doesn't exist, don't show anything
+        },
+        None => Ok(String::new()), // No tracking branch
+    }
 }
 
 fn is_repo_clean(

@@ -105,24 +105,55 @@ git-wok assemble .
 ### status
 
 ```sh
-git-wok status
+git-wok status [--fetch]
 ```
 
 Show the status of the umbrella repository and all configured subrepos.
 
+**Options:**
+
+- `--fetch` - Fetch from remotes before comparing local and remote branches (performs network operations)
+
 **What it shows:**
+
 - Current branch of umbrella repository
 - Whether umbrella repository has uncommitted changes
+- Comparison with remote tracking branch (ahead/behind/diverged/up-to-date)
 - Current branch of each subrepo
 - Whether each subrepo has uncommitted changes
+- Comparison with remote tracking branch for each subrepo
 
-**Example output:**
+**Note:** By default, status does not perform any network operations. Use `--fetch` to update remote refs before comparison. Without `--fetch`, the comparison is based on the last fetched remote state.
+
+**Example output (without fetch):**
+
 ```
-On branch 'main', all clean
-- 'api' is on branch 'main', all clean
-- 'frontend' is on branch 'develop'
+On branch 'main', all clean, up to date with 'origin/main'
+- 'api' is on branch 'main', all clean, ahead of 'origin/main' by 2 commits
+- 'frontend' is on branch 'develop', behind 'origin/develop' by 3 commits
 - 'docs' is on branch 'main', all clean
 ```
+
+**Example with fetch:**
+
+```sh
+git-wok status --fetch
+```
+
+Output:
+
+```
+On branch 'main', all clean, diverged from 'origin/main' (1 ahead, 2 behind)
+- 'api' is on branch 'main', all clean, up to date with 'origin/main'
+```
+
+**Remote status indicators:**
+
+- `up to date with 'origin/main'` - Local and remote branches point to the same commit
+- `ahead of 'origin/main' by N commit(s)` - Local branch has N commits not yet pushed to remote
+- `behind 'origin/main' by N commit(s)` - Remote branch has N commits not yet pulled locally
+- `diverged from 'origin/main' (N ahead, M behind)` - Both local and remote have unique commits
+- No indicator - No remote tracking branch configured for this branch
 
 ---
 

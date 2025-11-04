@@ -13,6 +13,15 @@ pub enum MergeResult {
     Conflicts,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum RemoteComparison {
+    UpToDate,
+    Ahead(usize),
+    Behind(usize),
+    Diverged(usize, usize),
+    NoRemote,
+}
+
 pub struct Repo {
     pub git_repo: git2::Repository,
     pub work_dir: path::PathBuf,
@@ -310,6 +319,49 @@ impl Repo {
         }
     }
 
+    /// Get the ahead/behind count relative to the remote tracking branch
+    pub fn get_remote_comparison(
+        &self,
+        branch_name: &str,
+    ) -> Result<Option<RemoteComparison>> {
+        // Get the tracking branch info
+        let tracking = match self.tracking_branch(branch_name)? {
+            Some(tracking) => tracking,
+            None => return Ok(None), // No tracking branch configured
+        };
+
+        // Check if remote branch exists
+        let remote_oid = match self.git_repo.refname_to_id(&tracking.remote_ref) {
+            Ok(oid) => oid,
+            Err(_) => {
+                // Remote branch doesn't exist
+                return Ok(Some(RemoteComparison::NoRemote));
+            },
+        };
+
+        // Get local branch OID
+        let local_oid = self.git_repo.head()?.peel_to_commit()?.id();
+
+        // If they're the same, we're up to date
+        if local_oid == remote_oid {
+            return Ok(Some(RemoteComparison::UpToDate));
+        }
+
+        // Calculate ahead/behind using git's graph functions
+        let (ahead, behind) =
+            self.git_repo.graph_ahead_behind(local_oid, remote_oid)?;
+
+        if ahead > 0 && behind > 0 {
+            Ok(Some(RemoteComparison::Diverged(ahead, behind)))
+        } else if ahead > 0 {
+            Ok(Some(RemoteComparison::Ahead(ahead)))
+        } else if behind > 0 {
+            Ok(Some(RemoteComparison::Behind(behind)))
+        } else {
+            Ok(Some(RemoteComparison::UpToDate))
+        }
+    }
+
     pub fn remote_callbacks(&self) -> Result<git2::RemoteCallbacks<'static>> {
         let config = self.git_repo.config()?;
 
@@ -359,7 +411,7 @@ impl Repo {
             .to_owned())
     }
 
-    fn tracking_branch(&self, branch_name: &str) -> Result<Option<TrackingBranch>> {
+    pub fn tracking_branch(&self, branch_name: &str) -> Result<Option<TrackingBranch>> {
         let config = self.git_repo.config()?;
 
         let remote_key = format!("branch.{}.remote", branch_name);
@@ -425,9 +477,9 @@ impl fmt::Debug for Repo {
     }
 }
 
-struct TrackingBranch {
-    remote: String,
-    remote_ref: String,
+pub struct TrackingBranch {
+    pub remote: String,
+    pub remote_ref: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
