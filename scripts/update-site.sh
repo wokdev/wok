@@ -90,12 +90,12 @@ check_prerequisites() {
     log_verbose "Docs directory: $DOCS_DIR" >&2
     print_success "Documentation directory found" >&2
 
-    # Check for mkdocs (try poetry first, then system)
+    # Check for mkdocs (try uv first, then system)
     local mkdocs_cmd=""
-    if command -v poetry &> /dev/null; then
-        if poetry run mkdocs --version &> /dev/null; then
-            mkdocs_cmd="poetry run mkdocs"
-            log_verbose "Using mkdocs via poetry" >&2
+    if command -v uv &> /dev/null; then
+        if uv run mkdocs --version &> /dev/null 2>&1; then
+            mkdocs_cmd="uv run mkdocs"
+            log_verbose "Using mkdocs via uv" >&2
         fi
     fi
 
@@ -105,7 +105,7 @@ check_prerequisites() {
     fi
 
     if [[ -z "$mkdocs_cmd" ]]; then
-        print_error "MkDocs not found. Please install it:\n  poetry install\n  or\n  pip install mkdocs"
+        print_error "MkDocs not found. Please install it:\n  uv sync\n  or\n  pip install mkdocs"
     fi
 
     echo "$mkdocs_cmd"

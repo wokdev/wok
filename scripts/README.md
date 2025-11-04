@@ -310,10 +310,10 @@ This script streamlines the workflow for building documentation by:
 
 Before using this script, ensure you have:
 
-- **MkDocs installed**: Either via Poetry (recommended) or system-wide
+- **MkDocs installed**: Either via uv (recommended) or system-wide
   ```bash
-  # Via Poetry (recommended)
-  poetry install
+  # Via uv (recommended)
+  uv sync
 
   # Or system-wide
   pip install mkdocs mkdocs-material
@@ -371,7 +371,7 @@ This is useful when:
 1. **Validation Checks**
    - Verifies the script is run from the repository root
    - Checks that the `docs/` directory exists
-   - Verifies MkDocs is available (via Poetry or system)
+   - Verifies MkDocs is available (via uv or system)
 
 2. **Build Documentation**
    - Runs `mkdocs build` to generate the static site
@@ -408,7 +408,8 @@ steps:
   - name: build-site
     image: python:3.11
     commands:
-      - poetry install
+      - pip install uv
+      - uv sync
       - ./scripts/update-site.sh --verbose
     when:
       branch: main
@@ -421,10 +422,10 @@ steps:
 
 **Problem**: MkDocs is not installed or not in PATH.
 
-**Solution**: Install MkDocs via Poetry or system-wide:
+**Solution**: Install MkDocs via uv or system-wide:
 ```bash
-# Via Poetry (recommended)
-poetry install
+# Via uv (recommended)
+uv sync
 
 # Or system-wide
 pip install mkdocs mkdocs-material
