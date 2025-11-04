@@ -64,37 +64,8 @@ pub fn push<W: Write>(
         total_targets, target_branch
     )?;
 
-    if include_umbrella {
-        match push_repo(umbrella, &target_branch, set_upstream) {
-            Ok(result) => match result {
-                PushResult::Pushed => {
-                    writeln!(stdout, "- 'umbrella': pushed to '{}'", target_branch)?;
-                },
-                PushResult::UpstreamSet => {
-                    writeln!(
-                        stdout,
-                        "- 'umbrella': pushed to '{}' and set upstream",
-                        target_branch
-                    )?;
-                },
-                PushResult::UpToDate => {
-                    writeln!(stdout, "- 'umbrella': already up to date")?;
-                },
-                PushResult::NoRemote => {
-                    writeln!(stdout, "- 'umbrella': no remote configured, skipping")?;
-                },
-            },
-            Err(e) => {
-                writeln!(
-                    stdout,
-                    "- 'umbrella': failed to push to '{}' - {}",
-                    target_branch, e
-                )?;
-            },
-        }
-    }
-
-    // Push each repo
+    // Push submodules first, then umbrella repo
+    // This ensures submodule commits exist remotely before the umbrella repo references them
     for config_repo in &repos_to_push {
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
             match push_repo(subrepo, &target_branch, set_upstream) {
@@ -140,6 +111,37 @@ pub fn push<W: Write>(
                     )?;
                 },
             }
+        }
+    }
+
+    // Push umbrella repo last, after all submodules
+    if include_umbrella {
+        match push_repo(umbrella, &target_branch, set_upstream) {
+            Ok(result) => match result {
+                PushResult::Pushed => {
+                    writeln!(stdout, "- 'umbrella': pushed to '{}'", target_branch)?;
+                },
+                PushResult::UpstreamSet => {
+                    writeln!(
+                        stdout,
+                        "- 'umbrella': pushed to '{}' and set upstream",
+                        target_branch
+                    )?;
+                },
+                PushResult::UpToDate => {
+                    writeln!(stdout, "- 'umbrella': already up to date")?;
+                },
+                PushResult::NoRemote => {
+                    writeln!(stdout, "- 'umbrella': no remote configured, skipping")?;
+                },
+            },
+            Err(e) => {
+                writeln!(
+                    stdout,
+                    "- 'umbrella': failed to push to '{}' - {}",
+                    target_branch, e
+                )?;
+            },
         }
     }
 
