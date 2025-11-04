@@ -533,7 +533,7 @@ wheels = [
 
 [[package]]
 name = "wok-docs"
-version = "1.0.0b7"
+version = "1.0.0b8"
 source = { virtual = "." }
 dependencies = [
     { name = "mdx-truly-sane-lists" },
