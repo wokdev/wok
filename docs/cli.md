@@ -501,13 +501,27 @@ git-wok tag --create <TAG_NAME>
 
 Create a new tag with the specified name.
 
-#### --sign
+#### -s / --sign
 
 ```sh
+git-wok tag -s
 git-wok tag --sign
 ```
 
-Sign the tag with GPG. Requires GPG to be configured.
+Sign the tag with GPG. Requires GPG to be configured. Creates an annotated tag.
+
+#### -m / --message <MESSAGE>
+
+```sh
+git-wok tag -m <MESSAGE>
+git-wok tag --message <MESSAGE>
+```
+
+Add a message to create an annotated tag. If not provided with `--sign`, lightweight tags are created by default.
+
+When combined with `--sign`, the message is included in the signed annotated tag. When used without `--sign`, an unsigned annotated tag is created with the provided message.
+
+**Note:** Annotated tags (created with `--sign` or `--message`) include metadata like tagger name, email, and timestamp. Lightweight tags are simple pointers to commits without additional metadata.
 
 #### --push
 
@@ -572,8 +586,17 @@ git-wok tag --create v1.0.0
 # Create in all repos
 git-wok tag --create v1.0.0 --all
 
+# Create tag with custom message
+git-wok tag --create v1.0.0 --all --message "Release version 1.0.0"
+
+# Short form with message
+git-wok tag --create v1.0.0 --all -m "Release version 1.0.0"
+
 # Create signed tag
 git-wok tag --create v1.0.0 --all --sign
+
+# Create signed tag with message (short form)
+git-wok tag --create v1.0.0 --all -s -m "Signed release v1.0.0"
 
 # Create, sign, and push
 git-wok tag --create v1.0.0 --all --sign --push
@@ -589,6 +612,7 @@ Alternative syntax (positional tag argument):
 ```sh
 # These work similarly to --create
 git-wok tag v1.0.0 --all --sign --push
+git-wok tag v1.0.0 --all -s -m "Release version 1.0.0"
 git-wok tag v2.0.0 api docs
 ```
 

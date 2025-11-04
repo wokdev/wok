@@ -19,6 +19,7 @@ fn tag_list_all_repos(repo_sample: TestRepo) {
         &mut output,
         None,  // tag_name
         false, // sign
+        None,  // message
         false, // push
         true,  // all
         true,  // include umbrella
@@ -45,6 +46,7 @@ fn tag_list_skips_umbrella_when_disabled(repo_sample: TestRepo) {
         &mut output,
         None,
         false,
+        None,
         false,
         true,
         false,
@@ -71,6 +73,7 @@ fn tag_list_specific_repo(repo_sample: TestRepo) {
         &mut output,
         None,                                 // tag_name
         false,                                // sign
+        None,                                 // message
         false,                                // push
         false,                                // all
         true,                                 // include umbrella
@@ -98,6 +101,7 @@ fn tag_create_all_repos(repo_sample: TestRepo) {
         &mut output,
         Some("v1.0.0"), // tag_name
         false,          // sign
+        None,           // message
         false,          // push
         true,           // all
         true,           // include umbrella
@@ -125,6 +129,7 @@ fn tag_create_specific_repo(repo_sample: TestRepo) {
         &mut output,
         Some("v1.0.0"),                       // tag_name
         false,                                // sign
+        None,                                 // message
         false,                                // push
         false,                                // all
         true,                                 // include umbrella
@@ -152,6 +157,7 @@ fn tag_create_with_sign(repo_sample: TestRepo) {
         &mut output,
         Some("v1.0.0"), // tag_name
         true,           // sign
+        None,           // message
         false,          // push
         true,           // all
         true,           // include umbrella
@@ -179,6 +185,7 @@ fn tag_create_with_push(repo_sample: TestRepo) {
         &mut output,
         Some("v1.0.0"), // tag_name
         false,          // sign
+        None,           // message
         true,           // push
         true,           // all
         true,           // include umbrella
@@ -222,6 +229,7 @@ fn tag_push_reports_when_up_to_date(repo_sample: TestRepo) {
         &mut first_output,
         Some("v1.0.0"),
         false,
+        None,
         true,
         true,
         true,
@@ -236,6 +244,7 @@ fn tag_push_reports_when_up_to_date(repo_sample: TestRepo) {
         &mut output,
         None,
         false,
+        None,
         true,
         false,
         true,
@@ -263,6 +272,7 @@ fn tag_with_no_repos(repo_sample: TestRepo) {
         &mut output,
         None,  // tag_name
         false, // sign
+        None,  // message
         false, // push
         false, // all
         true,  // include umbrella
@@ -289,6 +299,7 @@ fn tag_nonexistent_repo(repo_sample: TestRepo) {
         &mut output,
         None,                                       // tag_name
         false,                                      // sign
+        None,                                       // message
         false,                                      // push
         false,                                      // all
         true,                                       // include umbrella
@@ -314,6 +325,7 @@ fn tag_no_repos_without_umbrella(repo_sample: TestRepo) {
         &mut output,
         None,
         false,
+        None,
         false,
         false,
         false,
@@ -338,6 +350,7 @@ fn tag_multiple_repos(repo_sample: TestRepo) {
         &mut output,
         Some("v1.0.0"), // tag_name
         false,          // sign
+        None,           // message
         false,          // push
         true,           // all
         true,           // include umbrella
@@ -366,6 +379,7 @@ fn tag_specific_multiple_repos(repo_sample: TestRepo) {
         &mut output,
         Some("v1.0.0"), // tag_name
         false,          // sign
+        None,           // message
         false,          // push
         false,          // all
         true,           // include umbrella
@@ -396,6 +410,7 @@ fn tag_all_skips_configured_repo(repo_sample: TestRepo) {
         &mut output,
         Some("v1.0.0"),
         false,
+        None,
         false,
         true,
         true,
@@ -422,6 +437,7 @@ fn tag_default_skips_configured_repo(repo_sample: TestRepo) {
         &mut output,
         None,
         false,
+        None,
         false,
         false,
         true,
@@ -448,6 +464,7 @@ fn tag_all_includes_explicit_repo_overrides_skip(repo_sample: TestRepo) {
         &mut output,
         Some("v1.0.0"),
         false,
+        None,
         false,
         true,
         true,
@@ -461,4 +478,41 @@ fn tag_all_includes_explicit_repo_overrides_skip(repo_sample: TestRepo) {
     assert!(output_str.contains("- 'sub-a': created tag 'v1.0.0'"));
     assert!(output_str.contains("- 'sub-b': created tag 'v1.0.0'"));
     assert!(output_str.contains("Successfully processed 3 repositories"));
+}
+
+#[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
+fn tag_create_with_message(repo_sample: TestRepo) {
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+
+    // Run the tag command with --create and --message
+    cmd::tag(
+        &mut actual_config,
+        &repo_sample.repo(),
+        &mut output,
+        Some("v1.0.0"),                // tag_name
+        false,                         // sign
+        Some("Release version 1.0.0"), // message
+        false,                         // push
+        true,                          // all
+        true,                          // include umbrella
+        &[],                           // repos
+    )
+    .unwrap();
+
+    // Check the output
+    let output_str = String::from_utf8_lossy(output.get_ref());
+    assert!(output_str.contains("Creating tag 'v1.0.0' in 2 repositories"));
+    assert!(output_str.contains("- 'umbrella': created tag 'v1.0.0'"));
+    assert!(output_str.contains("- 'sub-a': created tag 'v1.0.0'"));
+    assert!(output_str.contains("Successfully processed 2 repositories"));
+
+    // Verify the tag was created as annotated tag with message
+    let umbrella_repo = repo_sample.repo();
+    let tag_obj = umbrella_repo
+        .git_repo
+        .revparse_single("refs/tags/v1.0.0")
+        .unwrap();
+    let tag = tag_obj.as_tag().unwrap();
+    assert_eq!(tag.message().unwrap().trim(), "Release version 1.0.0");
 }

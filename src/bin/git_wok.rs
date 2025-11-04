@@ -157,8 +157,12 @@ enum App {
         create: Option<String>,
 
         /// Sign the tag with GPG
-        #[clap(long)]
+        #[clap(short('s'), long)]
         sign: bool,
+
+        /// Message for annotated tags
+        #[clap(short('m'), long)]
+        message: Option<String>,
 
         /// Push tags to remote
         #[clap(long)]
@@ -361,6 +365,7 @@ fn main() -> Result<()> {
                 App::Tag {
                     create,
                     sign,
+                    message,
                     push,
                     all,
                     umbrella: umbrella_flag,
@@ -380,6 +385,7 @@ fn main() -> Result<()> {
                         &mut output,
                         tag_name,
                         sign,
+                        message.as_deref(),
                         push,
                         all,
                         include_umbrella,

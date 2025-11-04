@@ -13,6 +13,7 @@ pub fn tag<W: Write>(
     stdout: &mut W,
     tag_name: Option<&str>,
     sign: bool,
+    message: Option<&str>,
     push: bool,
     all: bool,
     include_umbrella: bool,
@@ -67,7 +68,7 @@ pub fn tag<W: Write>(
             )?;
 
             if include_umbrella {
-                match create_tag(umbrella, name, sign) {
+                match create_tag(umbrella, name, sign, message) {
                     Ok(result) => match result {
                         TagResult::Created => {
                             writeln!(stdout, "- 'umbrella': created tag '{}'", name)?;
@@ -92,7 +93,7 @@ pub fn tag<W: Write>(
 
             for config_repo in &repos_to_tag {
                 if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
-                    match create_tag(subrepo, name, sign) {
+                    match create_tag(subrepo, name, sign, message) {
                         Ok(result) => match result {
                             TagResult::Created => {
                                 writeln!(
@@ -244,7 +245,12 @@ enum PushResult {
     Skipped,
 }
 
-fn create_tag(repo: &repo::Repo, tag_name: &str, sign: bool) -> Result<TagResult> {
+fn create_tag(
+    repo: &repo::Repo,
+    tag_name: &str,
+    sign: bool,
+    message: Option<&str>,
+) -> Result<TagResult> {
     // Check if tag already exists by trying to find it
     if repo
         .git_repo
@@ -260,18 +266,20 @@ fn create_tag(repo: &repo::Repo, tag_name: &str, sign: bool) -> Result<TagResult
     let commit_obj = commit.as_object();
 
     // Create the tag
-    if sign {
-        // Create signed tag
+    if sign || message.is_some() {
+        // Create annotated tag (signed or with message)
         let signature = repo.git_repo.signature()?;
+        let default_message = format!("Tag {}", tag_name);
+        let tag_message = message.unwrap_or(&default_message);
         let _tag_ref = repo.git_repo.tag(
             tag_name,
             commit_obj,
             &signature,
-            &format!("Tag {}", tag_name),
-            false,
+            tag_message,
+            sign, // Pass true for GPG signing, false otherwise
         )?;
     } else {
-        // Create lightweight tag
+        // Create lightweight tag (no message, no signature)
         let _tag_ref = repo.git_repo.tag_lightweight(tag_name, commit_obj, false)?;
     }
 
