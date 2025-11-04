@@ -10,7 +10,7 @@ pub fn update<W: Write>(
     no_commit: bool,
     include_umbrella: bool,
 ) -> Result<()> {
-    writeln!(stdout, "Updating submodules...")?;
+    writeln!(stdout, "Updating repositories...")?;
 
     let mut saw_subrepo_updates = false;
     let mut saw_conflicts = false;

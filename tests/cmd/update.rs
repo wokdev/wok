@@ -63,6 +63,10 @@ fn update_pulls_tracking_branch(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
+        output_str.contains("Updating repositories..."),
+        "Output: {output_str}"
+    );
+    assert!(
         output_str.contains("- 'sub-a': fast-forwarded 'main'"),
         "Output: {output_str}"
     );
@@ -101,7 +105,7 @@ fn update_submodules(repo_sample: TestRepo) {
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("Updating submodules..."),
+        output_str.contains("Updating repositories..."),
         "Output: {output_str}"
     );
     assert!(
@@ -151,7 +155,7 @@ fn update_with_no_submodules(repo_sample: TestRepo) {
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("Updating submodules..."),
+        output_str.contains("Updating repositories..."),
         "Output: {output_str}"
     );
     assert!(
@@ -187,7 +191,7 @@ fn update_skips_configured_repo(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("Updating submodules..."),
+        output_str.contains("Updating repositories..."),
         "Output: {output_str}"
     );
     assert!(output_str.contains("- 'umbrella':"), "Output: {output_str}");
@@ -217,7 +221,7 @@ fn update_with_no_commit_flag_skips_commit(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("Updating submodules..."),
+        output_str.contains("Updating repositories..."),
         "Output: {output_str}"
     );
     assert!(output_str.contains("- 'umbrella':"), "Output: {output_str}");
