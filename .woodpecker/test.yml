@@ -1,8 +1,14 @@
+clone:
+  git:
+    settings:
+      submodule: false
+
 when:
   event:
     - push
   path:
     include: ["src/**", "tests/**", ".woodpecker/**", "Cargo.*"]
+
 steps:
   test:
     image: rust:1
