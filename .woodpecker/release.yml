@@ -1,5 +1,6 @@
 clone:
   git:
+    image: woodpeckerci/plugin-git
     settings:
       submodule: false
 
