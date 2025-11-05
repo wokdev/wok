@@ -21,7 +21,7 @@ The Wokfile uses **TOML** (Tom's Obvious, Minimal Language) syntax, the same for
 Here's a minimal example:
 
 ```toml
-version = "1.0-experimental"
+version = "1.0"
 
 [[repo]]
 path = "api"
@@ -38,13 +38,13 @@ head = "develop"
 
 **Type:** String
 **Required:** Yes
-**Current value:** `"1.0-experimental"`
+**Current value:** `"1.0"`
 
-Specifies the Wokfile schema version. This allows Git Wok to handle configuration format changes gracefully in the future.
+Specify the Wokfile schema version. This allows Git Wok to handle configuration format changes gracefully in the future.
 
 **Example:**
 ```toml
-version = "1.0-experimental"
+version = "1.0"
 ```
 
 ### repo
@@ -133,7 +133,7 @@ With this configuration:
 A basic workspace with three components on the same branch:
 
 ```toml
-version = "1.0-experimental"
+version = "1.0"
 
 [[repo]]
 path = "api"
@@ -153,7 +153,7 @@ head = "main"
 Different components on different branches:
 
 ```toml
-version = "1.0-experimental"
+version = "1.0"
 
 [[repo]]
 path = "api"
@@ -177,7 +177,7 @@ head = "main"
 Some components excluded from certain operations:
 
 ```toml
-version = "1.0-experimental"
+version = "1.0"
 
 # Active development repos
 [[repo]]
@@ -212,7 +212,7 @@ skip_for = ["tag"]
 Repos organized in subdirectories:
 
 ```toml
-version = "1.0-experimental"
+version = "1.0"
 
 [[repo]]
 path = "services/api"
@@ -274,7 +274,7 @@ Git Wok validates the configuration when loading. Common errors:
 
 **Error: "unknown field"**
 - You used a field name that doesn't exist
-- Check spelling: `head` not `ref`, `path` not `name`
+- Check spelling: `head`, not `ref`; `path`, not `name`
 
 **Error: "missing field"**
 - A required field is missing

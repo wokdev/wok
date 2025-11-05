@@ -2,11 +2,11 @@
 
 ## Introduction
 
-**Git Wok** seamlessly manages multiple Git repositories simultaneously. Its core methodology bears a resemblance to popular package managers such as `cargo`, `poetry`, or `npm`.
+**Git Wok** seamlessly manages multiple Git repositories simultaneously. Its core methodology resembles popular package managers such as `cargo`, `poetry`, or `npm`.
 
 The `wok.toml` configuration file is the heart of your workspace, similar to how `Cargo.toml` is central to Rust projects or `package.json` to Node.js projects.
 
-Submodule objects, once committed to the umbrella repository, serve as a lock file—capturing the exact state of each repository at a specific point in time.
+Submodule objects, once committed to the umbrella repository, serve as a lock file—capturing the exact state of each repository at a specific commit.
 
 ## Installation
 
@@ -120,7 +120,7 @@ git-wok switch --all --create --branch feature-y
 
 ### Update Repositories
 
-Fetch and merge latest changes from remotes:
+Fetch and merge the latest changes from remotes:
 
 ```sh
 git-wok update
@@ -129,8 +129,8 @@ git-wok update
 This will:
 - Fetch changes from remote for each repository
 - Merge changes into the configured branch
-- Commit updated submodule state to umbrella repo
-- Fetch and merge the umbrella repository itself (use `--no-umbrella` to skip it)
+- Commit updated submodule state to the umbrella repo
+- Fetch and merge the umbrella repository itself (use `--no-umbrella` to skip)
 
 Use `--no-commit` to stage changes without committing:
 
@@ -146,7 +146,7 @@ Commit the current submodule commit references:
 git-wok lock
 ```
 
-This ensures the umbrella repository captures exact commit hashes of all submodules.
+This ensures the umbrella repository captures the exact commit hashes of all submodules.
 
 ### Push Changes
 
@@ -338,4 +338,4 @@ git submodule update --init --recursive
 
 - Read the [CLI Reference](cli.md) for detailed command documentation
 - Learn about [Wokfile syntax](wokfile.md) for advanced configuration
-- Check the [Roadmap](ROADMAP.md) for upcoming features
+- Join the community on [Delta Chat](https://i.delta.chat/#667BD2FB6B122F4138F29A17861B4E257DCDFDB9&a=lig%40countzero.co&g=Git%20Wok&x=0FgEK_cMRZ6NMvG1PAekdJE3&i=9Jn9KZM9tErF-O0k8xvadsn_&s=DyV77Vq3p4y86HX9rRuOMvm2)

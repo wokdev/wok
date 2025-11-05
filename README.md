@@ -2,22 +2,19 @@
 
 [![status-badge](https://ci.codeberg.org/api/badges/12553/status.svg)](https://ci.codeberg.org/repos/12553)
 
-**Git Wok** helps to organize multiple git repositories into a single multi-project workspace.
+**Git Wok** helps you organize multiple git repositories into a single multi-project workspace.
 
-## 🚀 Beta Release
-
-**Production Ready!** All core functionality is implemented, tested, and documented.
-
-### ✨ Features
+## ✨ Features
 
 - **9 Complete Commands** for comprehensive multi-repo management
 - **Housekeeping**: `init`, `status`
-- **Package Management**: `add`, `remove`, `update`, `lock`
+- **Package Management**: `add`, `rm`, `update`, `lock`
 - **Development Flow**: `switch`, `push`
 - **Release Management**: `tag`
 - **Advanced Options**: Selective repo targeting, branch creation, GPG signing
-- **Config Controls**: Per-repo skip lists to exclude projects from bulk operations without losing explicit access
-- **Comprehensive Testing**: 37 tests covering all functionality
+- **Config Controls**: Per-repo skip lists to exclude projects from bulk operations while preserving explicit access
+- **Comprehensive Testing**: 37+ tests covering all functionality
+- **Shell Completion**: Support for Bash, Zsh, and Fish
 
 ### 🎯 Quick Start
 

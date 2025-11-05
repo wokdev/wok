@@ -51,5 +51,3 @@ nav:
   - Getting Started: getting-started.md
   - Git Wok CLI: cli.md
   - Wokfile (wok.toml): wokfile.md
-  - Development:
-      - Roadmap: ROADMAP.md

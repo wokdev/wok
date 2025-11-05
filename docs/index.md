@@ -4,7 +4,7 @@ A powerful multirepo management tool built with Rust.
 
 ---
 
-Git Wok manages multiple git repositories as part of a single workspace, using git submodules under the hood. Think of it as a package manager for your multi-repository projects—similar to how `cargo`, `poetry`, or `npm` manage dependencies.
+Git Wok manages multiple git repositories as a single workspace, using git submodules under the hood. Think of it as a package manager for your multi-repository projects—similar to how `cargo`, `poetry`, or `npm` manage dependencies.
 
 ## Key Features
 

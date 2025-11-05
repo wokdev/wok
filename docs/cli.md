@@ -16,7 +16,7 @@ git-wok --wokfile-path <WOK_FILE_PATH>
 !!! abstract "Default"
     `wok.toml`
 
-Overrides default path to [Wokfile](./wokfile.md).
+Override the default path to [Wokfile](./wokfile.md).
 
 ### --help
 
@@ -25,7 +25,7 @@ git-wok --help
 git-wok <COMMAND> --help
 ```
 
-Shows list of possible commands and global options. When used with a specific subcommand, shows help for that subcommand.
+Show the list of possible commands and global options. When used with a specific subcommand, show help for that subcommand.
 
 ---
 
@@ -66,7 +66,7 @@ git-wok init
 git-wok assemble <DIRECTORY>
 ```
 
-Assemble a workspace by initializing subrepos and generating configuration.
+Assemble a workspace by initializing subrepos and generating the configuration.
 
 **What it does:**
 - Initializes the umbrella repository if needed
@@ -165,7 +165,7 @@ On branch 'main', all clean, diverged from 'origin/main' (1 ahead, 2 behind)
 git-wok add <SUBMODULE_PATH>
 ```
 
-Add a submodule previously configured in the repository to [Wokfile](./wokfile.md).
+Add a submodule previously configured in the repository to the [Wokfile](./wokfile.md).
 
 **Prerequisites:**
 - Submodule must already be added with `git submodule add`
@@ -269,9 +269,9 @@ git-wok switch --all --create --branch feature-new
 ```
 
 **Behavior:**
-- Updates the Wokfile configuration to reflect new branch assignments
-- Commits submodule state changes to umbrella repository
-- Skips repos with `switch` in their `skip_for` list (unless explicitly targeted)
+- Update the Wokfile configuration to reflect new branch assignments
+- Commit submodule state changes to the umbrella repository
+- Skip repos with `switch` in their `skip_for` list (unless explicitly targeted)
 
 **Commit Message Format:**
 
@@ -298,11 +298,11 @@ git-wok lock
 Lock the current submodule state by committing submodule commit references.
 
 **What it does:**
-- Ensures each repo is on its configured branch
-- Adds all submodule entries to the git index
-- Compares the current state with the previous commit
-- **Only commits if submodules have changed** (no-op if nothing changed)
-- Creates a commit with updated commit hashes of changed submodules
+- Ensure each repo is on its configured branch
+- Add all submodule entries to the git index
+- Compare the current state with the previous commit
+- **Only commit if submodules have changed** (no-op if nothing changed)
+- Create a commit with updated commit hashes of changed submodules
 
 **Commit Message Format:**
 
@@ -360,11 +360,11 @@ git-wok update [OPTIONS]
 Update submodules by fetching and merging latest changes from remotes.
 
 **What it does:**
-- Switches each repo to its configured branch
-- Fetches changes from the remote
-- Merges or rebases changes into the local branch (respects `pull.rebase` and `branch.<name>.rebase` config)
-- Stages submodule updates in the umbrella repository
-- Commits the updated state (unless `--no-commit` is used)
+- Switch each repo to its configured branch
+- Fetch changes from the remote
+- Merge or rebase changes into the local branch (respects `pull.rebase` and `branch.<name>.rebase` config)
+- Stage submodule updates in the umbrella repository
+- Commit the updated state (unless `--no-commit` is used)
 
 **Options:**
 
@@ -386,10 +386,10 @@ git-wok update --umbrella
 Control whether the umbrella repository is fetched and merged alongside subrepos. Enabled by default; use `--no-umbrella` to skip updating the umbrella repo.
 
 **Behavior:**
-- Skips repos with `update` in their `skip_for` list
-- Reports merge conflicts if any occur
-- Does not commit umbrella repo if conflicts are detected
-- Includes the umbrella repository in the update process unless `--no-umbrella` is provided
+- Skip repos with `update` in their `skip_for` list
+- Report merge conflicts if any occur
+- Do not commit umbrella repo if conflicts are detected
+- Include the umbrella repository in the update process unless `--no-umbrella` is provided
 
 **Examples:**
 ```sh
@@ -504,12 +504,12 @@ git-wok push <REPO1> <REPO2> ...
 Specific repositories to push. If not provided and `--all` is not used, pushes repos matching the current umbrella branch.
 
 **Behavior:**
-- Checks remote state before pushing to avoid unnecessary operations
-- Skips push entirely if the remote branch already matches the local branch
-- Skips repos with `push` in their `skip_for` list (unless explicitly targeted)
-- Reports which repos were pushed successfully
-- Handles "up to date" and error cases gracefully
-- Includes the umbrella repository by default so workspace-level changes are pushed alongside subrepos (unless `--no-umbrella` is specified)
+- Check remote state before pushing to avoid unnecessary operations
+- Skip push entirely if the remote branch already matches the local branch
+- Skip repos with `push` in their `skip_for` list (unless explicitly targeted)
+- Report which repos were pushed successfully
+- Handle "up to date" and error cases gracefully
+- Include the umbrella repository by default so workspace-level changes are pushed alongside subrepos (unless `--no-umbrella` is specified)
 
 **Examples:**
 ```sh
@@ -617,10 +617,10 @@ The command accepts flexible positional argument formats:
 - `git-wok tag --all <TAG>` - When listing with `--all`, interpret first positional arg as tag
 
 **Behavior:**
-- Skips repos with `tag` in their `skip_for` list (unless explicitly targeted)
-- Reports existing tags or creation status for each repo
-- Handles tag conflicts gracefully
-- Includes the umbrella repository in listing, creation, and push flows by default (disable with `--no-umbrella`)
+- Skip repos with `tag` in their `skip_for` list (unless explicitly targeted)
+- Report existing tags or creation status for each repo
+- Handle tag conflicts gracefully
+- Include the umbrella repository in listing, creation, and push flows by default (disable with `--no-umbrella`)
 
 **Examples:**
 
