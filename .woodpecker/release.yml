@@ -1,0 +1,170 @@
+when:
+  event:
+    - tag
+
+variables:
+  - &rust_image 'rust:1.83'
+
+steps:
+  # Build for Linux x86_64 (musl for static linking)
+  build-linux-x86_64:
+    image: *rust_image
+    commands:
+      - apt-get update && apt-get install -y musl-tools
+      - rustup target add x86_64-unknown-linux-musl
+      - cargo build --release --target x86_64-unknown-linux-musl
+      - mkdir -p dist
+      - cp target/x86_64-unknown-linux-musl/release/wok dist/wok-linux-x86_64
+      - cd dist && tar czf wok-linux-x86_64.tar.gz wok-linux-x86_64
+      - cd dist && sha256sum wok-linux-x86_64.tar.gz > wok-linux-x86_64.tar.gz.sha256
+
+  # Build for Linux ARM64 (musl for static linking)
+  build-linux-arm64:
+    image: *rust_image
+    commands:
+      - apt-get update && apt-get install -y gcc-aarch64-linux-gnu musl-tools
+      - rustup target add aarch64-unknown-linux-musl
+      - |
+        cat > ~/.cargo/config.toml << 'EOF'
+        [target.aarch64-unknown-linux-musl]
+        linker = "aarch64-linux-gnu-gcc"
+        EOF
+      - cargo build --release --target aarch64-unknown-linux-musl
+      - mkdir -p dist
+      - cp target/aarch64-unknown-linux-musl/release/wok dist/wok-linux-arm64
+      - cd dist && tar czf wok-linux-arm64.tar.gz wok-linux-arm64
+      - cd dist && sha256sum wok-linux-arm64.tar.gz > wok-linux-arm64.tar.gz.sha256
+
+  # Build for macOS x86_64 (cross-compile from Linux)
+  build-macos-x86_64:
+    image: *rust_image
+    commands:
+      - apt-get update && apt-get install -y clang cmake libxml2-dev libssl-dev wget git
+      - rustup target add x86_64-apple-darwin
+      - |
+        git clone https://github.com/tpoechtrager/osxcross
+        cd osxcross
+        wget -nc https://github.com/joseluisq/macosx-sdks/releases/download/12.3/MacOSX12.3.sdk.tar.xz
+        mv MacOSX12.3.sdk.tar.xz tarballs/
+        UNATTENDED=yes OSX_VERSION_MIN=10.13 ./build.sh
+        cd ..
+      - |
+        cat > ~/.cargo/config.toml << 'EOF'
+        [target.x86_64-apple-darwin]
+        linker = "x86_64-apple-darwin21.4-clang"
+        ar = "x86_64-apple-darwin21.4-ar"
+        EOF
+      - export PATH="$PATH:$PWD/osxcross/target/bin"
+      - cargo build --release --target x86_64-apple-darwin
+      - mkdir -p dist
+      - cp target/x86_64-apple-darwin/release/wok dist/wok-macos-x86_64
+      - cd dist && tar czf wok-macos-x86_64.tar.gz wok-macos-x86_64
+      - cd dist && sha256sum wok-macos-x86_64.tar.gz > wok-macos-x86_64.tar.gz.sha256
+
+  # Build for macOS ARM64 (Apple Silicon, cross-compile from Linux)
+  build-macos-arm64:
+    image: *rust_image
+    commands:
+      - apt-get update && apt-get install -y clang cmake libxml2-dev libssl-dev wget git
+      - rustup target add aarch64-apple-darwin
+      - |
+        git clone https://github.com/tpoechtrager/osxcross
+        cd osxcross
+        wget -nc https://github.com/joseluisq/macosx-sdks/releases/download/12.3/MacOSX12.3.sdk.tar.xz
+        mv MacOSX12.3.sdk.tar.xz tarballs/
+        UNATTENDED=yes OSX_VERSION_MIN=11.0 ./build.sh
+        cd ..
+      - |
+        cat > ~/.cargo/config.toml << 'EOF'
+        [target.aarch64-apple-darwin]
+        linker = "aarch64-apple-darwin21.4-clang"
+        ar = "aarch64-apple-darwin21.4-ar"
+        EOF
+      - export PATH="$PATH:$PWD/osxcross/target/bin"
+      - cargo build --release --target aarch64-apple-darwin
+      - mkdir -p dist
+      - cp target/aarch64-apple-darwin/release/wok dist/wok-macos-arm64
+      - cd dist && tar czf wok-macos-arm64.tar.gz wok-macos-arm64
+      - cd dist && sha256sum wok-macos-arm64.tar.gz > wok-macos-arm64.tar.gz.sha256
+
+  # Build for Windows x86_64 (cross-compile from Linux)
+  build-windows-x86_64:
+    image: *rust_image
+    commands:
+      - apt-get update && apt-get install -y mingw-w64 zip
+      - rustup target add x86_64-pc-windows-gnu
+      - |
+        cat > ~/.cargo/config.toml << 'EOF'
+        [target.x86_64-pc-windows-gnu]
+        linker = "x86_64-w64-mingw32-gcc"
+        ar = "x86_64-w64-mingw32-ar"
+        EOF
+      - cargo build --release --target x86_64-pc-windows-gnu
+      - mkdir -p dist
+      - cp target/x86_64-pc-windows-gnu/release/wok.exe dist/wok-windows-x86_64.exe
+      - cd dist && zip wok-windows-x86_64.zip wok-windows-x86_64.exe
+      - cd dist && sha256sum wok-windows-x86_64.zip > wok-windows-x86_64.zip.sha256
+
+  # Create Codeberg release and upload artifacts
+  publish-release:
+    image: plugins/gitea-release
+    settings:
+      api_key:
+        from_secret: codeberg_token
+      base_url: https://codeberg.org
+      files:
+        - dist/wok-linux-x86_64.tar.gz
+        - dist/wok-linux-x86_64.tar.gz.sha256
+        - dist/wok-linux-arm64.tar.gz
+        - dist/wok-linux-arm64.tar.gz.sha256
+        - dist/wok-macos-x86_64.tar.gz
+        - dist/wok-macos-x86_64.tar.gz.sha256
+        - dist/wok-macos-arm64.tar.gz
+        - dist/wok-macos-arm64.tar.gz.sha256
+        - dist/wok-windows-x86_64.zip
+        - dist/wok-windows-x86_64.zip.sha256
+      title: ${CI_COMMIT_TAG}
+      note: |
+        ## Release ${CI_COMMIT_TAG}
+
+        ### Installation
+
+        Download the appropriate binary for your platform:
+
+        #### Linux (x86_64)
+        ```bash
+        wget https://codeberg.org/wok/wok/releases/download/${CI_COMMIT_TAG}/wok-linux-x86_64.tar.gz
+        tar xzf wok-linux-x86_64.tar.gz
+        sudo mv wok-linux-x86_64 /usr/local/bin/wok
+        ```
+
+        #### Linux (ARM64)
+        ```bash
+        wget https://codeberg.org/wok/wok/releases/download/${CI_COMMIT_TAG}/wok-linux-arm64.tar.gz
+        tar xzf wok-linux-arm64.tar.gz
+        sudo mv wok-linux-arm64 /usr/local/bin/wok
+        ```
+
+        #### macOS (Intel)
+        ```bash
+        wget https://codeberg.org/wok/wok/releases/download/${CI_COMMIT_TAG}/wok-macos-x86_64.tar.gz
+        tar xzf wok-macos-x86_64.tar.gz
+        sudo mv wok-macos-x86_64 /usr/local/bin/wok
+        ```
+
+        #### macOS (Apple Silicon)
+        ```bash
+        wget https://codeberg.org/wok/wok/releases/download/${CI_COMMIT_TAG}/wok-macos-arm64.tar.gz
+        tar xzf wok-macos-arm64.tar.gz
+        sudo mv wok-macos-arm64 /usr/local/bin/wok
+        ```
+
+        #### Windows
+        Download `wok-windows-x86_64.zip` and extract to a directory in your PATH.
+
+        ### Verify Checksums
+
+        All binaries include SHA256 checksums. Verify with:
+        ```bash
+        sha256sum -c wok-linux-x86_64.tar.gz.sha256
+        ```

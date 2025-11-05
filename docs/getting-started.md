@@ -10,6 +10,54 @@ Submodule objects, once committed to the umbrella repository, serve as a lock fi
 
 ## Installation
 
+### From Pre-built Binaries
+
+Pre-built binaries are available for multiple platforms from the [releases page](https://codeberg.org/wok/wok/releases).
+
+#### Linux (x86_64)
+
+```bash
+wget https://codeberg.org/wok/wok/releases/download/vX.Y.Z/wok-linux-x86_64.tar.gz
+tar xzf wok-linux-x86_64.tar.gz
+sudo mv wok-linux-x86_64 /usr/local/bin/wok
+```
+
+#### Linux (ARM64)
+
+```bash
+wget https://codeberg.org/wok/wok/releases/download/vX.Y.Z/wok-linux-arm64.tar.gz
+tar xzf wok-linux-arm64.tar.gz
+sudo mv wok-linux-arm64 /usr/local/bin/wok
+```
+
+#### macOS (Intel)
+
+```bash
+wget https://codeberg.org/wok/wok/releases/download/vX.Y.Z/wok-macos-x86_64.tar.gz
+tar xzf wok-macos-x86_64.tar.gz
+sudo mv wok-macos-x86_64 /usr/local/bin/wok
+```
+
+#### macOS (Apple Silicon)
+
+```bash
+wget https://codeberg.org/wok/wok/releases/download/vX.Y.Z/wok-macos-arm64.tar.gz
+tar xzf wok-macos-arm64.tar.gz
+sudo mv wok-macos-arm64 /usr/local/bin/wok
+```
+
+#### Windows
+
+Download `wok-windows-x86_64.zip` from the releases page and extract to a directory in your PATH.
+
+#### Verify Checksums
+
+All binaries include SHA256 checksums for verification:
+
+```bash
+sha256sum -c wok-linux-x86_64.tar.gz.sha256
+```
+
 ### From crates.io
 
 ```sh

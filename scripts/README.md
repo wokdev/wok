@@ -123,6 +123,41 @@ git push origin main
 git push origin v1.0.0
 ```
 
+##### Automated CI Release
+
+When you push a tag, the CI pipeline automatically:
+
+1. Builds binaries for all supported platforms:
+   - Linux (x86_64 and ARM64)
+   - macOS (x86_64 Intel and ARM64 Apple Silicon)
+   - Windows (x86_64)
+
+2. Generates SHA256 checksums for all artifacts
+
+3. Creates a Codeberg release with the tag name
+
+4. Uploads all binaries and checksums to the release
+
+**Note**: The CI pipeline requires a `codeberg_token` secret to be configured in repository settings.
+
+**Monitor the release**:
+- View pipeline status: https://ci.codeberg.org/repos/12553
+- Check releases: https://codeberg.org/wok/wok/releases
+
+For more details, see [docs/releases.md](../docs/releases.md).
+
+##### Manual Release (if CI fails)
+
+If the automated CI release fails or you need to publish manually:
+
+```bash
+# Build release binaries manually
+cargo build --release
+
+# Create release on Codeberg UI
+# Upload target/release/wok manually
+```
+
 ##### Pre-release Workflow
 
 For beta or release candidate versions:

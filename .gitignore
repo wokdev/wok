@@ -7,7 +7,7 @@
 !/.forgejo
 !/.gitea
 !/.pre-commit-config.yaml
-!/.woodpecker.yml
+!/.woodpecker
 
 # build
 /target

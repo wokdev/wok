@@ -1,6 +1,7 @@
 # Git Wok
 
 [![status-badge](https://ci.codeberg.org/api/badges/12553/status.svg)](https://ci.codeberg.org/repos/12553)
+[![Release](https://img.shields.io/gitea/v/release/wok/wok?gitea_url=https://codeberg.org&label=release)](https://codeberg.org/wok/wok/releases)
 
 **Git Wok** helps you organize multiple git repositories into a single multi-project workspace.
 
