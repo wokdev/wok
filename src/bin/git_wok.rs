@@ -29,6 +29,10 @@ struct Args {
     )]
     wokfile_path: path::PathBuf,
 
+    /// Enable verbose debugging output for authentication and network operations
+    #[clap(global = true, short('v'), long)]
+    verbose: bool,
+
     #[clap(subcommand)]
     cmd: Command,
 }
@@ -187,6 +191,9 @@ enum App {
         /// Specific repos to tag (if not provided, acts on all matching repos)
         repos: Vec<path::PathBuf>,
     },
+
+    /// Test git authentication for the current repository
+    TestAuth,
 }
 
 fn resolve_tag_arguments<'a>(
@@ -247,7 +254,7 @@ fn resolve_include_umbrella(umbrella_flag: bool, no_umbrella_flag: bool) -> bool
 }
 
 fn main() -> Result<()> {
-    let Args { wokfile_path, cmd } = Args::parse();
+    let Args { wokfile_path, verbose: _verbose, cmd } = Args::parse();
     let cwd = env::current_dir().context("Cannot access the current directory")?;
     let mut output = stdout();
 
@@ -392,6 +399,10 @@ fn main() -> Result<()> {
                         repo_args,
                     )?;
                     false // Don't save config for tag command
+                },
+                App::TestAuth => {
+                    wok::cmd::test_auth(&umbrella, &mut output)?;
+                    false // Don't save config for test-auth command
                 },
             } {
                 wok_config.save(&config_path)?;

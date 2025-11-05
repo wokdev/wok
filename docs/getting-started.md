@@ -326,6 +326,72 @@ cd ..
 git-wok lock  # Update umbrella with resolved state
 ```
 
+### Authentication Failures During Update/Push
+
+If `git-wok update` or `git-wok push` fail with authentication errors, but `git fetch` works from the command line, this typically indicates a difference in how libgit2 (used by wok) handles credentials compared to the git CLI.
+
+**Diagnostic Steps:**
+
+1. **Test authentication explicitly:**
+   ```sh
+   git-wok test-auth
+   ```
+   This will attempt to connect to your remote and show detailed debugging information.
+
+2. **Check SSH agent availability:**
+   ```sh
+   echo $SSH_AUTH_SOCK
+   ssh-add -l
+   ```
+   If the SSH agent is not running, start it:
+   ```sh
+   eval $(ssh-agent)
+   ssh-add
+   ```
+
+3. **Verify SSH key permissions:**
+   ```sh
+   ls -la ~/.ssh/
+   chmod 600 ~/.ssh/id_*
+   chmod 644 ~/.ssh/id_*.pub
+   ```
+
+4. **Test SSH connection directly:**
+   ```sh
+   ssh -T git@github.com  # or your git host
+   ```
+
+5. **Check credential helper configuration:**
+   ```sh
+   git config --global credential.helper
+   ```
+   If not set, you can configure it:
+   ```sh
+   git config --global credential.helper cache
+   ```
+
+**Common Fixes:**
+
+- **SSH agent not accessible:** Ensure `SSH_AUTH_SOCK` is set and the socket file exists. Wok uses libgit2 which requires explicit SSH agent access.
+- **SSH keys with passphrase:** Ensure keys are added to the SSH agent with `ssh-add`.
+- **Wrong key permissions:** SSH keys should be readable only by you (`chmod 600`).
+- **Credential helper mismatch:** Some git credential helpers may not work with libgit2. Try using the `cache` helper.
+
+### Differences Between Git CLI and Wok
+
+Wok uses libgit2 internally, which may handle authentication differently than the git command-line tool:
+
+- libgit2 requires explicit SSH agent access (`SSH_AUTH_SOCK` must be set and accessible)
+- Some git credential helpers may not work with libgit2
+- Environment variables that work with git may need to be explicitly set for wok
+- libgit2 will attempt multiple authentication methods in order:
+  1. SSH key from agent
+  2. SSH key files from `~/.ssh/` (id_ed25519, id_rsa, id_ecdsa)
+  3. Credential helper
+  4. Default credentials
+
+If you continue to experience authentication issues after trying these steps, the debug output from `git-wok test-auth` will help identify which authentication method is failing and why.
+
 ### Submodule Not Initialized
 
 Initialize submodules if needed:

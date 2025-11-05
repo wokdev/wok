@@ -128,7 +128,16 @@ impl Repo {
                     .fetch::<&str>(&[], Some(&mut fetch_options), None)
                     .with_context(|| {
                         format!(
-                            "Failed to fetch from remote '{}' for repo at `{}`",
+                            "Failed to fetch from remote '{}' for repo at `{}`\n\
+                            \n\
+                            Possible causes:\n\
+                            - SSH agent not running or not accessible (check SSH_AUTH_SOCK)\n\
+                            - SSH keys not properly configured in ~/.ssh/\n\
+                            - Credential helper not configured (git config credential.helper)\n\
+                            - Network/firewall issues\n\
+                            \n\
+                            Try running: git fetch --verbose\n\
+                            Or check authentication with: git-wok test-auth",
                             tracking.remote,
                             self.work_dir.display()
                         )
@@ -363,35 +372,154 @@ impl Repo {
     }
 
     pub fn remote_callbacks(&self) -> Result<git2::RemoteCallbacks<'static>> {
+        self.remote_callbacks_impl(false)
+    }
+
+    pub fn remote_callbacks_verbose(&self) -> Result<git2::RemoteCallbacks<'static>> {
+        self.remote_callbacks_impl(true)
+    }
+
+    fn remote_callbacks_impl(&self, verbose: bool) -> Result<git2::RemoteCallbacks<'static>> {
         let config = self.git_repo.config()?;
 
         let mut callbacks = git2::RemoteCallbacks::new();
         callbacks.credentials(move |url, username_from_url, allowed| {
-            if allowed.contains(git2::CredentialType::SSH_KEY)
-                && let Some(username) = username_from_url
-                && let Ok(cred) = git2::Cred::ssh_key_from_agent(username)
-            {
-                return Ok(cred);
+            if verbose {
+                eprintln!("DEBUG: Credential callback invoked");
+                eprintln!("  URL: {}", url);
+                eprintln!("  Username from URL: {:?}", username_from_url);
+                eprintln!("  Allowed types: {:?}", allowed);
             }
 
-            if (allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT)
-                || allowed.contains(git2::CredentialType::SSH_KEY)
-                || allowed.contains(git2::CredentialType::DEFAULT))
-                && let Ok(cred) =
-                    git2::Cred::credential_helper(&config, url, username_from_url)
-            {
-                return Ok(cred);
-            }
-
-            if allowed.contains(git2::CredentialType::USERNAME) {
+            // Try SSH key from agent (only if SSH_AUTH_SOCK is set)
+            if allowed.contains(git2::CredentialType::SSH_KEY) {
                 if let Some(username) = username_from_url {
-                    return git2::Cred::username(username);
-                } else {
-                    return git2::Cred::username("git");
+                    // Check if SSH agent is actually available
+                    if std::env::var("SSH_AUTH_SOCK").is_ok() {
+                        if verbose {
+                            eprintln!("  Attempting: SSH key from agent for user '{}'", username);
+                        }
+                        match git2::Cred::ssh_key_from_agent(username) {
+                            Ok(cred) => {
+                                if verbose {
+                                    eprintln!("  SUCCESS: SSH key from agent");
+                                }
+                                return Ok(cred);
+                            }
+                            Err(e) => {
+                                if verbose {
+                                    eprintln!("  FAILED: SSH key from agent - {}", e);
+                                }
+                            }
+                        }
+                    } else if verbose {
+                        eprintln!("  SKIPPED: SSH key from agent (SSH_AUTH_SOCK not set)");
+                    }
+                } else if verbose {
+                    eprintln!("  SKIPPED: SSH key from agent (no username provided)");
+                }
+
+                // Try SSH key files directly
+                if let Some(username) = username_from_url
+                    && let Ok(home) = std::env::var("HOME")
+                {
+                    let key_paths = vec![
+                        format!("{}/.ssh/id_ed25519", home),
+                        format!("{}/.ssh/id_rsa", home),
+                        format!("{}/.ssh/id_ecdsa", home),
+                    ];
+
+                    for key_path in key_paths {
+                        if path::Path::new(&key_path).exists() {
+                            if verbose {
+                                eprintln!("  Attempting: SSH key file at {}", key_path);
+                            }
+                            match git2::Cred::ssh_key(
+                                username,
+                                None, // no public key path
+                                path::Path::new(&key_path),
+                                None, // no passphrase
+                            ) {
+                                Ok(cred) => {
+                                    if verbose {
+                                        eprintln!("  SUCCESS: SSH key file");
+                                    }
+                                    return Ok(cred);
+                                }
+                                Err(e) => {
+                                    if verbose {
+                                        eprintln!("  FAILED: SSH key file - {}", e);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            git2::Cred::default()
+            // Try credential helper
+            if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT)
+                || allowed.contains(git2::CredentialType::SSH_KEY)
+                || allowed.contains(git2::CredentialType::DEFAULT)
+            {
+                if verbose {
+                    eprintln!("  Attempting: Credential helper");
+                }
+                match git2::Cred::credential_helper(&config, url, username_from_url) {
+                    Ok(cred) => {
+                        if verbose {
+                            eprintln!("  SUCCESS: Credential helper");
+                        }
+                        return Ok(cred);
+                    }
+                    Err(e) => {
+                        if verbose {
+                            eprintln!("  FAILED: Credential helper - {}", e);
+                        }
+                    }
+                }
+            }
+
+            // Try username only
+            if allowed.contains(git2::CredentialType::USERNAME) {
+                let username = username_from_url.unwrap_or("git");
+                if verbose {
+                    eprintln!("  Attempting: Username only ('{}')", username);
+                }
+                match git2::Cred::username(username) {
+                    Ok(cred) => {
+                        if verbose {
+                            eprintln!("  SUCCESS: Username");
+                        }
+                        return Ok(cred);
+                    }
+                    Err(e) => {
+                        if verbose {
+                            eprintln!("  FAILED: Username - {}", e);
+                        }
+                    }
+                }
+            }
+
+            // Try default
+            if verbose {
+                eprintln!("  Attempting: Default credentials");
+            }
+            match git2::Cred::default() {
+                Ok(cred) => {
+                    if verbose {
+                        eprintln!("  SUCCESS: Default credentials");
+                    }
+                    Ok(cred)
+                }
+                Err(e) => {
+                    if verbose {
+                        eprintln!("  FAILED: All credential methods exhausted");
+                        eprintln!("  Last error: {}", e);
+                    }
+                    Err(e)
+                }
+            }
         });
 
         Ok(callbacks)

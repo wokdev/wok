@@ -6,6 +6,7 @@ mod push;
 mod status;
 mod switch;
 mod tag;
+mod test_auth;
 mod update;
 
 pub mod repo;
@@ -17,4 +18,5 @@ pub use push::push;
 pub use status::status;
 pub use switch::switch;
 pub use tag::tag;
+pub use test_auth::test_auth;
 pub use update::update;
