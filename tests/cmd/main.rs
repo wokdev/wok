@@ -17,6 +17,7 @@ mod switch;
 mod tag;
 mod update;
 mod version;
+mod version_migration;
 
 #[fixture]
 fn data_dir() -> PathBuf {

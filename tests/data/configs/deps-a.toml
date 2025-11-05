@@ -1,4 +1,4 @@
-version = "1.0-experimental"
+version = "1.0"
 
 [[repo]]
 path = "deps/sub-a"

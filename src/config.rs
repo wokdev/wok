@@ -2,7 +2,7 @@ use anyhow::*;
 use serde::{Deserialize, Serialize};
 use std::{fs, path};
 
-const CONFIG_CURRENT_VERSION: &str = "1.0-experimental";
+const CONFIG_CURRENT_VERSION: &str = "1.0";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -87,8 +87,16 @@ impl Config {
 
     /// Loads the workspace config from a file at the `config_path`.
     pub fn load(config_path: &path::Path) -> Result<Config> {
-        let config = toml::from_str(&Self::read(config_path)?)
+        let mut config: Config = toml::from_str(&Self::read(config_path)?)
             .context("Cannot parse the wok file")?;
+        
+        // Migrate from 1.0-experimental to 1.0
+        if config.version == "1.0-experimental" {
+            config.version = String::from("1.0");
+            config.save(config_path)
+                .context("Cannot save migrated wok file")?;
+        }
+        
         Ok(config)
     }
 
