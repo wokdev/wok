@@ -2,6 +2,7 @@ clone:
   git:
     image: woodpeckerci/plugin-git
     settings:
+      lfs: false
       recursive: false
 
 when:
