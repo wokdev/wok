@@ -2,7 +2,7 @@ clone:
   git:
     image: woodpeckerci/plugin-git
     settings:
-      submodule: false
+      recursive: false
 
 when:
   event:
