@@ -16,7 +16,7 @@ fn no_submodules_no_changes(repo_sample: TestRepo) {
 
     assert_eq!(
         String::from_utf8_lossy(output.get_ref()),
-        format!("On branch '{}', all clean\n", "main")
+        format!("✓ (umbrella) on branch '{}', all clean\n", "main")
     );
 }
 
@@ -28,8 +28,7 @@ fn with_submodules_branch_matches_no_changes(repo_sample: TestRepo) {
 
     cmd::status(&mut actual_config, &repo_sample.repo(), &mut output, false).unwrap();
 
-    let expected =
-        "On branch 'main', all clean\n- 'sub-a' is on branch 'main', all clean\n";
+    let expected = "✓ (umbrella) on branch 'main', all clean\n✓ 'sub-a' on branch 'main', all clean\n";
     assert_eq!(String::from_utf8_lossy(output.get_ref()), expected);
 }
 
@@ -266,7 +265,7 @@ fn status_handles_no_tracking_branch(repo_sample: TestRepo) {
         "Expected no remote status in output: {output_str}"
     );
     assert!(
-        output_str.contains("On branch 'main', all clean\n"),
+        output_str.contains("✓ (umbrella) on branch 'main', all clean\n"),
         "Expected basic status line: {output_str}"
     );
 }
@@ -373,7 +372,7 @@ fn status_shows_umbrella_remote_status(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("On branch 'main'")
+        output_str.contains("(umbrella) on branch 'main'")
             && output_str.contains("ahead of 'origin/main' by 1 commit"),
         "Expected umbrella to show ahead status: {output_str}"
     );

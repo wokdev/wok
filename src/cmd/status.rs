@@ -21,28 +21,32 @@ pub fn status<W: Write>(
 
     // Check if umbrella repo is clean
     let umbrella_clean = is_repo_clean(&umbrella.git_repo, Some(&wok_config.repos))?;
-    let clean_status = if umbrella_clean { ", all clean" } else { "" };
+    let umbrella_emoji = if umbrella_clean { "✓" } else { "✗" };
+    let clean_status = if umbrella_clean { "all clean" } else { "dirty" };
 
     // Get remote status for umbrella
     let remote_status = get_remote_status_string(umbrella, &umbrella.head)?;
 
     writeln!(
         stdout,
-        "On branch '{}'{}{}",
-        &umbrella.head, clean_status, remote_status
+        "{} (umbrella) on branch '{}', {}{}",
+        umbrella_emoji, &umbrella.head, clean_status, remote_status
     )?;
 
     // Show status for each configured subrepo
     for config_repo in &wok_config.repos {
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
             let subrepo_clean = is_repo_clean(&subrepo.git_repo, None)?;
-            let subrepo_clean_status = if subrepo_clean { ", all clean" } else { "" };
+            let subrepo_emoji = if subrepo_clean { "✓" } else { "✗" };
+            let subrepo_clean_status =
+                if subrepo_clean { "all clean" } else { "dirty" };
             let subrepo_remote_status =
                 get_remote_status_string(subrepo, &subrepo.head)?;
 
             writeln!(
                 stdout,
-                "- '{}' is on branch '{}'{}{}",
+                "{} '{}' on branch '{}', {}{}",
+                subrepo_emoji,
                 config_repo.path.display(),
                 &subrepo.head,
                 subrepo_clean_status,
