@@ -117,7 +117,7 @@ pub fn switch<W: Write>(
     if submodule_changed {
         // Perform lock operation on switched repos
         writeln!(stdout, "Locking submodule state...")?;
-        lock_switched_repos(umbrella, &repos_to_switch)?;
+        lock_switched_repos(umbrella, &repos_to_switch, &target_branch)?;
 
         writeln!(
             stdout,
@@ -220,7 +220,8 @@ fn repo_on_branch(repo: &repo::Repo, branch_name: &str) -> Result<bool> {
 
 fn lock_switched_repos(
     umbrella: &repo::Repo,
-    _switched_repos: &[config::Repo],
+    switched_repos: &[config::Repo],
+    target_branch: &str,
 ) -> Result<()> {
     // Add all submodule changes to the index
     let mut index = umbrella.git_repo.index()?;
@@ -235,8 +236,7 @@ fn lock_switched_repos(
     }
     index.write()?;
 
-    // Commit the submodule state
-    let commit_message = "Switch and lock submodule state";
+    // Check if there are any changes to commit
     let signature = umbrella.git_repo.signature()?;
     let tree_id = umbrella.git_repo.index()?.write_tree()?;
     let tree = umbrella.git_repo.find_tree(tree_id)?;
@@ -249,14 +249,97 @@ fn lock_switched_repos(
         return Ok(());
     }
 
+    // Build commit message with switched submodule info
+    let (commit_message, _changed_submodules) = build_switch_commit_message(
+        umbrella,
+        &parent_tree,
+        &tree,
+        switched_repos,
+        target_branch,
+    )?;
+
     umbrella.git_repo.commit(
         Some("HEAD"),
         &signature,
         &signature,
-        commit_message,
+        &commit_message,
         &tree,
         &[&parent_commit],
     )?;
 
     Ok(())
+}
+
+/// Build a commit message for switch operation showing which repos were switched.
+/// Returns (commit_message, changed_submodules_list)
+fn build_switch_commit_message(
+    umbrella: &repo::Repo,
+    parent_tree: &git2::Tree,
+    index_tree: &git2::Tree,
+    switched_repos: &[config::Repo],
+    target_branch: &str,
+) -> Result<(String, Vec<(String, String)>)> {
+    // Get diff between parent tree and staged index
+    let diff = umbrella.git_repo.diff_tree_to_tree(
+        Some(parent_tree),
+        Some(index_tree),
+        None,
+    )?;
+
+    let mut changed_submodules = Vec::new();
+
+    // Build a map of switched repos for quick lookup
+    let switched_paths: std::collections::HashSet<_> = switched_repos
+        .iter()
+        .map(|r| r.path.to_string_lossy().to_string())
+        .collect();
+
+    // Iterate through changed files in the diff
+    for delta in diff.deltas() {
+        if let Some(file_path) = delta.new_file().path()
+            && let Some(file_path_str) = file_path.to_str()
+        {
+            match umbrella.git_repo.find_submodule(file_path_str) {
+                std::result::Result::Ok(submodule) => {
+                    let submodule_name = submodule.path().to_string_lossy().to_string();
+
+                    // Only include submodules that were actually switched
+                    if switched_paths.contains(&submodule_name) {
+                        let submodule_repo_path =
+                            umbrella.work_dir.join(submodule.path());
+                        match git2::Repository::open(&submodule_repo_path) {
+                            std::result::Result::Ok(subrepo_git) => {
+                                match subrepo_git.head() {
+                                    std::result::Result::Ok(head_ref) => {
+                                        if let Some(branch_name) = head_ref.shorthand()
+                                        {
+                                            changed_submodules.push((
+                                                submodule_name,
+                                                branch_name.to_string(),
+                                            ));
+                                        }
+                                    },
+                                    std::result::Result::Err(_) => continue,
+                                }
+                            },
+                            std::result::Result::Err(_) => continue,
+                        }
+                    }
+                },
+                std::result::Result::Err(_) => continue,
+            }
+        }
+    }
+
+    // Build the commit message
+    let mut message = String::from("Switch and lock submodule state");
+
+    if !changed_submodules.is_empty() {
+        message.push_str(&format!("\n\nSwitched to '{}':", target_branch));
+        for (name, branch) in &changed_submodules {
+            message.push_str(&format!("\n- {}: {}", name, branch));
+        }
+    }
+
+    std::result::Result::Ok((message, changed_submodules))
 }

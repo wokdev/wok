@@ -273,6 +273,18 @@ git-wok switch --all --create --branch feature-new
 - Commits submodule state changes to umbrella repository
 - Skips repos with `switch` in their `skip_for` list (unless explicitly targeted)
 
+**Commit Message Format:**
+
+When submodules are switched, the commit message shows which repos changed:
+```
+Switch and lock submodule state
+
+Switched to 'feature-branch':
+- api: feature-branch
+- frontend: feature-branch
+- docs: feature-branch
+```
+
 ---
 
 ## Synchronization Commands
@@ -401,6 +413,18 @@ Updating submodules...
 - 'frontend': rebased 'develop' to e5f6g7h8
 - 'docs': already up to date on 'main' (i9j0k1l2)
 Updated submodule state committed
+```
+
+**Commit Message Format:**
+
+When submodules are updated, the commit message shows what changed:
+```
+Update submodules to latest
+
+Updated submodules:
+- api: main to a1b2c3d4
+- frontend: develop to e5f6g7h8
+- docs: main to i9j0k1l2
 ```
 
 **Pull Strategy:**
