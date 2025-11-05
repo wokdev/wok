@@ -6,7 +6,7 @@ use std::io;
 /// Generate shell completion script for the specified shell.
 pub fn completion<T: CommandFactory>(shell: CompletionShell) -> Result<()> {
     let mut cmd = T::command();
-    let bin_name = "git-wok";
+    let bin_name = "wok";
     let shell: Shell = shell.into();
 
     generate(shell, &mut cmd, bin_name, &mut io::stdout());

@@ -10,7 +10,7 @@ homepage = "https://git-wok.dev/"
 repository = "https://codeberg.org/wok/wok"
 
 [[bin]]
-name = "git-wok"
+name = "wok"
 path = "src/bin/git_wok.rs"
 
 [dependencies]

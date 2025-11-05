@@ -20,19 +20,19 @@
 
 ```bash
 # Initialize a workspace
-git-wok init
+wok init
 
 # Add a submodule
-git-wok add path/to/submodule
+wok add path/to/submodule
 
 # Switch all repos to current branch
-git-wok switch --all
+wok switch --all
 
 # Push changes to all repos
-git-wok push --all
+wok push --all
 
 # Create and push a signed tag
-git-wok tag --all v1.0.0 --sign --push
+wok tag --all v1.0.0 --sign --push
 ```
 
 ### 📚 Documentation

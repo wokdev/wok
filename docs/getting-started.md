@@ -13,7 +13,7 @@ Submodule objects, once committed to the umbrella repository, serve as a lock fi
 ### From crates.io
 
 ```sh
-cargo install git-wok
+cargo install wok
 ```
 
 ### From source
@@ -34,7 +34,7 @@ Use this when you already have a git repository with submodules:
 
 ```sh
 cd my-project-space
-git-wok init
+wok init
 ```
 
 This will:
@@ -57,7 +57,7 @@ git clone https://github.com/user/frontend.git
 git clone https://github.com/user/docs.git
 
 # Assemble them into a workspace
-git-wok assemble .
+wok assemble .
 ```
 
 The `assemble` command will:
@@ -73,7 +73,7 @@ The `assemble` command will:
 View the status of all repositories in your workspace:
 
 ```sh
-git-wok status
+wok status
 ```
 
 Example output:
@@ -90,7 +90,7 @@ Add an existing submodule to your workspace configuration:
 
 ```sh
 git submodule add https://github.com/user/new-component.git component
-git-wok add component
+wok add component
 ```
 
 ### Switch Branches
@@ -99,23 +99,23 @@ Switch all repositories to match the umbrella's branch:
 
 ```sh
 git checkout feature-x
-git-wok switch --all
+wok switch --all
 ```
 
 Or switch with more control:
 
 ```sh
 # Switch specific repos
-git-wok switch api frontend
+wok switch api frontend
 
 # Switch all repos
-git-wok switch --all
+wok switch --all
 
 # Switch to a different branch
-git-wok switch --all --branch develop
+wok switch --all --branch develop
 
 # Create branch if it doesn't exist
-git-wok switch --all --create --branch feature-y
+wok switch --all --create --branch feature-y
 ```
 
 ### Update Repositories
@@ -123,7 +123,7 @@ git-wok switch --all --create --branch feature-y
 Fetch and merge the latest changes from remotes:
 
 ```sh
-git-wok update
+wok update
 ```
 
 This will:
@@ -135,7 +135,7 @@ This will:
 Use `--no-commit` to stage changes without committing:
 
 ```sh
-git-wok update --no-commit
+wok update --no-commit
 ```
 
 ### Lock Submodule State
@@ -143,7 +143,7 @@ git-wok update --no-commit
 Commit the current submodule commit references:
 
 ```sh
-git-wok lock
+wok lock
 ```
 
 This ensures the umbrella repository captures the exact commit hashes of all submodules.
@@ -154,13 +154,13 @@ Push changes from all repositories:
 
 ```sh
 # Push repos matching current branch
-git-wok push
+wok push
 
 # Push all configured repos
-git-wok push --all
+wok push --all
 
 # Set upstream for new branches
-git-wok push --all -u
+wok push --all -u
 ```
 
 ### Tag Releases
@@ -169,16 +169,16 @@ Create and manage tags across repositories:
 
 ```sh
 # List tags in all repos on current branch
-git-wok tag
+wok tag
 
 # Create tag in all repos
-git-wok tag --create v1.0.0 --all
+wok tag --create v1.0.0 --all
 
 # Create signed tag and push
-git-wok tag --create v1.0.0 --all --sign --push
+wok tag --create v1.0.0 --all --sign --push
 
 # Tag specific repos
-git-wok tag --create v1.0.0 api frontend
+wok tag --create v1.0.0 api frontend
 ```
 
 ## Advanced Features
@@ -195,13 +195,13 @@ Examples:
 ```sh
 # Only repos on 'main' branch
 git checkout main
-git-wok push
+wok push
 
 # All configured repos
-git-wok push --all
+wok push --all
 
 # Specific repos only
-git-wok push api docs
+wok push api docs
 ```
 
 ### Skip Lists
@@ -216,7 +216,7 @@ head = "main"
 skip_for = ["push", "update", "tag"]
 ```
 
-Now `git-wok push --all` will skip `archived-component`, but `git-wok push archived-component` will still work.
+Now `wok push --all` will skip `archived-component`, but `wok push archived-component` will still work.
 
 ### Shell Completion
 
@@ -224,13 +224,13 @@ Generate shell completion scripts:
 
 ```sh
 # Bash
-git-wok completion bash > ~/.local/share/bash-completion/completions/git-wok
+wok completion bash > ~/.local/share/bash-completion/completions/wok
 
 # Zsh
-git-wok completion zsh > ~/.zsh/completions/_git-wok
+wok completion zsh > ~/.zsh/completions/_wok
 
 # Fish
-git-wok completion fish > ~/.config/fish/completions/git-wok.fish
+wok completion fish > ~/.config/fish/completions/wok.fish
 ```
 
 ## Configuration File
@@ -244,34 +244,34 @@ The workspace configuration lives in `wok.toml` at the root of your umbrella rep
 ```sh
 # Start feature branch
 git checkout -b feature-new-api
-git-wok switch --all --create --branch feature-new-api
+wok switch --all --create --branch feature-new-api
 
 # Make changes in subrepositories...
 # (work in api/, frontend/, etc.)
 
 # Check status
-git-wok status
+wok status
 
 # Lock state periodically
-git-wok lock
+wok lock
 
 # Push changes
-git-wok push --all -u
+wok push --all -u
 
 # Merge and tag release
 git checkout main
 git merge feature-new-api
-git-wok tag --create v2.0.0 --all --sign --push
+wok tag --create v2.0.0 --all --sign --push
 ```
 
 ### Maintenance Workflow
 
 ```sh
 # Update all repos to latest
-git-wok update
+wok update
 
 # Review changes
-git-wok status
+wok status
 
 # If satisfied, the umbrella repo now has a commit with updated submodules
 git push
@@ -284,10 +284,10 @@ git push
 git submodule add https://github.com/user/new-repo.git new-repo
 
 # Register with wok
-git-wok add new-repo
+wok add new-repo
 
 # Initialize and switch to current branch
-git-wok switch --create new-repo
+wok switch --create new-repo
 
 # Commit configuration
 git add wok.toml .gitmodules new-repo
@@ -301,7 +301,7 @@ git commit -m "Add new-repo to workspace"
 Ensure you're in the umbrella repository root, or use `-f` to specify the path:
 
 ```sh
-git-wok -f path/to/wok.toml status
+wok -f path/to/wok.toml status
 ```
 
 ### "Branch does not exist"
@@ -309,7 +309,7 @@ git-wok -f path/to/wok.toml status
 Use `--create` when switching to a new branch:
 
 ```sh
-git-wok switch --all --create --branch new-feature
+wok switch --all --create --branch new-feature
 ```
 
 ### Merge Conflicts During Update
@@ -323,18 +323,18 @@ git add .
 git commit
 
 cd ..
-git-wok lock  # Update umbrella with resolved state
+wok lock  # Update umbrella with resolved state
 ```
 
 ### Authentication Failures During Update/Push
 
-If `git-wok update` or `git-wok push` fail with authentication errors, but `git fetch` works from the command line, this typically indicates a difference in how libgit2 (used by wok) handles credentials compared to the git CLI.
+If `wok update` or `wok push` fail with authentication errors, but `git fetch` works from the command line, this typically indicates a difference in how libgit2 (used by wok) handles credentials compared to the git CLI.
 
 **Diagnostic Steps:**
 
 1. **Test authentication explicitly:**
    ```sh
-   git-wok test-auth
+   wok test-auth
    ```
    This will attempt to connect to your remote and show detailed debugging information.
 
@@ -390,7 +390,7 @@ Wok uses libgit2 internally, which may handle authentication differently than th
   3. Credential helper
   4. Default credentials
 
-If you continue to experience authentication issues after trying these steps, the debug output from `git-wok test-auth` will help identify which authentication method is failing and why.
+If you continue to experience authentication issues after trying these steps, the debug output from `wok test-auth` will help identify which authentication method is failing and why.
 
 ### Submodule Not Initialized
 

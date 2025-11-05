@@ -9,7 +9,7 @@ The default path is `wok.toml` in the root directory of the umbrella repository.
 You can override this with the `-f` / `--wokfile-path` option:
 
 ```sh
-git-wok -f custom-config.toml status
+wok -f custom-config.toml status
 ```
 
 ## File Format
@@ -121,10 +121,10 @@ skip_for = ["push", "tag"]
 ```
 
 With this configuration:
-- `git-wok push --all` will skip `archived-component`
-- `git-wok push archived-component` will still work
-- `git-wok update` will skip `archived-component`
-- `git-wok switch --all` will process `archived-component` normally
+- `wok push --all` will skip `archived-component`
+- `wok push archived-component` will still work
+- `wok update` will skip `archived-component`
+- `wok switch --all` will process `archived-component` normally
 
 ## Complete Examples
 
@@ -243,11 +243,11 @@ head = "main"
 
 In most cases, you won't need to edit `wok.toml` manually. Git Wok commands update it automatically:
 
-- `git-wok init` - Creates the file and populates it with existing submodules
-- `git-wok assemble` - Creates the file with discovered repos
-- `git-wok add` - Adds a new repo entry
-- `git-wok rm` - Removes a repo entry
-- `git-wok switch --all` - Updates all `head` fields to match umbrella branch
+- `wok init` - Creates the file and populates it with existing submodules
+- `wok assemble` - Creates the file with discovered repos
+- `wok add` - Adds a new repo entry
+- `wok rm` - Removes a repo entry
+- `wok switch --all` - Updates all `head` fields to match umbrella branch
 
 ## Manual Editing
 
@@ -260,7 +260,7 @@ You may want to manually edit `wok.toml` to:
 After manual edits, verify the configuration is valid:
 
 ```sh
-git-wok status
+wok status
 ```
 
 ## Configuration Validation
@@ -317,7 +317,7 @@ If you have an old `wok.yaml` file from an early version:
 mv wok.yaml wok.yaml.backup
 
 # Reinitialize (preserves submodules)
-git-wok init
+wok init
 
 # Manually re-add skip_for lists if needed
 ```

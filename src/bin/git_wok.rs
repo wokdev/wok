@@ -13,7 +13,7 @@ fn resolve_path(base: &path::Path, value: &path::Path) -> path::PathBuf {
 
 #[derive(Debug, Parser)]
 #[clap(
-    name = "git-wok",
+    name = "wok",
     about = "Git Wok -- control several git repositories as a single project.",
     version = env!("CARGO_PKG_VERSION"),
     author = env!("CARGO_PKG_AUTHORS")

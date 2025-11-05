@@ -9,8 +9,8 @@ These options apply to all commands.
 ### -f / --wokfile-path
 
 ```sh
-git-wok -f <WOK_FILE_PATH>
-git-wok --wokfile-path <WOK_FILE_PATH>
+wok -f <WOK_FILE_PATH>
+wok --wokfile-path <WOK_FILE_PATH>
 ```
 
 !!! abstract "Default"
@@ -21,8 +21,8 @@ Override the default path to [Wokfile](./wokfile.md).
 ### --help
 
 ```sh
-git-wok --help
-git-wok <COMMAND> --help
+wok --help
+wok <COMMAND> --help
 ```
 
 Show the list of possible commands and global options. When used with a specific subcommand, show help for that subcommand.
@@ -34,7 +34,7 @@ Show the list of possible commands and global options. When used with a specific
 ### init
 
 ```sh
-git-wok init
+wok init
 ```
 
 Initialize Git Wok configuration in an umbrella repository.
@@ -57,13 +57,13 @@ Initialize Git Wok configuration in an umbrella repository.
 mkdir my-workspace && cd my-workspace
 git init
 git submodule add https://github.com/user/api api
-git-wok init
+wok init
 ```
 
 ### assemble
 
 ```sh
-git-wok assemble <DIRECTORY>
+wok assemble <DIRECTORY>
 ```
 
 Assemble a workspace by initializing subrepos and generating the configuration.
@@ -90,7 +90,7 @@ Converting a directory with multiple independent git repositories into a managed
 #   docs/      (git repo)
 
 cd workspace
-git-wok assemble .
+wok assemble .
 
 # Now you have:
 # workspace/.git
@@ -105,7 +105,7 @@ git-wok assemble .
 ### status
 
 ```sh
-git-wok status [--fetch]
+wok status [--fetch]
 ```
 
 Show the status of the umbrella repository and all configured subrepos.
@@ -137,7 +137,7 @@ On branch 'main', all clean, up to date with 'origin/main'
 **Example with fetch:**
 
 ```sh
-git-wok status --fetch
+wok status --fetch
 ```
 
 Output:
@@ -162,7 +162,7 @@ On branch 'main', all clean, diverged from 'origin/main' (1 ahead, 2 behind)
 ### add
 
 ```sh
-git-wok add <SUBMODULE_PATH>
+wok add <SUBMODULE_PATH>
 ```
 
 Add a submodule previously configured in the repository to the [Wokfile](./wokfile.md).
@@ -177,13 +177,13 @@ Add a submodule previously configured in the repository to the [Wokfile](./wokfi
 **Example:**
 ```sh
 git submodule add https://github.com/user/component component
-git-wok add component
+wok add component
 ```
 
 ### rm
 
 ```sh
-git-wok rm <SUBMODULE_PATH>
+wok rm <SUBMODULE_PATH>
 ```
 
 Remove a submodule from [Wokfile](./wokfile.md) configuration.
@@ -195,7 +195,7 @@ Remove a submodule from [Wokfile](./wokfile.md) configuration.
 
 **Example:**
 ```sh
-git-wok rm component
+wok rm component
 # Then, if desired:
 git submodule deinit component
 git rm component
@@ -208,7 +208,7 @@ git rm component
 ### switch
 
 ```sh
-git-wok switch [OPTIONS] [REPOS]...
+wok switch [OPTIONS] [REPOS]...
 ```
 
 Switch repositories to a specified branch with fine-grained control.
@@ -218,17 +218,17 @@ Switch repositories to a specified branch with fine-grained control.
 #### --all
 
 ```sh
-git-wok switch --all
+wok switch --all
 ```
 
 Act on all configured repos, respecting `skip_for` settings. Repos in the skip list can still be targeted explicitly.
 
-**Note:** This flag replaces the deprecated `head switch` command. Use `git-wok switch --all` to switch all repositories to the umbrella's current branch.
+**Note:** This flag replaces the deprecated `head switch` command. Use `wok switch --all` to switch all repositories to the umbrella's current branch.
 
 #### --create
 
 ```sh
-git-wok switch --create
+wok switch --create
 ```
 
 Create the target branch in repositories if it doesn't exist. Without this flag, the command fails if the branch doesn't exist.
@@ -236,7 +236,7 @@ Create the target branch in repositories if it doesn't exist. Without this flag,
 #### --branch <BRANCH>
 
 ```sh
-git-wok switch --branch <BRANCH_NAME>
+wok switch --branch <BRANCH_NAME>
 ```
 
 Use the specified branch name instead of the current umbrella repository branch.
@@ -244,7 +244,7 @@ Use the specified branch name instead of the current umbrella repository branch.
 #### repos
 
 ```sh
-git-wok switch <REPO1> <REPO2> ...
+wok switch <REPO1> <REPO2> ...
 ```
 
 Specific repositories to switch. If not provided and `--all` is not used, switches repos matching the current umbrella branch.
@@ -253,19 +253,19 @@ Specific repositories to switch. If not provided and `--all` is not used, switch
 ```sh
 # Switch repos matching current branch
 git checkout main
-git-wok switch
+wok switch
 
 # Switch all repos
-git-wok switch --all
+wok switch --all
 
 # Switch specific repos
-git-wok switch api frontend
+wok switch api frontend
 
 # Switch to specific branch
-git-wok switch --all --branch develop
+wok switch --all --branch develop
 
 # Create and switch to new branch
-git-wok switch --all --create --branch feature-new
+wok switch --all --create --branch feature-new
 ```
 
 **Behavior:**
@@ -292,7 +292,7 @@ Switched to 'feature-branch':
 ### lock
 
 ```sh
-git-wok lock
+wok lock
 ```
 
 Lock the current submodule state by committing submodule commit references.
@@ -334,11 +334,11 @@ cd api && git commit -am "Update API" && cd ..
 cd frontend && git commit -am "Update UI" && cd ..
 
 # Lock the state - creates commit with summary
-git-wok lock
+wok lock
 # Output: Locked submodule state
 
 # Running lock again with no changes
-git-wok lock
+wok lock
 # Output: No submodule changes detected; nothing to lock
 
 # Umbrella repo now has a commit with updated submodule pointers
@@ -354,7 +354,7 @@ git log -1
 ### update
 
 ```sh
-git-wok update [OPTIONS]
+wok update [OPTIONS]
 ```
 
 Update submodules by fetching and merging latest changes from remotes.
@@ -371,7 +371,7 @@ Update submodules by fetching and merging latest changes from remotes.
 #### --no-commit
 
 ```sh
-git-wok update --no-commit
+wok update --no-commit
 ```
 
 Stage submodule updates without creating a commit in the umbrella repository.
@@ -379,8 +379,8 @@ Stage submodule updates without creating a commit in the umbrella repository.
 #### --umbrella / --no-umbrella
 
 ```sh
-git-wok update --no-umbrella
-git-wok update --umbrella
+wok update --no-umbrella
+wok update --umbrella
 ```
 
 Control whether the umbrella repository is fetched and merged alongside subrepos. Enabled by default; use `--no-umbrella` to skip updating the umbrella repo.
@@ -394,15 +394,15 @@ Control whether the umbrella repository is fetched and merged alongside subrepos
 **Examples:**
 ```sh
 # Update and commit
-git-wok update
+wok update
 
 # Update but review before committing
-git-wok update --no-commit
+wok update --no-commit
 git diff --staged
 git commit -m "Update submodules"
 
 # Update only subrepos, skip umbrella
-git-wok update --no-umbrella
+wok update --no-umbrella
 ```
 
 **Example output:**
@@ -454,7 +454,7 @@ git config branch.main.rebase false
 ### push
 
 ```sh
-git-wok push [OPTIONS] [REPOS]...
+wok push [OPTIONS] [REPOS]...
 ```
 
 Push changes from configured repositories to their remotes.
@@ -464,8 +464,8 @@ Push changes from configured repositories to their remotes.
 #### -u / --set-upstream
 
 ```sh
-git-wok push -u
-git-wok push --set-upstream
+wok push -u
+wok push --set-upstream
 ```
 
 Set upstream tracking for new branches.
@@ -473,7 +473,7 @@ Set upstream tracking for new branches.
 #### --all
 
 ```sh
-git-wok push --all
+wok push --all
 ```
 
 Act on all configured repos, respecting `skip_for` settings.
@@ -481,7 +481,7 @@ Act on all configured repos, respecting `skip_for` settings.
 #### --branch <BRANCH>
 
 ```sh
-git-wok push --branch <BRANCH_NAME>
+wok push --branch <BRANCH_NAME>
 ```
 
 Push the specified branch instead of the current umbrella repository branch.
@@ -489,8 +489,8 @@ Push the specified branch instead of the current umbrella repository branch.
 #### --umbrella / --no-umbrella
 
 ```sh
-git-wok push --no-umbrella
-git-wok push --umbrella
+wok push --no-umbrella
+wok push --umbrella
 ```
 
 Control whether the umbrella repository is included in the push. The umbrella repo is included by default; pass `--no-umbrella` to skip it.
@@ -498,7 +498,7 @@ Control whether the umbrella repository is included in the push. The umbrella re
 #### repos
 
 ```sh
-git-wok push <REPO1> <REPO2> ...
+wok push <REPO1> <REPO2> ...
 ```
 
 Specific repositories to push. If not provided and `--all` is not used, pushes repos matching the current umbrella branch.
@@ -514,22 +514,22 @@ Specific repositories to push. If not provided and `--all` is not used, pushes r
 **Examples:**
 ```sh
 # Push repos on current branch
-git-wok push
+wok push
 
 # Push all repos
-git-wok push --all
+wok push --all
 
 # Push specific repos
-git-wok push api docs
+wok push api docs
 
 # Push and set upstream
-git-wok push --all -u
+wok push --all -u
 
 # Push specific branch
-git-wok push --all --branch release/v2
+wok push --all --branch release/v2
 
 # Push only subrepos, skip umbrella
-git-wok push --all --no-umbrella
+wok push --all --no-umbrella
 ```
 
 ---
@@ -539,7 +539,7 @@ git-wok push --all --no-umbrella
 ### tag
 
 ```sh
-git-wok tag [OPTIONS] [TAG] [REPOS]...
+wok tag [OPTIONS] [TAG] [REPOS]...
 ```
 
 Create, list, sign, and push tags across repositories.
@@ -554,7 +554,7 @@ Create, list, sign, and push tags across repositories.
 #### --create <TAG>
 
 ```sh
-git-wok tag --create <TAG_NAME>
+wok tag --create <TAG_NAME>
 ```
 
 Create a new tag with the specified name.
@@ -562,8 +562,8 @@ Create a new tag with the specified name.
 #### -s / --sign
 
 ```sh
-git-wok tag -s
-git-wok tag --sign
+wok tag -s
+wok tag --sign
 ```
 
 Sign the tag with GPG. Requires GPG to be configured. Creates an annotated tag.
@@ -571,8 +571,8 @@ Sign the tag with GPG. Requires GPG to be configured. Creates an annotated tag.
 #### -m / --message <MESSAGE>
 
 ```sh
-git-wok tag -m <MESSAGE>
-git-wok tag --message <MESSAGE>
+wok tag -m <MESSAGE>
+wok tag --message <MESSAGE>
 ```
 
 Add a message to create an annotated tag. If not provided with `--sign`, lightweight tags are created by default.
@@ -584,7 +584,7 @@ When combined with `--sign`, the message is included in the signed annotated tag
 #### --push
 
 ```sh
-git-wok tag --push
+wok tag --push
 ```
 
 Push tags to remote repositories after creating them.
@@ -592,7 +592,7 @@ Push tags to remote repositories after creating them.
 #### --all
 
 ```sh
-git-wok tag --all
+wok tag --all
 ```
 
 Act on all configured repos, respecting `skip_for` settings.
@@ -600,8 +600,8 @@ Act on all configured repos, respecting `skip_for` settings.
 #### --umbrella / --no-umbrella
 
 ```sh
-git-wok tag --no-umbrella
-git-wok tag --umbrella
+wok tag --no-umbrella
+wok tag --umbrella
 ```
 
 Control whether the umbrella repository participates in listing or tagging. Enabled by default; use `--no-umbrella` to limit operations to subrepos.
@@ -610,11 +610,11 @@ Control whether the umbrella repository participates in listing or tagging. Enab
 
 The command accepts flexible positional argument formats:
 
-- `git-wok tag` - List tags in repos on current branch
-- `git-wok tag <TAG>` - List tag in repos on current branch matching `<TAG>`
-- `git-wok tag <TAG> <REPO>...` - List tag in specific repos
-- `git-wok tag --create <TAG>` - Create tag in repos on current branch
-- `git-wok tag --all <TAG>` - When listing with `--all`, interpret first positional arg as tag
+- `wok tag` - List tags in repos on current branch
+- `wok tag <TAG>` - List tag in repos on current branch matching `<TAG>`
+- `wok tag <TAG> <REPO>...` - List tag in specific repos
+- `wok tag --create <TAG>` - Create tag in repos on current branch
+- `wok tag --all <TAG>` - When listing with `--all`, interpret first positional arg as tag
 
 **Behavior:**
 - Skip repos with `tag` in their `skip_for` list (unless explicitly targeted)
@@ -627,51 +627,51 @@ The command accepts flexible positional argument formats:
 List tags:
 ```sh
 # List tags in repos on current branch
-git-wok tag
+wok tag
 
 # List tags in all repos
-git-wok tag --all
+wok tag --all
 
 # List tags in specific repos
-git-wok tag api frontend
+wok tag api frontend
 ```
 
 Create tags:
 ```sh
 # Create tag in repos on current branch
-git-wok tag --create v1.0.0
+wok tag --create v1.0.0
 
 # Create in all repos
-git-wok tag --create v1.0.0 --all
+wok tag --create v1.0.0 --all
 
 # Create tag with custom message
-git-wok tag --create v1.0.0 --all --message "Release version 1.0.0"
+wok tag --create v1.0.0 --all --message "Release version 1.0.0"
 
 # Short form with message
-git-wok tag --create v1.0.0 --all -m "Release version 1.0.0"
+wok tag --create v1.0.0 --all -m "Release version 1.0.0"
 
 # Create signed tag
-git-wok tag --create v1.0.0 --all --sign
+wok tag --create v1.0.0 --all --sign
 
 # Create signed tag with message (short form)
-git-wok tag --create v1.0.0 --all -s -m "Signed release v1.0.0"
+wok tag --create v1.0.0 --all -s -m "Signed release v1.0.0"
 
 # Create, sign, and push
-git-wok tag --create v1.0.0 --all --sign --push
+wok tag --create v1.0.0 --all --sign --push
 
 # Create in specific repos
-git-wok tag --create v2.0.0 api docs
+wok tag --create v2.0.0 api docs
 
 # Create only in subrepos, skip umbrella
-git-wok tag --create v2.0.0 --all --no-umbrella
+wok tag --create v2.0.0 --all --no-umbrella
 ```
 
 Alternative syntax (positional tag argument):
 ```sh
 # These work similarly to --create
-git-wok tag v1.0.0 --all --sign --push
-git-wok tag v1.0.0 --all -s -m "Release version 1.0.0"
-git-wok tag v2.0.0 api docs
+wok tag v1.0.0 --all --sign --push
+wok tag v1.0.0 --all -s -m "Release version 1.0.0"
+wok tag v2.0.0 api docs
 ```
 
 **Example output:**
@@ -690,7 +690,7 @@ Successfully processed 3 repositories
 ### completion
 
 ```sh
-git-wok completion [SHELL]
+wok completion [SHELL]
 ```
 
 Generate shell completion script for the specified shell.
@@ -702,12 +702,12 @@ Generate shell completion script for the specified shell.
 
 Bash:
 ```sh
-git-wok completion bash > ~/.local/share/bash-completion/completions/git-wok
+wok completion bash > ~/.local/share/bash-completion/completions/wok
 ```
 
 Zsh:
 ```sh
-git-wok completion zsh > ~/.zsh/completions/_git-wok
+wok completion zsh > ~/.zsh/completions/_wok
 # Add to .zshrc if not already there:
 # fpath=(~/.zsh/completions $fpath)
 # autoload -Uz compinit && compinit
@@ -715,7 +715,7 @@ git-wok completion zsh > ~/.zsh/completions/_git-wok
 
 Fish:
 ```sh
-git-wok completion fish > ~/.config/fish/completions/git-wok.fish
+wok completion fish > ~/.config/fish/completions/wok.fish
 ```
 
 ---
@@ -772,5 +772,5 @@ Commands that honor skip lists: `switch`, `push`, `tag`, `update`
 
 Repos in skip lists can still be targeted explicitly:
 ```sh
-git-wok push archived-component  # This works even with skip_for = ["push"]
+wok push archived-component  # This works even with skip_for = ["push"]
 ```
