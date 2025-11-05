@@ -79,8 +79,16 @@ impl TestRepo {
         repo::Repo::new(&self.repo_path, None).unwrap()
     }
 
+    pub fn repo_path(&self) -> &PathBuf {
+        &self.repo_path
+    }
+
     pub fn config_path(&self) -> path::PathBuf {
         self.repo_path.join(DEFAULT_CONFIG_NAME)
+    }
+
+    pub fn subrepo_path(&self, name: &str) -> Option<&PathBuf> {
+        self.subrepo_paths.get(name)
     }
 
     pub fn add_submodule(&self, subrepo_name: &str) -> path::PathBuf {

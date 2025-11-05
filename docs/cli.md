@@ -288,7 +288,29 @@ Lock the current submodule state by committing submodule commit references.
 **What it does:**
 - Ensures each repo is on its configured branch
 - Adds all submodule entries to the git index
-- Commits the current commit hashes of all submodules to the umbrella repository
+- Compares the current state with the previous commit
+- **Only commits if submodules have changed** (no-op if nothing changed)
+- Creates a commit with updated commit hashes of changed submodules
+
+**Commit Message Format:**
+
+When submodules have changed, the lock command creates a descriptive commit message:
+- Summary header: "Lock submodule state"
+- List of changed submodules with their latest commit messages (truncated to 50 characters)
+
+Example commit message:
+```
+Lock submodule state
+
+Changed submodules:
+- api: Add new authentication endpoint for OAuth2 flow
+- frontend: Update dashboard UI with new chart compone...
+- docs: Fix typo in installation guide
+```
+
+**Output Messages:**
+- `"Locked submodule state"` - When changes were committed
+- `"No submodule changes detected; nothing to lock"` - When no changes were found
 
 **Use case:**
 Capturing a snapshot of the workspace state after making changes in subrepos.
@@ -299,10 +321,22 @@ Capturing a snapshot of the workspace state after making changes in subrepos.
 cd api && git commit -am "Update API" && cd ..
 cd frontend && git commit -am "Update UI" && cd ..
 
-# Lock the state
+# Lock the state - creates commit with summary
 git-wok lock
+# Output: Locked submodule state
+
+# Running lock again with no changes
+git-wok lock
+# Output: No submodule changes detected; nothing to lock
 
 # Umbrella repo now has a commit with updated submodule pointers
+git log -1
+# Shows:
+# Lock submodule state
+#
+# Changed submodules:
+# - api: Update API
+# - frontend: Update UI
 ```
 
 ### update
