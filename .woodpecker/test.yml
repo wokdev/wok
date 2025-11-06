@@ -15,5 +15,7 @@ steps:
   test:
     image: rust:1
     commands:
+      - git config --global user.email 'ci@localhost'
+      - git config --global user.name 'CI Test'
       - git config --global --add safe.directory '*'
       - cargo test -- --test-threads=1
