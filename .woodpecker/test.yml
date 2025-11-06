@@ -6,8 +6,7 @@ clone:
       recursive: false
 
 when:
-  event:
-    - push
+  event: manual
   path:
     include: ["src/**", "tests/**", ".woodpecker/**", "Cargo.*"]
 
