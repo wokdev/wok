@@ -13,7 +13,7 @@ Submodule objects, once committed to the umbrella repository, serve as a lock fi
 ### From crates.io
 
 ```sh
-cargo install wok
+cargo install git-wok
 ```
 
 ### From source
