@@ -10,7 +10,7 @@ when:
     - tag
 
 variables:
-  - &rust_image 'rust:1.83'
+  - &rust_image 'rust:1'
 
 steps:
   # Build for Linux x86_64 (musl for static linking)
