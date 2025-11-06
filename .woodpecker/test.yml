@@ -15,4 +15,5 @@ steps:
   test:
     image: rust:1
     commands:
+      - git config --global --add safe.directory '*'
       - cargo test
