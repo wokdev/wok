@@ -17,5 +17,6 @@ steps:
     commands:
       - git config --global user.email 'ci@localhost'
       - git config --global user.name 'CI Test'
+      - git config --global init.defaultBranch 'main'
       - git config --global --add safe.directory '*'
       - cargo test -- --test-threads=1
