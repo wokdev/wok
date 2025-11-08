@@ -115,7 +115,7 @@ wok switch --all
 wok switch --all --branch develop
 
 # Create branch if it doesn't exist
-wok switch --all --create --branch feature-y
+wok switch --all -c --branch feature-y
 ```
 
 ### Update Repositories
@@ -244,7 +244,7 @@ The workspace configuration lives in `wok.toml` at the root of your umbrella rep
 ```sh
 # Start feature branch
 git checkout -b feature-new-api
-wok switch --all --create --branch feature-new-api
+wok switch --all -c --branch feature-new-api
 
 # Make changes in subrepositories...
 # (work in api/, frontend/, etc.)
@@ -287,7 +287,7 @@ git submodule add https://github.com/user/new-repo.git new-repo
 wok add new-repo
 
 # Initialize and switch to current branch
-wok switch --create new-repo
+wok switch -c new-repo
 
 # Commit configuration
 git add wok.toml .gitmodules new-repo
@@ -309,7 +309,7 @@ wok -f path/to/wok.toml status
 Use `--create` when switching to a new branch:
 
 ```sh
-wok switch --all --create --branch new-feature
+wok switch --all -c --branch new-feature
 ```
 
 ### Merge Conflicts During Update

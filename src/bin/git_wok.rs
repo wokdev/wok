@@ -80,7 +80,7 @@ enum App {
     /// Switch repos to current main repo branch with options
     Switch {
         /// Create the branch in repos if it doesn't exist
-        #[clap(long)]
+        #[clap(short('c'), long)]
         create: bool,
 
         /// Act on all configured repos
@@ -254,7 +254,11 @@ fn resolve_include_umbrella(umbrella_flag: bool, no_umbrella_flag: bool) -> bool
 }
 
 fn main() -> Result<()> {
-    let Args { wokfile_path, verbose: _verbose, cmd } = Args::parse();
+    let Args {
+        wokfile_path,
+        verbose: _verbose,
+        cmd,
+    } = Args::parse();
     let cwd = env::current_dir().context("Cannot access the current directory")?;
     let mut output = stdout();
 

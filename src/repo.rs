@@ -379,7 +379,10 @@ impl Repo {
         self.remote_callbacks_impl(true)
     }
 
-    fn remote_callbacks_impl(&self, verbose: bool) -> Result<git2::RemoteCallbacks<'static>> {
+    fn remote_callbacks_impl(
+        &self,
+        verbose: bool,
+    ) -> Result<git2::RemoteCallbacks<'static>> {
         let config = self.git_repo.config()?;
 
         let mut callbacks = git2::RemoteCallbacks::new();
@@ -397,7 +400,10 @@ impl Repo {
                     // Check if SSH agent is actually available
                     if std::env::var("SSH_AUTH_SOCK").is_ok() {
                         if verbose {
-                            eprintln!("  Attempting: SSH key from agent for user '{}'", username);
+                            eprintln!(
+                                "  Attempting: SSH key from agent for user '{}'",
+                                username
+                            );
                         }
                         match git2::Cred::ssh_key_from_agent(username) {
                             Ok(cred) => {
@@ -405,15 +411,17 @@ impl Repo {
                                     eprintln!("  SUCCESS: SSH key from agent");
                                 }
                                 return Ok(cred);
-                            }
+                            },
                             Err(e) => {
                                 if verbose {
                                     eprintln!("  FAILED: SSH key from agent - {}", e);
                                 }
-                            }
+                            },
                         }
                     } else if verbose {
-                        eprintln!("  SKIPPED: SSH key from agent (SSH_AUTH_SOCK not set)");
+                        eprintln!(
+                            "  SKIPPED: SSH key from agent (SSH_AUTH_SOCK not set)"
+                        );
                     }
                 } else if verbose {
                     eprintln!("  SKIPPED: SSH key from agent (no username provided)");
@@ -445,12 +453,12 @@ impl Repo {
                                         eprintln!("  SUCCESS: SSH key file");
                                     }
                                     return Ok(cred);
-                                }
+                                },
                                 Err(e) => {
                                     if verbose {
                                         eprintln!("  FAILED: SSH key file - {}", e);
                                     }
-                                }
+                                },
                             }
                         }
                     }
@@ -471,12 +479,12 @@ impl Repo {
                             eprintln!("  SUCCESS: Credential helper");
                         }
                         return Ok(cred);
-                    }
+                    },
                     Err(e) => {
                         if verbose {
                             eprintln!("  FAILED: Credential helper - {}", e);
                         }
-                    }
+                    },
                 }
             }
 
@@ -492,12 +500,12 @@ impl Repo {
                             eprintln!("  SUCCESS: Username");
                         }
                         return Ok(cred);
-                    }
+                    },
                     Err(e) => {
                         if verbose {
                             eprintln!("  FAILED: Username - {}", e);
                         }
-                    }
+                    },
                 }
             }
 
@@ -511,14 +519,14 @@ impl Repo {
                         eprintln!("  SUCCESS: Default credentials");
                     }
                     Ok(cred)
-                }
+                },
                 Err(e) => {
                     if verbose {
                         eprintln!("  FAILED: All credential methods exhausted");
                         eprintln!("  Last error: {}", e);
                     }
                     Err(e)
-                }
+                },
             }
         });
 

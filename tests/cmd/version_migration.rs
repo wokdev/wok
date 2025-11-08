@@ -87,7 +87,7 @@ skip_for = ["push", "tag"]
     let file_content = fs::read_to_string(&config_path).unwrap();
     assert!(file_content.contains(r#"version = "1.0""#));
     assert!(!file_content.contains("experimental"));
-    
+
     // Verify repos are still in the file
     assert!(file_content.contains("sub-a"));
     assert!(file_content.contains("sub-b"));

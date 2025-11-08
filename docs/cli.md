@@ -225,9 +225,10 @@ Act on all configured repos, respecting `skip_for` settings. Repos in the skip l
 
 **Note:** This flag replaces the deprecated `head switch` command. Use `wok switch --all` to switch all repositories to the umbrella's current branch.
 
-#### --create
+#### -c / --create
 
 ```sh
+wok switch -c
 wok switch --create
 ```
 
@@ -264,8 +265,11 @@ wok switch api frontend
 # Switch to specific branch
 wok switch --all --branch develop
 
-# Create and switch to new branch
+# Create and switch to new branch (long form)
 wok switch --all --create --branch feature-new
+
+# Create and switch to new branch (short form)
+wok switch --all -c --branch feature-new
 ```
 
 **Behavior:**
