@@ -10,7 +10,7 @@ when:
     - push
     - manual
   path:
-    include: ["src/**", "tests/**", ".woodpecker/**", "Cargo.*"]
+    include: ["src/**", "tests/**", ".woodpecker.yml", "Cargo.*"]
 
 steps:
   test:
