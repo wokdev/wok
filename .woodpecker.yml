@@ -1,10 +1,20 @@
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      lfs: false
+      recursive: false
+
 when:
   event:
     - push
+    - manual
   path:
-    include: ["src/**", "tests/**", ".woodpecker.yml", "Cargo.*"]
+    include: ["src/**", "tests/**", ".woodpecker/**", "Cargo.*"]
+
 steps:
   test:
     image: rust:1
     commands:
+      - git config --global init.defaultBranch 'main'
       - cargo test
