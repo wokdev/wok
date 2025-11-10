@@ -1,6 +1,6 @@
 # Git Wok
 
-[![status-badge](https://ci.codeberg.org/api/badges/12553/status.svg)](https://ci.codeberg.org/repos/12553)
+[![status-badge](https://ci.codeberg.org/api/badges/15540/status.svg)](https://ci.codeberg.org/repos/15540)
 
 **Git Wok** helps you organize multiple git repositories into a single multi-project workspace.
 
