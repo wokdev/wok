@@ -53,7 +53,7 @@ fn with_complex_submodule_path(repo_sample: TestRepo, expected_config: String) {
     );
 }
 
-#[rstest(repo_sample(vec!["sub-a", "sub-b"]), expected_config("a-b.toml"))]
+#[rstest(repo_sample(vec!["sub-a", "sub-b"]), expected_config("a-other-b.toml"))]
 fn no_sync_on_init(repo_sample: TestRepo, expected_config: String) {
     let mut output = Cursor::new(Vec::new());
     _run(

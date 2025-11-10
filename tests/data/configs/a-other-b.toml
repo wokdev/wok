@@ -1,0 +1,9 @@
+version = "1.0"
+
+[[repo]]
+path = "sub-a"
+head = "other-branch"
+
+[[repo]]
+path = "sub-b"
+head = "main"

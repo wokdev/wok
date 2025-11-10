@@ -72,7 +72,7 @@ impl Repo {
                 )
             })?
             .iter()
-            .map(|submodule| Repo::new(&work_dir.join(submodule.path()), Some(&head)))
+            .map(|submodule| Repo::new(&work_dir.join(submodule.path()), None))
             .collect::<Result<Vec<Repo>>>()?;
 
         Ok(Repo {

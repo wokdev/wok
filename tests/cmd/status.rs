@@ -379,5 +379,90 @@ fn status_shows_umbrella_remote_status(repo_sample: TestRepo) {
 }
 
 fn _with_submodules_branch_matches_with_changes() {}
-fn _with_submodules_branch_doesnt_match_no_changes() {}
-fn _with_submodules_branch_doesnt_match_with_changes() {}
+
+#[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
+fn with_submodules_branch_doesnt_match_no_changes(repo_sample: TestRepo) {
+    let subrepo_path = repo_sample.subrepo_paths.get("sub-a").unwrap();
+
+    // Commit baseline in umbrella repo
+    _run("git add .", &repo_sample.repo_path).unwrap();
+    _run("git commit -m baseline", &repo_sample.repo_path).unwrap();
+
+    // Switch the subrepo to a different branch (develop)
+    _run("git checkout -b develop", subrepo_path).unwrap();
+
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+
+    cmd::status(&mut actual_config, &repo_sample.repo(), &mut output, false).unwrap();
+
+    let output_str = String::from_utf8_lossy(output.get_ref());
+
+    // Assert umbrella is on 'main'
+    assert!(
+        output_str.contains("(umbrella) on branch 'main'"),
+        "Expected umbrella on branch 'main' in output: {output_str}"
+    );
+
+    // Assert subrepo shows 'develop' (not 'main')
+    assert!(
+        output_str.contains("'sub-a' on branch 'develop'"),
+        "Expected sub-a on branch 'develop' in output: {output_str}"
+    );
+
+    // Assert both show clean
+    assert!(
+        output_str.contains("all clean"),
+        "Expected 'all clean' in output: {output_str}"
+    );
+}
+
+#[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
+fn with_submodules_branch_doesnt_match_with_changes(repo_sample: TestRepo) {
+    let subrepo_path = repo_sample.subrepo_paths.get("sub-a").unwrap();
+
+    // Commit baseline in umbrella repo
+    _run("git add .", &repo_sample.repo_path).unwrap();
+    _run("git commit -m baseline", &repo_sample.repo_path).unwrap();
+
+    // Switch the subrepo to a different branch (develop)
+    _run("git checkout -b develop", subrepo_path).unwrap();
+
+    // Commit the submodule pointer change in umbrella to make it clean
+    _run("git add .", &repo_sample.repo_path).unwrap();
+    _run(
+        "git commit -m 'switch sub-a to develop'",
+        &repo_sample.repo_path,
+    )
+    .unwrap();
+
+    // Make uncommitted changes in the subrepo
+    fs::write(subrepo_path.join("CHANGES.md"), "some changes").unwrap();
+
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+
+    cmd::status(&mut actual_config, &repo_sample.repo(), &mut output, false).unwrap();
+
+    let output_str = String::from_utf8_lossy(output.get_ref());
+
+    // When a subrepo has uncommitted changes, git treats the submodule as modified,
+    // which makes the umbrella repo show as dirty too. This is expected git behavior.
+    assert!(
+        output_str.contains("(umbrella) on branch 'main', dirty"),
+        "Expected umbrella on branch 'main', dirty (because submodule is modified) in output: {output_str}"
+    );
+
+    // Assert subrepo shows 'develop' (not 'main') and is dirty
+    assert!(
+        output_str.contains("'sub-a' on branch 'develop'"),
+        "Expected sub-a on branch 'develop' in output: {output_str}"
+    );
+
+    // The status command checks for working directory changes
+    // and should report the subrepo as not clean
+    assert!(
+        output_str.contains("'sub-a' on branch 'develop', dirty"),
+        "Expected sub-a to show 'dirty' with uncommitted changes: {output_str}"
+    );
+}
