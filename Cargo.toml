@@ -1,7 +1,7 @@
 [package]
 name = "git-wok"
 description = "A multirepo management tool."
-version = "1.0.1"
+version = "1.0.2"
 authors = ["Serge Matveenko <lig@countzero.co>"]
 license = "MIT"
 edition = "2024"
