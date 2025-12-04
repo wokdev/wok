@@ -38,6 +38,38 @@ struct Args {
 }
 
 #[derive(Debug, Parser)]
+enum TagCommand {
+    /// Create a new tag
+    Create {
+        /// Tag name to create
+        tag_name: String,
+
+        /// Sign the tag with GPG
+        #[clap(short('s'), long)]
+        sign: bool,
+
+        /// Message for annotated tags
+        #[clap(short('m'), long)]
+        message: Option<String>,
+
+        /// Specific repos to tag (if not provided, acts on all matching repos)
+        repos: Vec<path::PathBuf>,
+    },
+
+    /// Push tags to remote
+    Push {
+        /// Specific repos to push tags from (if not provided, acts on all matching repos)
+        repos: Vec<path::PathBuf>,
+    },
+
+    /// List existing tags
+    List {
+        /// Specific repos to list tags from (if not provided, acts on all matching repos)
+        repos: Vec<path::PathBuf>,
+    },
+}
+
+#[derive(Debug, Parser)]
 enum Command {
     /// Inits the wok file in the workspace "umbrella" repo.
     /// Requires the git repo to be inited already.
@@ -154,24 +186,12 @@ enum App {
         repos: Vec<path::PathBuf>,
     },
 
-    /// Add tags to repos, show existing tags, sign and push
+    /// Add tags to repos, show existing tags, sign and push.
+    ///
+    /// Supports subcommands: create, list, push.
+    /// For implicit create (without subcommand), use: wok tag <TAG_NAME> [OPTIONS]
+    /// See 'wok tag create --help' for all available options.
     Tag {
-        /// Create a new tag
-        #[clap(long)]
-        create: Option<String>,
-
-        /// Sign the tag with GPG
-        #[clap(short('s'), long)]
-        sign: bool,
-
-        /// Message for annotated tags
-        #[clap(short('m'), long)]
-        message: Option<String>,
-
-        /// Push tags to remote
-        #[clap(long)]
-        push: bool,
-
         /// Act on all configured repos
         #[clap(long)]
         all: bool,
@@ -188,61 +208,24 @@ enum App {
         )]
         no_umbrella: bool,
 
-        /// Specific repos to tag (if not provided, acts on all matching repos)
+        /// Sign the tag with GPG (hidden, for implicit create only)
+        #[clap(short('s'), long, hide = true)]
+        sign: bool,
+
+        /// Message for annotated tags (hidden, for implicit create only)
+        #[clap(short('m'), long, hide = true)]
+        message: Option<String>,
+
+        /// Subcommand or tag name (if not a subcommand, treated as create)
+        #[clap(subcommand)]
+        command: Option<TagCommand>,
+
+        /// Arguments for implicit create or target repos
         repos: Vec<path::PathBuf>,
     },
 
     /// Test git authentication for the current repository
     TestAuth,
-}
-
-fn resolve_tag_arguments<'a>(
-    create: &'a Option<String>,
-    all: bool,
-    repos: &'a [path::PathBuf],
-    config: &wok::config::Config,
-) -> Result<(Option<String>, &'a [path::PathBuf])> {
-    if create.is_some() {
-        if all && !repos.is_empty() {
-            bail!("Cannot specify repositories when using --all");
-        }
-        return Ok((None, repos));
-    }
-
-    if all {
-        if let Some((first_arg, rest)) = repos.split_first() {
-            let tag = first_arg
-                .to_str()
-                .ok_or_else(|| {
-                    anyhow!("Tag name '{}' is not valid UTF-8", first_arg.display())
-                })?
-                .to_owned();
-            return Ok((Some(tag), rest));
-        }
-
-        return Ok((None, repos));
-    }
-
-    if let Some((first_arg, rest)) = repos.split_first() {
-        let matches_repo = config
-            .repos
-            .iter()
-            .any(|config_repo| config_repo.path == *first_arg);
-
-        if matches_repo {
-            Ok((None, repos))
-        } else {
-            let tag = first_arg
-                .to_str()
-                .ok_or_else(|| {
-                    anyhow!("Tag name '{}' is not valid UTF-8", first_arg.display())
-                })?
-                .to_owned();
-            Ok((Some(tag), rest))
-        }
-    } else {
-        Ok((None, repos))
-    }
 }
 
 fn resolve_include_umbrella(umbrella_flag: bool, no_umbrella_flag: bool) -> bool {
@@ -374,34 +357,125 @@ fn main() -> Result<()> {
                     false // Don't save config for push command
                 },
                 App::Tag {
-                    create,
-                    sign,
-                    message,
-                    push,
                     all,
                     umbrella: umbrella_flag,
                     no_umbrella: no_umbrella_flag,
+                    sign: parent_sign,
+                    message: parent_message,
+                    command,
                     repos,
                 } => {
-                    let (positional_tag, repo_args) =
-                        resolve_tag_arguments(&create, all, &repos, &wok_config)?;
-                    let tag_name = create.as_deref().or(positional_tag.as_deref());
-
                     let include_umbrella =
                         resolve_include_umbrella(umbrella_flag, no_umbrella_flag);
 
-                    wok::cmd::tag(
-                        &mut wok_config,
-                        &umbrella,
-                        &mut output,
-                        tag_name,
-                        sign,
-                        message.as_deref(),
-                        push,
-                        all,
-                        include_umbrella,
-                        repo_args,
-                    )?;
+                    match command {
+                        Some(TagCommand::Create {
+                            tag_name,
+                            sign,
+                            message,
+                            repos: cmd_repos,
+                        }) => {
+                            if all && !cmd_repos.is_empty() {
+                                bail!("Cannot specify repositories when using --all");
+                            }
+                            wok::cmd::tag_create(
+                                &wok_config,
+                                &umbrella,
+                                &mut output,
+                                &tag_name,
+                                sign,
+                                message.as_deref(),
+                                all,
+                                include_umbrella,
+                                &cmd_repos,
+                            )?;
+                        },
+                        Some(TagCommand::Push { repos: cmd_repos }) => {
+                            if all && !cmd_repos.is_empty() {
+                                bail!("Cannot specify repositories when using --all");
+                            }
+                            wok::cmd::tag_push(
+                                &wok_config,
+                                &umbrella,
+                                &mut output,
+                                all,
+                                include_umbrella,
+                                &cmd_repos,
+                            )?;
+                        },
+                        Some(TagCommand::List { repos: cmd_repos }) => {
+                            if all && !cmd_repos.is_empty() {
+                                bail!("Cannot specify repositories when using --all");
+                            }
+                            wok::cmd::tag_list(
+                                &wok_config,
+                                &umbrella,
+                                &mut output,
+                                all,
+                                include_umbrella,
+                                &cmd_repos,
+                            )?;
+                        },
+                        None => {
+                            // No subcommand: check if first arg looks like a tag name or repo
+                            if repos.is_empty() {
+                                // No args: list tags
+                                wok::cmd::tag_list(
+                                    &wok_config,
+                                    &umbrella,
+                                    &mut output,
+                                    all,
+                                    include_umbrella,
+                                    &[],
+                                )?;
+                            } else {
+                                // Check if first arg is a known repo
+                                let first_arg = &repos[0];
+                                let matches_repo = wok_config
+                                    .repos
+                                    .iter()
+                                    .any(|config_repo| config_repo.path == *first_arg);
+
+                                if matches_repo {
+                                    // First arg is a repo: list tags for specified repos
+                                    wok::cmd::tag_list(
+                                        &wok_config,
+                                        &umbrella,
+                                        &mut output,
+                                        all,
+                                        include_umbrella,
+                                        &repos,
+                                    )?;
+                                } else {
+                                    // First arg is not a repo: treat as implicit create
+                                    let tag_name =
+                                        first_arg.to_str().ok_or_else(|| {
+                                            anyhow!(
+                                                "Tag name '{}' is not valid UTF-8",
+                                                first_arg.display()
+                                            )
+                                        })?;
+                                    let target_repos = &repos[1..];
+                                    if all && !target_repos.is_empty() {
+                                        bail!(
+                                            "Cannot specify repositories when using --all"
+                                        );
+                                    }
+                                    wok::cmd::tag_create(
+                                        &wok_config,
+                                        &umbrella,
+                                        &mut output,
+                                        tag_name,
+                                        parent_sign,
+                                        parent_message.as_deref(),
+                                        all,
+                                        include_umbrella,
+                                        target_repos,
+                                    )?;
+                                }
+                            }
+                        },
+                    }
                     false // Don't save config for tag command
                 },
                 App::TestAuth => {
@@ -421,24 +495,6 @@ fn main() -> Result<()> {
 mod tests {
     use super::*;
 
-    fn config_with_repo(path: &str) -> wok::config::Config {
-        let mut config = wok::config::Config::new();
-        config.add_repo(path::Path::new(path), "main");
-        config
-    }
-
-    #[test]
-    fn derive_tag_from_positional_when_all() {
-        let config = config_with_repo("api");
-        let repos = vec![path::PathBuf::from("v2.0.0")];
-
-        let (positional_tag, remaining) =
-            resolve_tag_arguments(&None, true, &repos, &config).unwrap();
-
-        assert_eq!(positional_tag.as_deref(), Some("v2.0.0"));
-        assert!(remaining.is_empty());
-    }
-
     #[test]
     fn resolve_include_umbrella_defaults_to_true() {
         assert!(resolve_include_umbrella(false, false));
@@ -457,68 +513,5 @@ mod tests {
     #[test]
     fn resolve_include_umbrella_prefers_explicit_umbrella_over_exclusion() {
         assert!(resolve_include_umbrella(true, true));
-    }
-
-    #[test]
-    fn allows_explicit_repos_with_all_when_tag_is_positional() {
-        let config = config_with_repo("api");
-        let repos = vec![path::PathBuf::from("v2.0.0"), path::PathBuf::from("api")];
-
-        let (positional_tag, remaining) =
-            resolve_tag_arguments(&None, true, &repos, &config).unwrap();
-
-        assert_eq!(positional_tag.as_deref(), Some("v2.0.0"));
-        assert_eq!(remaining, &repos[1..]);
-    }
-
-    #[test]
-    fn keeps_repo_arguments_for_listing() {
-        let config = config_with_repo("api");
-        let repos = vec![path::PathBuf::from("api")];
-
-        let (positional_tag, remaining) =
-            resolve_tag_arguments(&None, false, &repos, &config).unwrap();
-
-        assert!(positional_tag.is_none());
-        assert_eq!(remaining, repos.as_slice());
-    }
-
-    #[test]
-    fn rejects_repos_with_all_when_create_present() {
-        let config = config_with_repo("api");
-        let repos = vec![path::PathBuf::from("api")];
-        let create = Some(String::from("v2.0.0"));
-
-        let result = resolve_tag_arguments(&create, true, &repos, &config);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn derives_tag_from_first_non_repo_argument() {
-        let config = config_with_repo("api");
-        let repos = vec![path::PathBuf::from("v2.0.0"), path::PathBuf::from("api")];
-
-        let (positional_tag, remaining) =
-            resolve_tag_arguments(&None, false, &repos, &config).unwrap();
-
-        assert_eq!(positional_tag.as_deref(), Some("v2.0.0"));
-        assert_eq!(remaining, &repos[1..]);
-    }
-
-    #[test]
-    fn allows_multiple_repos_with_all_when_no_create() {
-        let mut config = config_with_repo("api");
-        config.add_repo(path::Path::new("docs"), "main");
-        let repos = vec![
-            path::PathBuf::from("v2.0.0"),
-            path::PathBuf::from("api"),
-            path::PathBuf::from("docs"),
-        ];
-
-        let (positional_tag, remaining) =
-            resolve_tag_arguments(&None, true, &repos, &config).unwrap();
-
-        assert_eq!(positional_tag.as_deref(), Some("v2.0.0"));
-        assert_eq!(remaining, &repos[1..]);
     }
 }

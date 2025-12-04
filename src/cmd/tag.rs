@@ -6,6 +6,284 @@ use std::result::Result::Ok;
 
 use crate::{config, repo};
 
+/// Helper function to determine which repos to operate on
+fn determine_repos_to_operate_on(
+    wok_config: &config::Config,
+    umbrella: &repo::Repo,
+    all: bool,
+    target_repos: &[std::path::PathBuf],
+) -> Vec<config::Repo> {
+    if all {
+        // Operate on all configured repos, skipping those opted out unless explicitly targeted
+        wok_config
+            .repos
+            .iter()
+            .filter(|config_repo| {
+                !config_repo.is_skipped_for("tag")
+                    || target_repos.contains(&config_repo.path)
+            })
+            .cloned()
+            .collect()
+    } else if !target_repos.is_empty() {
+        // Operate on only specified repos
+        wok_config
+            .repos
+            .iter()
+            .filter(|config_repo| target_repos.contains(&config_repo.path))
+            .cloned()
+            .collect()
+    } else {
+        // Operate on repos that match the current main repo branch
+        wok_config
+            .repos
+            .iter()
+            .filter(|config_repo| {
+                config_repo.head == umbrella.head && !config_repo.is_skipped_for("tag")
+            })
+            .cloned()
+            .collect()
+    }
+}
+
+/// List existing tags in repositories
+pub fn tag_list<W: Write>(
+    wok_config: &config::Config,
+    umbrella: &repo::Repo,
+    stdout: &mut W,
+    all: bool,
+    include_umbrella: bool,
+    target_repos: &[std::path::PathBuf],
+) -> Result<()> {
+    let repos_to_tag =
+        determine_repos_to_operate_on(wok_config, umbrella, all, target_repos);
+    let total_targets = repos_to_tag.len() + usize::from(include_umbrella);
+
+    if total_targets == 0 {
+        writeln!(stdout, "No repositories to tag")?;
+        return Ok(());
+    }
+
+    writeln!(stdout, "Listing tags in {} repositories...", total_targets)?;
+
+    if include_umbrella {
+        match list_tags(umbrella) {
+            Ok(tags) => {
+                if tags.is_empty() {
+                    writeln!(stdout, "- 'umbrella': no tags found")?;
+                } else {
+                    writeln!(stdout, "- 'umbrella': {}", tags.join(", "))?;
+                }
+            },
+            Err(e) => {
+                writeln!(stdout, "- 'umbrella': failed to list tags - {}", e)?;
+            },
+        }
+    }
+
+    for config_repo in &repos_to_tag {
+        if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
+            match list_tags(subrepo) {
+                Ok(tags) => {
+                    if tags.is_empty() {
+                        writeln!(
+                            stdout,
+                            "- '{}': no tags found",
+                            config_repo.path.display()
+                        )?;
+                    } else {
+                        writeln!(
+                            stdout,
+                            "- '{}': {}",
+                            config_repo.path.display(),
+                            tags.join(", ")
+                        )?;
+                    }
+                },
+                Err(e) => {
+                    writeln!(
+                        stdout,
+                        "- '{}': failed to list tags - {}",
+                        config_repo.path.display(),
+                        e
+                    )?;
+                },
+            }
+        }
+    }
+
+    writeln!(
+        stdout,
+        "Successfully processed {} repositories",
+        total_targets
+    )?;
+    Ok(())
+}
+
+/// Create a new tag in repositories
+pub fn tag_create<W: Write>(
+    wok_config: &config::Config,
+    umbrella: &repo::Repo,
+    stdout: &mut W,
+    tag_name: &str,
+    sign: bool,
+    message: Option<&str>,
+    all: bool,
+    include_umbrella: bool,
+    target_repos: &[std::path::PathBuf],
+) -> Result<()> {
+    let repos_to_tag =
+        determine_repos_to_operate_on(wok_config, umbrella, all, target_repos);
+    let total_targets = repos_to_tag.len() + usize::from(include_umbrella);
+
+    if total_targets == 0 {
+        writeln!(stdout, "No repositories to tag")?;
+        return Ok(());
+    }
+
+    writeln!(
+        stdout,
+        "Creating tag '{}' in {} repositories...",
+        tag_name, total_targets
+    )?;
+
+    if include_umbrella {
+        match create_tag(umbrella, tag_name, sign, message) {
+            Ok(result) => match result {
+                TagResult::Created => {
+                    writeln!(stdout, "- 'umbrella': created tag '{}'", tag_name)?;
+                },
+                TagResult::AlreadyExists => {
+                    writeln!(
+                        stdout,
+                        "- 'umbrella': tag '{}' already exists",
+                        tag_name
+                    )?;
+                },
+            },
+            Err(e) => {
+                writeln!(
+                    stdout,
+                    "- 'umbrella': failed to create tag '{}' - {}",
+                    tag_name, e
+                )?;
+            },
+        }
+    }
+
+    for config_repo in &repos_to_tag {
+        if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
+            match create_tag(subrepo, tag_name, sign, message) {
+                Ok(result) => match result {
+                    TagResult::Created => {
+                        writeln!(
+                            stdout,
+                            "- '{}': created tag '{}'",
+                            config_repo.path.display(),
+                            tag_name
+                        )?;
+                    },
+                    TagResult::AlreadyExists => {
+                        writeln!(
+                            stdout,
+                            "- '{}': tag '{}' already exists",
+                            config_repo.path.display(),
+                            tag_name
+                        )?;
+                    },
+                },
+                Err(e) => {
+                    writeln!(
+                        stdout,
+                        "- '{}': failed to create tag '{}' - {}",
+                        config_repo.path.display(),
+                        tag_name,
+                        e
+                    )?;
+                },
+            }
+        }
+    }
+
+    writeln!(
+        stdout,
+        "Successfully processed {} repositories",
+        total_targets
+    )?;
+    Ok(())
+}
+
+/// Push tags to remote repositories
+pub fn tag_push<W: Write>(
+    wok_config: &config::Config,
+    umbrella: &repo::Repo,
+    stdout: &mut W,
+    all: bool,
+    include_umbrella: bool,
+    target_repos: &[std::path::PathBuf],
+) -> Result<()> {
+    let repos_to_tag =
+        determine_repos_to_operate_on(wok_config, umbrella, all, target_repos);
+    let total_targets = repos_to_tag.len() + usize::from(include_umbrella);
+
+    if total_targets == 0 {
+        writeln!(stdout, "No repositories to tag")?;
+        return Ok(());
+    }
+
+    writeln!(stdout, "Pushing tags to remotes...")?;
+
+    if include_umbrella {
+        match push_tags(umbrella) {
+            Ok(PushResult::Pushed) => {
+                writeln!(stdout, "- 'umbrella': pushed tags")?;
+            },
+            Ok(PushResult::Skipped) => {
+                writeln!(stdout, "- 'umbrella': no tags to push")?;
+            },
+            Err(e) => {
+                writeln!(stdout, "- 'umbrella': failed to push tags - {}", e)?;
+            },
+        }
+    }
+
+    for config_repo in &repos_to_tag {
+        if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
+            match push_tags(subrepo) {
+                Ok(PushResult::Pushed) => {
+                    writeln!(
+                        stdout,
+                        "- '{}': pushed tags",
+                        config_repo.path.display()
+                    )?;
+                },
+                Ok(PushResult::Skipped) => {
+                    writeln!(
+                        stdout,
+                        "- '{}': no tags to push",
+                        config_repo.path.display()
+                    )?;
+                },
+                Err(e) => {
+                    writeln!(
+                        stdout,
+                        "- '{}': failed to push tags - {}",
+                        config_repo.path.display(),
+                        e
+                    )?;
+                },
+            }
+        }
+    }
+
+    writeln!(
+        stdout,
+        "Successfully processed {} repositories",
+        total_targets
+    )?;
+    Ok(())
+}
+
+/// Legacy function for backward compatibility with tests
 #[allow(clippy::too_many_arguments)]
 pub fn tag<W: Write>(
     wok_config: &mut config::Config,
@@ -19,217 +297,51 @@ pub fn tag<W: Write>(
     include_umbrella: bool,
     target_repos: &[std::path::PathBuf],
 ) -> Result<()> {
-    // Determine which repos to tag
-    let repos_to_tag: Vec<config::Repo> = if all {
-        // Tag all configured repos, skipping those opted out unless explicitly targeted
-        wok_config
-            .repos
-            .iter()
-            .filter(|config_repo| {
-                !config_repo.is_skipped_for("tag")
-                    || target_repos.contains(&config_repo.path)
-            })
-            .cloned()
-            .collect()
-    } else if !target_repos.is_empty() {
-        // Tag only specified repos
-        wok_config
-            .repos
-            .iter()
-            .filter(|config_repo| target_repos.contains(&config_repo.path))
-            .cloned()
-            .collect()
-    } else {
-        // Tag repos that match the current main repo branch
-        wok_config
-            .repos
-            .iter()
-            .filter(|config_repo| {
-                config_repo.head == umbrella.head && !config_repo.is_skipped_for("tag")
-            })
-            .cloned()
-            .collect()
-    };
-
-    let total_targets = repos_to_tag.len() + usize::from(include_umbrella);
-
-    if total_targets == 0 {
-        writeln!(stdout, "No repositories to tag")?;
-        return Ok(());
-    }
-
     match tag_name {
         Some(name) => {
-            // Create new tag
-            writeln!(
+            tag_create(
+                wok_config,
+                umbrella,
                 stdout,
-                "Creating tag '{}' in {} repositories...",
-                name, total_targets
+                name,
+                sign,
+                message,
+                all,
+                include_umbrella,
+                target_repos,
             )?;
-
-            if include_umbrella {
-                match create_tag(umbrella, name, sign, message) {
-                    Ok(result) => match result {
-                        TagResult::Created => {
-                            writeln!(stdout, "- 'umbrella': created tag '{}'", name)?;
-                        },
-                        TagResult::AlreadyExists => {
-                            writeln!(
-                                stdout,
-                                "- 'umbrella': tag '{}' already exists",
-                                name
-                            )?;
-                        },
-                    },
-                    Err(e) => {
-                        writeln!(
-                            stdout,
-                            "- 'umbrella': failed to create tag '{}' - {}",
-                            name, e
-                        )?;
-                    },
-                }
-            }
-
-            for config_repo in &repos_to_tag {
-                if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
-                    match create_tag(subrepo, name, sign, message) {
-                        Ok(result) => match result {
-                            TagResult::Created => {
-                                writeln!(
-                                    stdout,
-                                    "- '{}': created tag '{}'",
-                                    config_repo.path.display(),
-                                    name
-                                )?;
-                            },
-                            TagResult::AlreadyExists => {
-                                writeln!(
-                                    stdout,
-                                    "- '{}': tag '{}' already exists",
-                                    config_repo.path.display(),
-                                    name
-                                )?;
-                            },
-                        },
-                        Err(e) => {
-                            writeln!(
-                                stdout,
-                                "- '{}': failed to create tag '{}' - {}",
-                                config_repo.path.display(),
-                                name,
-                                e
-                            )?;
-                        },
-                    }
-                }
+            if push {
+                tag_push(
+                    wok_config,
+                    umbrella,
+                    stdout,
+                    all,
+                    include_umbrella,
+                    target_repos,
+                )?;
             }
         },
         None => {
-            // List existing tags
-            writeln!(stdout, "Listing tags in {} repositories...", total_targets)?;
-
-            if include_umbrella {
-                match list_tags(umbrella) {
-                    Ok(tags) => {
-                        if tags.is_empty() {
-                            writeln!(stdout, "- 'umbrella': no tags found")?;
-                        } else {
-                            writeln!(stdout, "- 'umbrella': {}", tags.join(", "))?;
-                        }
-                    },
-                    Err(e) => {
-                        writeln!(stdout, "- 'umbrella': failed to list tags - {}", e)?;
-                    },
-                }
-            }
-
-            for config_repo in &repos_to_tag {
-                if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
-                    match list_tags(subrepo) {
-                        Ok(tags) => {
-                            if tags.is_empty() {
-                                writeln!(
-                                    stdout,
-                                    "- '{}': no tags found",
-                                    config_repo.path.display()
-                                )?;
-                            } else {
-                                writeln!(
-                                    stdout,
-                                    "- '{}': {}",
-                                    config_repo.path.display(),
-                                    tags.join(", ")
-                                )?;
-                            }
-                        },
-                        Err(e) => {
-                            writeln!(
-                                stdout,
-                                "- '{}': failed to list tags - {}",
-                                config_repo.path.display(),
-                                e
-                            )?;
-                        },
-                    }
-                }
+            tag_list(
+                wok_config,
+                umbrella,
+                stdout,
+                all,
+                include_umbrella,
+                target_repos,
+            )?;
+            if push {
+                tag_push(
+                    wok_config,
+                    umbrella,
+                    stdout,
+                    all,
+                    include_umbrella,
+                    target_repos,
+                )?;
             }
         },
     }
-
-    // Push tags if requested
-    if push {
-        writeln!(stdout, "Pushing tags to remotes...")?;
-
-        if include_umbrella {
-            match push_tags(umbrella) {
-                Ok(PushResult::Pushed) => {
-                    writeln!(stdout, "- 'umbrella': pushed tags")?;
-                },
-                Ok(PushResult::Skipped) => {
-                    writeln!(stdout, "- 'umbrella': no tags to push")?;
-                },
-                Err(e) => {
-                    writeln!(stdout, "- 'umbrella': failed to push tags - {}", e)?;
-                },
-            }
-        }
-
-        for config_repo in &repos_to_tag {
-            if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
-                match push_tags(subrepo) {
-                    Ok(PushResult::Pushed) => {
-                        writeln!(
-                            stdout,
-                            "- '{}': pushed tags",
-                            config_repo.path.display()
-                        )?;
-                    },
-                    Ok(PushResult::Skipped) => {
-                        writeln!(
-                            stdout,
-                            "- '{}': no tags to push",
-                            config_repo.path.display()
-                        )?;
-                    },
-                    Err(e) => {
-                        writeln!(
-                            stdout,
-                            "- '{}': failed to push tags - {}",
-                            config_repo.path.display(),
-                            e
-                        )?;
-                    },
-                }
-            }
-        }
-    }
-
-    writeln!(
-        stdout,
-        "Successfully processed {} repositories",
-        total_targets
-    )?;
     Ok(())
 }
 

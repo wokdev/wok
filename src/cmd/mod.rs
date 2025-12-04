@@ -17,6 +17,6 @@ pub use lock::lock;
 pub use push::push;
 pub use status::status;
 pub use switch::switch;
-pub use tag::tag;
+pub use tag::{tag, tag_create, tag_list, tag_push};
 pub use test_auth::test_auth;
 pub use update::update;

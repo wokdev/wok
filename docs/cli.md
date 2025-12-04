@@ -543,31 +543,66 @@ wok push --all --no-umbrella
 ### tag
 
 ```sh
-wok tag [OPTIONS] [TAG] [REPOS]...
+wok tag [SUBCOMMAND] [OPTIONS] [ARGS]...
 ```
 
-Create, list, sign, and push tags across repositories.
+Create, list, and push tags across repositories. The command supports three subcommands: `create`, `list`, and `push`.
 
-**Modes:**
+**Subcommands:**
 
-1. **List tags**: When no tag name is provided
-2. **Create tag**: When `--create` is used or tag name is provided
+- `create <TAG>` - Create a new tag
+- `list` - List existing tags
+- `push` - Push tags to remote repositories
 
-**Options:**
+**Backward Compatibility:**
 
-#### --create <TAG>
+For convenience, `wok tag` supports implicit subcommand behavior:
+- `wok tag` (no arguments) → Lists tags (equivalent to `wok tag list`)
+- `wok tag v1.0` → Creates tag (equivalent to `wok tag create v1.0`)
+
+**Common Options (apply to all subcommands):**
+
+#### --all
 
 ```sh
-wok tag --create <TAG_NAME>
+wok tag create v1.0.0 --all
+wok tag list --all
+wok tag push --all
 ```
 
-Create a new tag with the specified name.
+Act on all configured repos, respecting `skip_for` settings.
+
+#### --umbrella / --no-umbrella
+
+```sh
+wok tag create v1.0.0 --no-umbrella
+wok tag list --umbrella
+```
+
+Control whether the umbrella repository participates in operations. Enabled by default; use `--no-umbrella` to limit operations to subrepos.
+
+---
+
+### tag create
+
+```sh
+wok tag create <TAG_NAME> [OPTIONS] [REPOS]...
+```
+
+Create a new tag with the specified name in repositories.
+
+**Arguments:**
+
+- `<TAG_NAME>` - Name of the tag to create (required)
+- `[REPOS]...` - Specific repositories to tag (optional)
+
+**Options:**
 
 #### -s / --sign
 
 ```sh
-wok tag -s
-wok tag --sign
+wok tag create v1.0.0 -s
+wok tag create v1.0.0 --sign
 ```
 
 Sign the tag with GPG. Requires GPG to be configured. Creates an annotated tag.
@@ -575,8 +610,8 @@ Sign the tag with GPG. Requires GPG to be configured. Creates an annotated tag.
 #### -m / --message <MESSAGE>
 
 ```sh
-wok tag -m <MESSAGE>
-wok tag --message <MESSAGE>
+wok tag create v1.0.0 -m "Release version 1.0.0"
+wok tag create v1.0.0 --message "Release version 1.0.0"
 ```
 
 Add a message to create an annotated tag. If not provided with `--sign`, lightweight tags are created by default.
@@ -585,95 +620,41 @@ When combined with `--sign`, the message is included in the signed annotated tag
 
 **Note:** Annotated tags (created with `--sign` or `--message`) include metadata like tagger name, email, and timestamp. Lightweight tags are simple pointers to commits without additional metadata.
 
-#### --push
-
-```sh
-wok tag --push
-```
-
-Push tags to remote repositories after creating them.
-
-#### --all
-
-```sh
-wok tag --all
-```
-
-Act on all configured repos, respecting `skip_for` settings.
-
-#### --umbrella / --no-umbrella
-
-```sh
-wok tag --no-umbrella
-wok tag --umbrella
-```
-
-Control whether the umbrella repository participates in listing or tagging. Enabled by default; use `--no-umbrella` to limit operations to subrepos.
-
-#### Positional Arguments
-
-The command accepts flexible positional argument formats:
-
-- `wok tag` - List tags in repos on current branch
-- `wok tag <TAG>` - List tag in repos on current branch matching `<TAG>`
-- `wok tag <TAG> <REPO>...` - List tag in specific repos
-- `wok tag --create <TAG>` - Create tag in repos on current branch
-- `wok tag --all <TAG>` - When listing with `--all`, interpret first positional arg as tag
-
 **Behavior:**
 - Skip repos with `tag` in their `skip_for` list (unless explicitly targeted)
-- Report existing tags or creation status for each repo
-- Handle tag conflicts gracefully
-- Include the umbrella repository in listing, creation, and push flows by default (disable with `--no-umbrella`)
+- Report creation status for each repo
+- Handle tag conflicts gracefully (reports if tag already exists)
+- Include the umbrella repository by default (disable with `--no-umbrella`)
 
 **Examples:**
 
-List tags:
-```sh
-# List tags in repos on current branch
-wok tag
-
-# List tags in all repos
-wok tag --all
-
-# List tags in specific repos
-wok tag api frontend
-```
-
-Create tags:
 ```sh
 # Create tag in repos on current branch
-wok tag --create v1.0.0
+wok tag create v1.0.0
 
 # Create in all repos
-wok tag --create v1.0.0 --all
+wok tag create v1.0.0 --all
 
 # Create tag with custom message
-wok tag --create v1.0.0 --all --message "Release version 1.0.0"
+wok tag create v1.0.0 --all --message "Release version 1.0.0"
 
 # Short form with message
-wok tag --create v1.0.0 --all -m "Release version 1.0.0"
+wok tag create v1.0.0 --all -m "Release version 1.0.0"
 
 # Create signed tag
-wok tag --create v1.0.0 --all --sign
+wok tag create v1.0.0 --all --sign
 
 # Create signed tag with message (short form)
-wok tag --create v1.0.0 --all -s -m "Signed release v1.0.0"
-
-# Create, sign, and push
-wok tag --create v1.0.0 --all --sign --push
+wok tag create v1.0.0 --all -s -m "Signed release v1.0.0"
 
 # Create in specific repos
-wok tag --create v2.0.0 api docs
+wok tag create v2.0.0 api docs
 
 # Create only in subrepos, skip umbrella
-wok tag --create v2.0.0 --all --no-umbrella
-```
+wok tag create v2.0.0 --all --no-umbrella
 
-Alternative syntax (positional tag argument):
-```sh
-# These work similarly to --create
-wok tag v1.0.0 --all --sign --push
+# Implicit create (backward compatible)
+wok tag v1.0.0 --all --sign
 wok tag v1.0.0 --all -s -m "Release version 1.0.0"
 wok tag v2.0.0 api docs
 ```
@@ -681,9 +662,107 @@ wok tag v2.0.0 api docs
 **Example output:**
 ```
 Creating tag 'v1.0.0' in 3 repositories...
+- 'umbrella': created tag 'v1.0.0'
 - 'api': created tag 'v1.0.0'
 - 'frontend': created tag 'v1.0.0'
-- 'docs': tag 'v1.0.0' already exists
+Successfully processed 3 repositories
+```
+
+---
+
+### tag list
+
+```sh
+wok tag list [OPTIONS] [REPOS]...
+```
+
+List existing tags in repositories.
+
+**Arguments:**
+
+- `[REPOS]...` - Specific repositories to list tags from (optional)
+
+**Behavior:**
+- Skip repos with `tag` in their `skip_for` list (unless explicitly targeted)
+- Display all tags for each repository
+- Include the umbrella repository by default (disable with `--no-umbrella`)
+
+**Examples:**
+
+```sh
+# List tags in repos on current branch
+wok tag list
+
+# List tags in all repos
+wok tag list --all
+
+# List tags in specific repos
+wok tag list api frontend
+
+# List only from subrepos, skip umbrella
+wok tag list --all --no-umbrella
+
+# Implicit list (backward compatible)
+wok tag
+wok tag --all
+wok tag api frontend
+```
+
+**Example output:**
+```
+Listing tags in 3 repositories...
+- 'umbrella': v0.9.0, v1.0.0, v1.1.0
+- 'api': v1.0.0, v1.1.0
+- 'frontend': v1.0.0
+Successfully processed 3 repositories
+```
+
+---
+
+### tag push
+
+```sh
+wok tag push [OPTIONS] [REPOS]...
+```
+
+Push tags to remote repositories.
+
+**Arguments:**
+
+- `[REPOS]...` - Specific repositories to push tags from (optional)
+
+**Behavior:**
+- Push all local tags to the remote
+- Skip tags that already exist on remote with the same commit
+- Report push status for each repository
+- Include the umbrella repository by default (disable with `--no-umbrella`)
+
+**Examples:**
+
+```sh
+# Push tags from repos on current branch
+wok tag push
+
+# Push tags from all repos
+wok tag push --all
+
+# Push tags from specific repos
+wok tag push api frontend
+
+# Push only from subrepos, skip umbrella
+wok tag push --all --no-umbrella
+
+# Create and push in one workflow (two commands)
+wok tag create v1.0.0 --all --sign
+wok tag push --all
+```
+
+**Example output:**
+```
+Pushing tags to remotes...
+- 'umbrella': pushed tags
+- 'api': pushed tags
+- 'frontend': no tags to push
 Successfully processed 3 repositories
 ```
 
