@@ -565,9 +565,9 @@ For convenience, `wok tag` supports implicit subcommand behavior:
 #### --all
 
 ```sh
-wok tag create v1.0.0 --all
-wok tag list --all
-wok tag push --all
+wok tag --all create v1.0.0
+wok tag --all list
+wok tag --all push
 ```
 
 Act on all configured repos, respecting `skip_for` settings.
@@ -575,8 +575,8 @@ Act on all configured repos, respecting `skip_for` settings.
 #### --umbrella / --no-umbrella
 
 ```sh
-wok tag create v1.0.0 --no-umbrella
-wok tag list --umbrella
+wok tag --no-umbrella create v1.0.0
+wok tag --umbrella list
 ```
 
 Control whether the umbrella repository participates in operations. Enabled by default; use `--no-umbrella` to limit operations to subrepos.
@@ -620,6 +620,31 @@ When combined with `--sign`, the message is included in the signed annotated tag
 
 **Note:** Annotated tags (created with `--sign` or `--message`) include metadata like tagger name, email, and timestamp. Lightweight tags are simple pointers to commits without additional metadata.
 
+#### -u / --updated
+
+```sh
+wok tag --all create v1.0.0 --updated
+wok tag --all create v1.0.0 -u
+wok tag create v1.0.0 -u
+```
+
+Only create tags in repositories where the current HEAD commit has no existing tags. This is useful for tagging only repos with new changes to release.
+
+**Behavior:**
+- Filters out subrepos where the current commit already has one or more tags
+- The umbrella repo is **not** filtered by this flag - it's still controlled by `--umbrella/--no-umbrella`
+- Useful for incremental releases where only some components have changed
+
+**Example workflow:**
+```sh
+# After making changes to some repos, tag only the updated ones
+wok tag --all create v1.2.0 --updated
+
+# This will:
+# - Always tag the umbrella repo (unless --no-umbrella is used)
+# - Only tag subrepos where HEAD has no tags (i.e., new commits since last tag)
+```
+
 **Behavior:**
 - Skip repos with `tag` in their `skip_for` list (unless explicitly targeted)
 - Report creation status for each repo
@@ -633,29 +658,35 @@ When combined with `--sign`, the message is included in the signed annotated tag
 wok tag create v1.0.0
 
 # Create in all repos
-wok tag create v1.0.0 --all
+wok tag --all create v1.0.0
 
 # Create tag with custom message
-wok tag create v1.0.0 --all --message "Release version 1.0.0"
+wok tag --all create v1.0.0 --message "Release version 1.0.0"
 
 # Short form with message
-wok tag create v1.0.0 --all -m "Release version 1.0.0"
+wok tag --all create v1.0.0 -m "Release version 1.0.0"
 
 # Create signed tag
-wok tag create v1.0.0 --all --sign
+wok tag --all create v1.0.0 --sign
 
 # Create signed tag with message (short form)
-wok tag create v1.0.0 --all -s -m "Signed release v1.0.0"
+wok tag --all create v1.0.0 -s -m "Signed release v1.0.0"
 
 # Create in specific repos
 wok tag create v2.0.0 api docs
 
+# Create only in repos with uncommitted changes (no tags on HEAD)
+wok tag --all create v1.2.0 --updated
+
+# Create only in updated repos, short form
+wok tag --all create v1.2.0 -u
+
 # Create only in subrepos, skip umbrella
-wok tag create v2.0.0 --all --no-umbrella
+wok tag --all --no-umbrella create v2.0.0
 
 # Implicit create (backward compatible)
-wok tag v1.0.0 --all --sign
-wok tag v1.0.0 --all -s -m "Release version 1.0.0"
+wok tag --all v1.0.0 --sign
+wok tag --all v1.0.0 -s -m "Release version 1.0.0"
 wok tag v2.0.0 api docs
 ```
 
@@ -694,13 +725,13 @@ List existing tags in repositories.
 wok tag list
 
 # List tags in all repos
-wok tag list --all
+wok tag --all list
 
 # List tags in specific repos
 wok tag list api frontend
 
 # List only from subrepos, skip umbrella
-wok tag list --all --no-umbrella
+wok tag --all --no-umbrella list
 
 # Implicit list (backward compatible)
 wok tag
@@ -744,17 +775,17 @@ Push tags to remote repositories.
 wok tag push
 
 # Push tags from all repos
-wok tag push --all
+wok tag --all push
 
 # Push tags from specific repos
 wok tag push api frontend
 
 # Push only from subrepos, skip umbrella
-wok tag push --all --no-umbrella
+wok tag --all --no-umbrella push
 
 # Create and push in one workflow (two commands)
-wok tag create v1.0.0 --all --sign
-wok tag push --all
+wok tag --all create v1.0.0 --sign
+wok tag --all push
 ```
 
 **Example output:**

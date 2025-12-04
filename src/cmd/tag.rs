@@ -120,6 +120,7 @@ pub fn tag_list<W: Write>(
 }
 
 /// Create a new tag in repositories
+#[allow(clippy::too_many_arguments)]
 pub fn tag_create<W: Write>(
     wok_config: &config::Config,
     umbrella: &repo::Repo,
@@ -129,10 +130,30 @@ pub fn tag_create<W: Write>(
     message: Option<&str>,
     all: bool,
     include_umbrella: bool,
+    updated: bool,
     target_repos: &[std::path::PathBuf],
 ) -> Result<()> {
     let repos_to_tag =
         determine_repos_to_operate_on(wok_config, umbrella, all, target_repos);
+
+    // Filter repos based on --updated flag: only include repos where HEAD has no tags
+    let repos_to_tag: Vec<config::Repo> = if updated {
+        repos_to_tag
+            .into_iter()
+            .filter(|config_repo| {
+                if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
+                    // Only include repos where current commit has no tags
+                    !commit_has_tags(subrepo).unwrap_or(false)
+                } else {
+                    // If we can't find the subrepo, exclude it
+                    false
+                }
+            })
+            .collect()
+    } else {
+        repos_to_tag
+    };
+
     let total_targets = repos_to_tag.len() + usize::from(include_umbrella);
 
     if total_targets == 0 {
@@ -308,6 +329,7 @@ pub fn tag<W: Write>(
                 message,
                 all,
                 include_umbrella,
+                false, // updated is false for legacy function
                 target_repos,
             )?;
             if push {
@@ -412,6 +434,32 @@ fn list_tags(repo: &repo::Repo) -> Result<Vec<String>> {
     tags.sort();
 
     Ok(tags)
+}
+
+/// Check if the current HEAD commit has any tags pointing to it
+fn commit_has_tags(repo: &repo::Repo) -> Result<bool> {
+    // Get the current HEAD commit OID
+    let head = repo.git_repo.head()?;
+    let head_oid = head.peel_to_commit()?.id();
+
+    // Get all tag references
+    let tag_names = repo.git_repo.tag_names(None)?;
+
+    // Check each tag to see if it points to HEAD
+    for tag_name in tag_names.iter().flatten() {
+        let tag_ref = repo
+            .git_repo
+            .find_reference(&format!("refs/tags/{}", tag_name))?;
+
+        // Peel the tag to get the commit it points to
+        if let Ok(tag_commit) = tag_ref.peel_to_commit()
+            && tag_commit.id() == head_oid
+        {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
 }
 
 fn push_tags(repo: &repo::Repo) -> Result<PushResult> {

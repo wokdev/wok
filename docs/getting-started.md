@@ -172,13 +172,17 @@ Create and manage tags across repositories:
 wok tag
 
 # Create tag in all repos
-wok tag --create v1.0.0 --all
+wok tag --all create v1.0.0
 
 # Create signed tag and push
-wok tag --create v1.0.0 --all --sign --push
+wok tag --all create v1.0.0 --sign
+wok tag --all push
+
+# Tag only repos with new changes (no tags on HEAD)
+wok tag --all create v1.2.0 --updated
 
 # Tag specific repos
-wok tag --create v1.0.0 api frontend
+wok tag create v1.0.0 api frontend
 ```
 
 ## Advanced Features

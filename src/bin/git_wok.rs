@@ -52,6 +52,10 @@ enum TagCommand {
         #[clap(short('m'), long)]
         message: Option<String>,
 
+        /// Only tag repos where the current commit has no tags
+        #[clap(short('u'), long)]
+        updated: bool,
+
         /// Specific repos to tag (if not provided, acts on all matching repos)
         repos: Vec<path::PathBuf>,
     },
@@ -373,6 +377,7 @@ fn main() -> Result<()> {
                             tag_name,
                             sign,
                             message,
+                            updated,
                             repos: cmd_repos,
                         }) => {
                             if all && !cmd_repos.is_empty() {
@@ -387,6 +392,7 @@ fn main() -> Result<()> {
                                 message.as_deref(),
                                 all,
                                 include_umbrella,
+                                updated,
                                 &cmd_repos,
                             )?;
                         },
@@ -470,6 +476,7 @@ fn main() -> Result<()> {
                                         parent_message.as_deref(),
                                         all,
                                         include_umbrella,
+                                        false, // updated is false for implicit create
                                         target_repos,
                                     )?;
                                 }
