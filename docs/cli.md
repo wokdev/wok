@@ -234,9 +234,10 @@ wok switch --create
 
 Create the target branch in repositories if it doesn't exist. Without this flag, the command fails if the branch doesn't exist.
 
-#### --branch <BRANCH>
+#### -b / --branch <BRANCH>
 
 ```sh
+wok switch -b <BRANCH_NAME>
 wok switch --branch <BRANCH_NAME>
 ```
 
@@ -264,6 +265,9 @@ wok switch api frontend
 
 # Switch to specific branch
 wok switch --all --branch develop
+
+# Switch to specific branch (short form)
+wok switch --all -b develop
 
 # Create and switch to new branch (long form)
 wok switch --all --create --branch feature-new

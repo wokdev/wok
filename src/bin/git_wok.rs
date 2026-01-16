@@ -124,7 +124,7 @@ enum App {
         all: bool,
 
         /// Use specified branch name instead of current main repo branch
-        #[clap(long)]
+        #[clap(short, long)]
         branch: Option<String>,
 
         /// Specific repos to switch (if not provided, acts on all matching repos)

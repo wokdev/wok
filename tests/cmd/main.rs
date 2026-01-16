@@ -14,6 +14,7 @@ mod repo_add;
 mod repo_rm;
 mod status;
 mod switch;
+mod switch_cli;
 mod tag;
 mod tag_cli;
 mod update;
