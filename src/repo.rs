@@ -99,6 +99,21 @@ impl Repo {
         Ok(())
     }
 
+    pub fn checkout_path_from_head(&self, path: &path::Path) -> Result<()> {
+        let mut checkout = CheckoutBuilder::new();
+        checkout.force().path(path);
+        self.git_repo.checkout_head(Some(&mut checkout))?;
+        Ok(())
+    }
+
+    fn switch_forced(&self, head: &str) -> Result<()> {
+        self.git_repo.set_head(&self.resolve_reference(head)?)?;
+        let mut checkout = CheckoutBuilder::new();
+        checkout.force();
+        self.git_repo.checkout_head(Some(&mut checkout))?;
+        Ok(())
+    }
+
     pub fn fetch(&self) -> Result<()> {
         if self.git_repo.head_detached().with_context(|| {
             format!(
@@ -181,7 +196,7 @@ impl Repo {
 
         let local_ref = format!("refs/heads/{}", branch_name);
         if self.git_repo.find_reference(&local_ref).is_ok() {
-            self.switch(branch_name)?;
+            self.switch_forced(branch_name)?;
             return Ok(());
         }
 
@@ -210,6 +225,69 @@ impl Repo {
         self.git_repo.branch(branch_name, &current_commit, false)?;
         self.switch(branch_name)?;
         Ok(())
+    }
+
+    pub fn ensure_on_branch_existing_or_remote(
+        &self,
+        branch_name: &str,
+        create: bool,
+    ) -> Result<()> {
+        if !self.is_worktree_clean()? {
+            bail!(
+                "Refusing to switch branches with uncommitted changes in `{}`",
+                self.work_dir.display()
+            );
+        }
+
+        if !self.git_repo.head_detached().with_context(|| {
+            format!(
+                "Cannot determine head state for repo at `{}`",
+                self.work_dir.display()
+            )
+        })? && let Ok(head) = self.git_repo.head()
+            && head.shorthand() == Some(branch_name)
+        {
+            return Ok(());
+        }
+
+        let local_ref = format!("refs/heads/{}", branch_name);
+        if self.git_repo.find_reference(&local_ref).is_ok() {
+            self.switch(branch_name)?;
+            return Ok(());
+        }
+
+        let remote_name = self.get_remote_name_for_branch(branch_name)?;
+        if let Ok(mut remote) = self.git_repo.find_remote(&remote_name) {
+            let mut fetch_options = git2::FetchOptions::new();
+            fetch_options.remote_callbacks(self.remote_callbacks()?);
+            remote.fetch::<&str>(&[], Some(&mut fetch_options), None)?;
+        }
+
+        let remote_ref = format!("refs/remotes/{}/{}", remote_name, branch_name);
+        if let Ok(remote_oid) = self.git_repo.refname_to_id(&remote_ref) {
+            let remote_commit = self.git_repo.find_commit(remote_oid)?;
+            self.git_repo.branch(branch_name, &remote_commit, false)?;
+            let mut local_branch = self
+                .git_repo
+                .find_branch(branch_name, git2::BranchType::Local)?;
+            local_branch
+                .set_upstream(Some(&format!("{}/{}", remote_name, branch_name)))?;
+            self.switch_forced(branch_name)?;
+            return Ok(());
+        }
+
+        if create {
+            let head = self.git_repo.head()?;
+            let current_commit = head.peel_to_commit()?;
+            self.git_repo.branch(branch_name, &current_commit, false)?;
+            self.switch_forced(branch_name)?;
+            return Ok(());
+        }
+
+        bail!(
+            "Branch '{}' does not exist and --create not specified",
+            branch_name
+        );
     }
 
     fn rebase(

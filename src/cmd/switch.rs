@@ -4,73 +4,75 @@ use std::result::Result::Ok;
 
 use crate::{config, repo};
 
+#[allow(clippy::too_many_arguments)]
 pub fn switch<W: Write>(
     wok_config: &mut config::Config,
     umbrella: &repo::Repo,
+    config_path: &std::path::Path,
     stdout: &mut W,
     create: bool,
     all: bool,
-    branch_name: Option<&str>,
+    branch_name: &str,
     target_repos: &[std::path::PathBuf],
 ) -> Result<bool> {
     let mut config_updated = false;
     let mut submodule_changed = false;
 
-    // Determine the target branch
-    let target_branch = match branch_name {
-        Some(name) => name.to_string(),
-        None => umbrella.head.clone(),
-    };
+    let umbrella_branch = branch_name.to_string();
 
-    // Determine which repos to switch
-    let repos_to_switch: Vec<config::Repo> = if all {
-        // Switch all configured repos, skipping those opted out unless explicitly targeted
-        wok_config
-            .repos
-            .iter()
-            .filter(|config_repo| {
-                !config_repo.is_skipped_for("switch")
-                    || target_repos.contains(&config_repo.path)
+    let switch_plan: Vec<SwitchPlanItem> = wok_config
+        .repos
+        .iter()
+        .filter_map(|config_repo| {
+            let explicitly_targeted = target_repos.contains(&config_repo.path);
+            if config_repo.is_skipped_for("switch") && !explicitly_targeted {
+                return None;
+            }
+
+            let desired_branch = if config_repo.head.trim().is_empty() {
+                umbrella_branch.clone()
+            } else {
+                config_repo.head.clone()
+            };
+            let forced = all || explicitly_targeted;
+            let effective_branch = if forced {
+                umbrella_branch.clone()
+            } else {
+                desired_branch.clone()
+            };
+
+            Some(SwitchPlanItem {
+                config_repo: config_repo.clone(),
+                effective_branch,
+                forced,
             })
-            .cloned()
-            .collect()
-    } else if !target_repos.is_empty() {
-        // Switch only specified repos
-        wok_config
-            .repos
-            .iter()
-            .filter(|config_repo| target_repos.contains(&config_repo.path))
-            .cloned()
-            .collect()
-    } else {
-        // Switch repos that match the current main repo branch
-        wok_config
-            .repos
-            .iter()
-            .filter(|config_repo| config_repo.head == umbrella.head)
-            .cloned()
-            .collect()
-    };
+        })
+        .collect();
 
-    if repos_to_switch.is_empty() {
+    if switch_plan.is_empty() {
         writeln!(stdout, "No repositories to switch")?;
         return Ok(config_updated);
     }
 
     writeln!(
         stdout,
-        "Switching {} repositories to branch '{}'...",
-        repos_to_switch.len(),
-        target_branch
+        "Switching {} repositories for umbrella branch '{}'...",
+        switch_plan.len(),
+        umbrella_branch
     )?;
 
     // Switch each repo
-    for config_repo in &repos_to_switch {
+    for plan_item in &switch_plan {
+        let config_repo = &plan_item.config_repo;
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
-            match switch_repo(subrepo, &target_branch, create) {
+            match switch_repo(subrepo, &plan_item.effective_branch, create) {
                 Ok(result) => {
-                    config_updated |= wok_config
-                        .set_repo_head(config_repo.path.as_path(), &target_branch);
+                    if plan_item.forced {
+                        config_updated |= wok_config.set_repo_head(
+                            config_repo.path.as_path(),
+                            &umbrella_branch,
+                        );
+                    }
 
                     match result {
                         SwitchResult::Switched => {
@@ -78,7 +80,7 @@ pub fn switch<W: Write>(
                                 stdout,
                                 "- '{}': switched to '{}'",
                                 config_repo.path.display(),
-                                target_branch
+                                plan_item.effective_branch
                             )?;
                             submodule_changed = true;
                         },
@@ -87,7 +89,7 @@ pub fn switch<W: Write>(
                                 stdout,
                                 "- '{}': created and switched to '{}'",
                                 config_repo.path.display(),
-                                target_branch
+                                plan_item.effective_branch
                             )?;
                             submodule_changed = true;
                         },
@@ -96,7 +98,7 @@ pub fn switch<W: Write>(
                                 stdout,
                                 "- '{}': already on '{}'",
                                 config_repo.path.display(),
-                                target_branch
+                                plan_item.effective_branch
                             )?;
                         },
                     };
@@ -106,7 +108,7 @@ pub fn switch<W: Write>(
                         stdout,
                         "- '{}': failed to switch to '{}' - {}",
                         config_repo.path.display(),
-                        target_branch,
+                        plan_item.effective_branch,
                         e
                     )?;
                 },
@@ -114,26 +116,43 @@ pub fn switch<W: Write>(
         }
     }
 
-    if submodule_changed {
+    if config_updated {
+        wok_config
+            .save(config_path)
+            .context("Cannot save updated wok file before locking")?;
+    }
+
+    if submodule_changed || config_updated {
         // Perform lock operation on switched repos
-        writeln!(stdout, "Locking submodule state...")?;
-        lock_switched_repos(umbrella, &repos_to_switch, &target_branch)?;
+        writeln!(stdout, "Locking workspace state...")?;
+        let switched_repos: Vec<config::Repo> = switch_plan
+            .iter()
+            .map(|plan| plan.config_repo.clone())
+            .collect();
+        lock_switched_repos(umbrella, config_path, &switched_repos)?;
 
         writeln!(
             stdout,
             "Successfully switched and locked {} repositories",
-            repos_to_switch.len()
+            switch_plan.len()
         )?;
     } else {
-        writeln!(stdout, "No submodule changes detected; skipping lock")?;
+        writeln!(stdout, "No workspace changes detected; skipping lock")?;
         writeln!(
             stdout,
             "Successfully processed {} repositories",
-            repos_to_switch.len()
+            switch_plan.len()
         )?;
     }
 
     Ok(config_updated)
+}
+
+#[derive(Debug, Clone)]
+struct SwitchPlanItem {
+    config_repo: config::Repo,
+    effective_branch: String,
+    forced: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -220,8 +239,8 @@ fn repo_on_branch(repo: &repo::Repo, branch_name: &str) -> Result<bool> {
 
 fn lock_switched_repos(
     umbrella: &repo::Repo,
+    config_path: &std::path::Path,
     switched_repos: &[config::Repo],
-    target_branch: &str,
 ) -> Result<()> {
     // Add all submodule changes to the index
     let mut index = umbrella.git_repo.index()?;
@@ -234,6 +253,18 @@ fn lock_switched_repos(
             index.add_path(submodule_path)?;
         }
     }
+    index.write()?;
+
+    let wokfile_path =
+        config_path
+            .strip_prefix(&umbrella.work_dir)
+            .with_context(|| {
+                format!(
+                    "Wokfile must be inside umbrella repo to be committed: `{}`",
+                    config_path.display()
+                )
+            })?;
+    index.add_path(wokfile_path)?;
     index.write()?;
 
     // Check if there are any changes to commit
@@ -250,13 +281,8 @@ fn lock_switched_repos(
     }
 
     // Build commit message with switched submodule info
-    let (commit_message, _changed_submodules) = build_switch_commit_message(
-        umbrella,
-        &parent_tree,
-        &tree,
-        switched_repos,
-        target_branch,
-    )?;
+    let (commit_message, _changed_submodules) =
+        build_switch_commit_message(umbrella, &parent_tree, &tree, switched_repos)?;
 
     umbrella.git_repo.commit(
         Some("HEAD"),
@@ -277,7 +303,6 @@ fn build_switch_commit_message(
     parent_tree: &git2::Tree,
     index_tree: &git2::Tree,
     switched_repos: &[config::Repo],
-    target_branch: &str,
 ) -> Result<(String, Vec<(String, String)>)> {
     // Get diff between parent tree and staged index
     let diff = umbrella.git_repo.diff_tree_to_tree(
@@ -335,7 +360,7 @@ fn build_switch_commit_message(
     let mut message = String::from("Switch and lock submodule state");
 
     if !changed_submodules.is_empty() {
-        message.push_str(&format!("\n\nSwitched to '{}':", target_branch));
+        message.push_str("\n\nSwitched submodules:");
         for (name, branch) in &changed_submodules {
             message.push_str(&format!("\n- {}: {}", name, branch));
         }

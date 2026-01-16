@@ -15,11 +15,12 @@ fn switch_all_repos(repo_sample: TestRepo) {
     let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
+        &repo_sample.config_path(),
         &mut output,
         false, // create
         true,  // all
-        None,  // branch
-        &[],   // repos
+        "main",
+        &[], // repos
     )
     .unwrap();
 
@@ -33,13 +34,13 @@ fn switch_all_repos(repo_sample: TestRepo) {
 
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
-    assert!(output_str.contains("Switching 1 repositories to branch 'main'"));
+    assert!(output_str.contains("Switching 1 repositories for umbrella branch 'main'"));
     assert!(
         output_str.contains("- 'sub-a':")
             && (output_str.contains("switched to 'main'")
                 || output_str.contains("already on 'main'"))
     );
-    assert!(output_str.contains("No submodule changes detected; skipping lock"));
+    assert!(output_str.contains("No workspace changes detected; skipping lock"));
     assert!(output_str.contains("Successfully processed 1 repositories"));
 }
 
@@ -51,20 +52,21 @@ fn switch_all_skips_configured_repo(repo_sample: TestRepo) {
     let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
+        &repo_sample.config_path(),
         &mut output,
         false,
         true,
-        None,
+        "main",
         &[],
     )
     .unwrap();
 
     assert!(!config_changed);
     let output_str = String::from_utf8_lossy(output.get_ref());
-    assert!(output_str.contains("Switching 1 repositories to branch 'main'"));
+    assert!(output_str.contains("Switching 1 repositories for umbrella branch 'main'"));
     assert!(!output_str.contains("- 'sub-a':"));
     assert!(output_str.contains("- 'sub-b':"));
-    assert!(output_str.contains("No submodule changes detected; skipping lock"));
+    assert!(output_str.contains("No workspace changes detected; skipping lock"));
     assert!(output_str.contains("Successfully processed 1 repositories"));
 }
 
@@ -76,20 +78,21 @@ fn switch_all_includes_explicit_repo_overrides_skip(repo_sample: TestRepo) {
     let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
+        &repo_sample.config_path(),
         &mut output,
         false,
         true,
-        None,
+        "main",
         &[std::path::PathBuf::from("sub-a")],
     )
     .unwrap();
 
     assert!(!config_changed);
     let output_str = String::from_utf8_lossy(output.get_ref());
-    assert!(output_str.contains("Switching 2 repositories to branch 'main'"));
+    assert!(output_str.contains("Switching 2 repositories for umbrella branch 'main'"));
     assert!(output_str.contains("- 'sub-a':"));
     assert!(output_str.contains("- 'sub-b':"));
-    assert!(output_str.contains("No submodule changes detected; skipping lock"));
+    assert!(output_str.contains("No workspace changes detected; skipping lock"));
     assert!(output_str.contains("Successfully processed 2 repositories"));
 }
 
@@ -102,10 +105,11 @@ fn switch_specific_repo(repo_sample: TestRepo) {
     let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
+        &repo_sample.config_path(),
         &mut output,
-        false,                                // create
-        false,                                // all
-        None,                                 // branch
+        false, // create
+        false, // all
+        "main",
         &[std::path::PathBuf::from("sub-a")], // repos
     )
     .unwrap();
@@ -120,13 +124,13 @@ fn switch_specific_repo(repo_sample: TestRepo) {
 
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
-    assert!(output_str.contains("Switching 1 repositories to branch 'main'"));
+    assert!(output_str.contains("Switching 1 repositories for umbrella branch 'main'"));
     assert!(
         output_str.contains("- 'sub-a':")
             && (output_str.contains("switched to 'main'")
                 || output_str.contains("already on 'main'"))
     );
-    assert!(output_str.contains("No submodule changes detected; skipping lock"));
+    assert!(output_str.contains("No workspace changes detected; skipping lock"));
     assert!(output_str.contains("Successfully processed 1 repositories"));
 }
 
@@ -139,11 +143,12 @@ fn switch_with_create_option(repo_sample: TestRepo) {
     let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
+        &repo_sample.config_path(),
         &mut output,
-        true,                   // create
-        false,                  // all
-        Some("feature-branch"), // branch
-        &[],                    // repos
+        true, // create
+        true, // all
+        "feature-branch",
+        &[], // repos
     )
     .unwrap();
 
@@ -157,8 +162,11 @@ fn switch_with_create_option(repo_sample: TestRepo) {
 
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
-    assert!(output_str.contains("Switching 1 repositories to branch 'feature-branch'"));
-    assert!(output_str.contains("Locking submodule state"));
+    assert!(
+        output_str
+            .contains("Switching 1 repositories for umbrella branch 'feature-branch'")
+    );
+    assert!(output_str.contains("Locking workspace state"));
     assert!(output_str.contains("- 'sub-a': created and switched to 'feature-branch'"));
     assert!(output_str.contains("Successfully switched and locked 1 repositories"));
 }
@@ -175,11 +183,12 @@ fn switch_with_branch_option(repo_sample: TestRepo) {
     let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
+        &repo_sample.config_path(),
         &mut output,
-        false,           // create
-        false,           // all
-        Some("develop"), // branch
-        &[],             // repos
+        false, // create
+        true,  // all
+        "develop",
+        &[], // repos
     )
     .unwrap();
 
@@ -193,8 +202,10 @@ fn switch_with_branch_option(repo_sample: TestRepo) {
 
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
-    assert!(output_str.contains("Switching 1 repositories to branch 'develop'"));
-    assert!(output_str.contains("Locking submodule state"));
+    assert!(
+        output_str.contains("Switching 1 repositories for umbrella branch 'develop'")
+    );
+    assert!(output_str.contains("Locking workspace state"));
     assert!(output_str.contains("Successfully switched and locked 1 repositories"));
 }
 
@@ -210,11 +221,12 @@ fn switch_all_repos_moves_repo_when_cached_head_matches_target(repo_sample: Test
     let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
+        &repo_sample.config_path(),
         &mut output,
         false, // create
         true,  // all
-        None,  // branch
-        &[],   // repos
+        "test",
+        &[], // repos
     )
     .unwrap();
 
@@ -234,7 +246,7 @@ fn switch_all_repos_moves_repo_when_cached_head_matches_target(repo_sample: Test
 
     assert_eq!(subrepo_branch.trim(), "test");
     let output_str = String::from_utf8_lossy(output.get_ref());
-    assert!(output_str.contains("Locking submodule state"));
+    assert!(output_str.contains("Locking workspace state"));
     assert!(output_str.contains("Successfully switched and locked 1 repositories"));
 }
 
@@ -247,11 +259,12 @@ fn switch_with_no_repos(repo_sample: TestRepo) {
     let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
+        &repo_sample.config_path(),
         &mut output,
         false, // create
         false, // all
-        None,  // branch
-        &[],   // repos
+        "main",
+        &[], // repos
     )
     .unwrap();
 
@@ -270,10 +283,11 @@ fn switch_nonexistent_repo(repo_sample: TestRepo) {
     let config_changed = cmd::switch(
         &mut actual_config,
         &repo_sample.repo(),
+        &repo_sample.config_path(),
         &mut output,
-        false,                                      // create
-        false,                                      // all
-        None,                                       // branch
+        false, // create
+        false, // all
+        "main",
         &[std::path::PathBuf::from("nonexistent")], // repos
     )
     .unwrap();
@@ -281,5 +295,34 @@ fn switch_nonexistent_repo(repo_sample: TestRepo) {
     assert!(!config_changed);
     // Check the output
     let output_str = String::from_utf8_lossy(output.get_ref());
-    assert!(output_str.contains("No repositories to switch"));
+    assert!(output_str.contains("Switching 1 repositories for umbrella branch 'main'"));
+    assert!(output_str.contains("- 'sub-a':"));
+}
+
+#[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
+fn switch_commits_wokfile_with_submodule_state(repo_sample: TestRepo) {
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+
+    let config_changed = cmd::switch(
+        &mut actual_config,
+        &repo_sample.repo(),
+        &repo_sample.config_path(),
+        &mut output,
+        true, // create
+        true, // all
+        "feature-branch",
+        &[],
+    )
+    .unwrap();
+
+    assert!(config_changed);
+
+    let committed_files = _run(
+        "git show --name-only --pretty=format:",
+        repo_sample.repo_path(),
+    )
+    .unwrap();
+    assert!(committed_files.contains("wok.toml"));
+    assert!(committed_files.contains("sub-a"));
 }

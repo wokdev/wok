@@ -208,31 +208,31 @@ git rm component
 ### switch
 
 ```sh
-wok switch [OPTIONS] [REPOS]...
+wok switch -b <BRANCH> [OPTIONS] [REPOS]...
 ```
 
-Switch repositories to a specified branch with fine-grained control.
+Switch repositories using a target umbrella branch and its wokfile state.
 
 **Options:**
 
 #### --all
 
 ```sh
-wok switch --all
+wok switch -b <BRANCH> --all
 ```
 
-Act on all configured repos, respecting `skip_for` settings. Repos in the skip list can still be targeted explicitly.
+After reconciling with the target branch’s wokfile, force all non-skipped repos onto the umbrella branch. Repos in the skip list can still be targeted explicitly.
 
-**Note:** This flag replaces the deprecated `head switch` command. Use `wok switch --all` to switch all repositories to the umbrella's current branch.
+**Note:** This flag replaces the deprecated `head switch` command. Use `wok switch -b <BRANCH> --all` to switch all repositories to the umbrella branch.
 
 #### -c / --create
 
 ```sh
-wok switch -c
-wok switch --create
+wok switch -b <BRANCH> -c
+wok switch -b <BRANCH> --create
 ```
 
-Create the target branch in repositories if it doesn't exist. Without this flag, the command fails if the branch doesn't exist.
+Create the target branch in repositories if it doesn't exist. Without this flag, the command fails if the branch doesn't exist. Existing branches are never recreated.
 
 #### -b / --branch <BRANCH>
 
@@ -241,44 +241,45 @@ wok switch -b <BRANCH_NAME>
 wok switch --branch <BRANCH_NAME>
 ```
 
-Use the specified branch name instead of the current umbrella repository branch.
+Required. Switch the umbrella repo to this branch first, then load the wokfile from that branch to determine subrepo branches.
 
 #### repos
 
 ```sh
-wok switch <REPO1> <REPO2> ...
+wok switch -b <BRANCH> <REPO1> <REPO2> ...
 ```
 
-Specific repositories to switch. If not provided and `--all` is not used, switches repos matching the current umbrella branch.
+Specific repositories to force onto the umbrella branch after the base reconcile. If not provided and `--all` is not used, the command only reconciles repos to the wokfile’s per-repo heads.
 
 **Examples:**
 ```sh
-# Switch repos matching current branch
-git checkout main
-wok switch
+# Reconcile repos to the wokfile on branch main
+wok switch -b main
 
-# Switch all repos
-wok switch --all
+# Force all repos to the umbrella branch after reconcile
+wok switch --all -b main
 
-# Switch specific repos
-wok switch api frontend
+# Force specific repos to the umbrella branch after reconcile
+wok switch -b main api frontend
 
-# Switch to specific branch
-wok switch --all --branch develop
+# Switch umbrella to a specific branch and force all repos to it
+wok switch -b develop --all
 
 # Switch to specific branch (short form)
-wok switch --all -b develop
+wok switch -b develop --all
 
 # Create and switch to new branch (long form)
-wok switch --all --create --branch feature-new
+wok switch -b feature-new --all --create
 
 # Create and switch to new branch (short form)
-wok switch --all -c --branch feature-new
+wok switch -b feature-new --all -c
 ```
 
 **Behavior:**
-- Update the Wokfile configuration to reflect new branch assignments
-- Commit submodule state changes to the umbrella repository
+- Switch the umbrella repository to the target branch before loading `wok.toml`
+- Reconcile subrepos to the per-repo `head` values in the target branch’s wokfile
+- When using `--all` or explicit repo arguments, force those repos to the umbrella branch and update `wok.toml` accordingly
+- Commit submodule pointer changes **and** any wokfile changes together
 - Skip repos with `switch` in their `skip_for` list (unless explicitly targeted)
 
 **Commit Message Format:**
@@ -287,7 +288,7 @@ When submodules are switched, the commit message shows which repos changed:
 ```
 Switch and lock submodule state
 
-Switched to 'feature-branch':
+Switched submodules:
 - api: feature-branch
 - frontend: feature-branch
 - docs: feature-branch

@@ -113,7 +113,7 @@ enum App {
         submodule_path: path::PathBuf,
     },
 
-    /// Switch repos to current main repo branch with options
+    /// Switch repos to match a target umbrella branch and wokfile state
     Switch {
         /// Create the branch in repos if it doesn't exist
         #[clap(short('c'), long)]
@@ -125,7 +125,7 @@ enum App {
 
         /// Use specified branch name instead of current main repo branch
         #[clap(short, long)]
-        branch: Option<String>,
+        branch: String,
 
         /// Specific repos to switch (if not provided, acts on all matching repos)
         repos: Vec<path::PathBuf>,
@@ -280,48 +280,99 @@ fn main() -> Result<()> {
         Command::App(app_cmd) => {
             let config_path = resolve_path(&cwd, &wokfile_path);
 
-            if !config_path.exists() {
-                bail!("Git Wok file not found at `{}`", config_path.display());
-            };
-
             let repo_dir = config_path.parent().with_context(|| {
                 format!("Cannot open work dir for `{}`", config_path.display())
             })?;
 
             let umbrella = wok::repo::Repo::new(repo_dir, None)?;
 
-            let mut wok_config = wok::config::Config::load(&config_path)?;
-
-            if match app_cmd {
+            match app_cmd {
                 App::Add { submodule_path } => {
-                    wok::cmd::repo::add(&mut wok_config, &umbrella, &submodule_path)?
+                    if !config_path.exists() {
+                        bail!("Git Wok file not found at `{}`", config_path.display());
+                    };
+                    let mut wok_config = wok::config::Config::load(&config_path)?;
+                    let config_changed = wok::cmd::repo::add(
+                        &mut wok_config,
+                        &umbrella,
+                        &submodule_path,
+                    )?;
+                    if config_changed {
+                        wok_config.save(&config_path)?;
+                    }
                 },
                 App::Remove { submodule_path } => {
-                    wok::cmd::repo::rm(&mut wok_config, &submodule_path)?
+                    if !config_path.exists() {
+                        bail!("Git Wok file not found at `{}`", config_path.display());
+                    };
+                    let mut wok_config = wok::config::Config::load(&config_path)?;
+                    let config_changed =
+                        wok::cmd::repo::rm(&mut wok_config, &submodule_path)?;
+                    if config_changed {
+                        wok_config.save(&config_path)?;
+                    }
                 },
                 App::Switch {
                     create,
                     all,
                     branch,
                     repos,
-                } => wok::cmd::switch(
-                    &mut wok_config,
-                    &umbrella,
-                    &mut output,
-                    create,
-                    all,
-                    branch.as_deref(),
-                    &repos,
-                )?,
+                } => {
+                    umbrella
+                        .ensure_on_branch_existing_or_remote(&branch, create)
+                        .with_context(|| {
+                            format!("Cannot switch umbrella repo to '{}'", branch)
+                        })?;
+                    let umbrella = wok::repo::Repo::new(repo_dir, None)?;
+
+                    if !config_path.exists() {
+                        bail!("Git Wok file not found at `{}`", config_path.display());
+                    };
+
+                    let wokfile_rel = config_path
+                        .strip_prefix(&umbrella.work_dir)
+                        .with_context(|| {
+                            format!(
+                                "Wokfile must be inside umbrella repo: `{}`",
+                                config_path.display()
+                            )
+                        })?;
+                    umbrella
+                        .checkout_path_from_head(wokfile_rel)
+                        .context("Cannot refresh wokfile from umbrella HEAD")?;
+
+                    let mut wok_config = wok::config::Config::load(&config_path)?;
+
+                    let config_changed = wok::cmd::switch(
+                        &mut wok_config,
+                        &umbrella,
+                        &config_path,
+                        &mut output,
+                        create,
+                        all,
+                        &branch,
+                        &repos,
+                    )?;
+                    if config_changed {
+                        wok_config.save(&config_path)?;
+                    }
+                },
                 App::Lock => {
+                    if !config_path.exists() {
+                        bail!("Git Wok file not found at `{}`", config_path.display());
+                    };
+                    let mut wok_config = wok::config::Config::load(&config_path)?;
                     wok::cmd::lock(&mut wok_config, &umbrella, &mut output)?;
-                    false // Don't save config for lock command
                 },
                 App::Update {
                     no_commit,
                     umbrella: umbrella_flag,
                     no_umbrella: no_umbrella_flag,
                 } => {
+                    if !config_path.exists() {
+                        bail!("Git Wok file not found at `{}`", config_path.display());
+                    };
+                    let mut wok_config = wok::config::Config::load(&config_path)?;
                     let include_umbrella =
                         resolve_include_umbrella(umbrella_flag, no_umbrella_flag);
                     wok::cmd::update(
@@ -331,11 +382,13 @@ fn main() -> Result<()> {
                         no_commit,
                         include_umbrella,
                     )?;
-                    false // Don't save config for update command
                 },
                 App::Status { fetch } => {
+                    if !config_path.exists() {
+                        bail!("Git Wok file not found at `{}`", config_path.display());
+                    };
+                    let mut wok_config = wok::config::Config::load(&config_path)?;
                     wok::cmd::status(&mut wok_config, &umbrella, &mut output, fetch)?;
-                    false // Don't save config for status command
                 },
                 App::Push {
                     set_upstream,
@@ -345,6 +398,10 @@ fn main() -> Result<()> {
                     no_umbrella: no_umbrella_flag,
                     repos,
                 } => {
+                    if !config_path.exists() {
+                        bail!("Git Wok file not found at `{}`", config_path.display());
+                    };
+                    let mut wok_config = wok::config::Config::load(&config_path)?;
                     let include_umbrella =
                         resolve_include_umbrella(umbrella_flag, no_umbrella_flag);
 
@@ -358,7 +415,6 @@ fn main() -> Result<()> {
                         include_umbrella,
                         &repos,
                     )?;
-                    false // Don't save config for push command
                 },
                 App::Tag {
                     all,
@@ -369,6 +425,10 @@ fn main() -> Result<()> {
                     command,
                     repos,
                 } => {
+                    if !config_path.exists() {
+                        bail!("Git Wok file not found at `{}`", config_path.display());
+                    };
+                    let wok_config = wok::config::Config::load(&config_path)?;
                     let include_umbrella =
                         resolve_include_umbrella(umbrella_flag, no_umbrella_flag);
 
@@ -483,14 +543,10 @@ fn main() -> Result<()> {
                             }
                         },
                     }
-                    false // Don't save config for tag command
                 },
                 App::TestAuth => {
                     wok::cmd::test_auth(&umbrella, &mut output)?;
-                    false // Don't save config for test-auth command
                 },
-            } {
-                wok_config.save(&config_path)?;
             }
         },
     };
