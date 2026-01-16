@@ -3,6 +3,9 @@
 ## Project Structure & Module Organization
 Wok is a Rust CLI. Core workspace logic lives in `src/lib.rs` and supporting modules under `src/cmd` for each command (`init`, `tag`, `push`, etc.). CLI entry binaries sit in `src/bin`, while `src/config.rs` and `src/repo.rs` hold configuration and repository helpers. Integration tests live in `tests/cmd`, with fixture workspaces in `tests/data`. User-facing docs and MkDocs sources are under `docs/`; the generated static site is in `site/`.
 
+## Generated content (do not edit)
+- The `site/` directory is generated and is controlled only by the user. Do not modify anything under `site/` in agent changes.
+
 ## Build, Test, and Development Commands
 - `cargo build --all` compiles the CLI and validates dependencies.
 - `cargo run -- <args>` executes the CLI locally; for example `cargo run -- status`.
