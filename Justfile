@@ -38,12 +38,12 @@ release VERSION:
     just bump-version "{{VERSION}}"
     just update-site
     git -C site add -A
-    git -C site commit -m "Update docs for {{VERSION}}"
+    git -C site commit -m "Update docs for v{{VERSION}}"
     git add Cargo.toml pyproject.toml site
-    git commit -m "Bump version to {{VERSION}}"
+    git commit -m "Bump version to v{{VERSION}}"
     wok push
     cargo publish
-    wok tag create "{{VERSION}}" -sm "{{VERSION}}"
+    wok tag create "v{{VERSION}}" -sm "v{{VERSION}}"
     wok tag push
 
 # --- common dev commands ------------------------------------------------------
