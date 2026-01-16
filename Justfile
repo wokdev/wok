@@ -38,9 +38,9 @@ release VERSION:
     just bump-version "{{VERSION}}"
     just update-site
     git -C site add -A
-    git -C site commit -m "Update docs for v{{VERSION}}"
+    git -C site commit --allow-empty -m "Update docs for v{{VERSION}}"
     git add Cargo.toml Cargo.lock pyproject.toml uv.lock site
-    git commit -m "Bump version to v{{VERSION}}"
+    git commit --allow-empty -m "Bump version to v{{VERSION}}"
     wok push
     cargo publish
     wok tag create "v{{VERSION}}" -sm "v{{VERSION}}"
