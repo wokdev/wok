@@ -17,7 +17,8 @@ pub fn update<W: Write>(
     let mut updated_repos = Vec::new(); // Track updated repos
 
     if include_umbrella {
-        let (_, conflicts) = update_repo(umbrella, &umbrella.head, "umbrella", stdout)?;
+        let (_, conflicts) =
+            update_repo(umbrella, &umbrella.head, "umbrella", true, stdout)?;
         saw_conflicts |= conflicts;
     }
 
@@ -29,8 +30,13 @@ pub fn update<W: Write>(
 
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
             let label = config_repo.path.display().to_string();
+            let target_branch = if config_repo.head.trim().is_empty() {
+                umbrella.head.clone()
+            } else {
+                config_repo.head.clone()
+            };
             let (updated, conflicts) =
-                update_repo(subrepo, &config_repo.head, &label, stdout)?;
+                update_repo(subrepo, &target_branch, &label, false, stdout)?;
             saw_subrepo_updates |= updated;
             saw_conflicts |= conflicts;
 
@@ -39,7 +45,7 @@ pub fn update<W: Write>(
                 let commit_hash = get_current_commit_hash(&subrepo.git_repo)?;
                 updated_repos.push((
                     config_repo.path.to_string_lossy().to_string(),
-                    config_repo.head.clone(),
+                    target_branch,
                     commit_hash,
                 ));
             }
@@ -85,10 +91,19 @@ fn update_repo<W: Write>(
     repo: &repo::Repo,
     branch_name: &str,
     label: &str,
+    allow_dirty: bool,
     stdout: &mut W,
 ) -> Result<(bool, bool)> {
     // Switch to the desired branch first
-    repo.switch(branch_name)?;
+    let switch_result = if allow_dirty {
+        repo.switch(branch_name)
+    } else {
+        repo.ensure_on_branch(branch_name)
+    };
+    if let Err(err) = switch_result {
+        writeln!(stdout, "- '{}': skipped '{}': {}", label, branch_name, err)?;
+        return Ok((false, false));
+    }
 
     // Attempt to merge with remote changes
     let merge_result = repo.merge(branch_name)?;

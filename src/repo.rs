@@ -1,6 +1,7 @@
 use std::{fmt, path};
 
 use anyhow::*;
+use git2::StatusOptions;
 use git2::build::CheckoutBuilder;
 use std::result::Result::Ok;
 
@@ -37,29 +38,27 @@ impl Repo {
         let head = match head_name {
             Some(name) => String::from(name),
             None => {
-                if git_repo.head_detached().with_context(|| {
+                let is_detached = git_repo.head_detached().with_context(|| {
                     format!(
                         "Cannot determine head state for repo at `{}`",
                         work_dir.display()
                     )
-                })? {
-                    bail!(
-                        "Cannot operate on a detached head for repo at `{}`",
-                        work_dir.display()
-                    )
+                })?;
+                if is_detached {
+                    String::from("<detached>")
+                } else {
+                    String::from(git_repo.head().with_context(|| {
+                        format!(
+                            "Cannot find the head branch for repo at `{}`. Is it detached?",
+                            work_dir.display()
+                        )
+                    })?.shorthand().with_context(|| {
+                        format!(
+                            "Cannot find a human readable representation of the head ref for repo at `{}`",
+                            work_dir.display(),
+                        )
+                    })?)
                 }
-
-                String::from(git_repo.head().with_context(|| {
-                    format!(
-                        "Cannot find the head branch for repo at `{}`. Is it detached?",
-                        work_dir.display()
-                    )
-                })?.shorthand().with_context(|| {
-                    format!(
-                        "Cannot find a human readable representation of the head ref for repo at `{}`",
-                        work_dir.display(),
-                    )
-                })?)
             },
         };
 
@@ -101,6 +100,15 @@ impl Repo {
     }
 
     pub fn fetch(&self) -> Result<()> {
+        if self.git_repo.head_detached().with_context(|| {
+            format!(
+                "Cannot determine head state for repo at `{}`",
+                self.work_dir.display()
+            )
+        })? {
+            return Ok(());
+        }
+
         // Get the remote for the current branch
         let head_ref = self.git_repo.head()?;
         let branch_name = head_ref.shorthand().with_context(|| {
@@ -149,6 +157,58 @@ impl Repo {
             },
         }
 
+        Ok(())
+    }
+
+    pub fn ensure_on_branch(&self, branch_name: &str) -> Result<()> {
+        if !self.is_worktree_clean()? {
+            bail!(
+                "Refusing to switch branches with uncommitted changes in `{}`",
+                self.work_dir.display()
+            );
+        }
+
+        if !self.git_repo.head_detached().with_context(|| {
+            format!(
+                "Cannot determine head state for repo at `{}`",
+                self.work_dir.display()
+            )
+        })? && let Ok(head) = self.git_repo.head()
+            && head.shorthand() == Some(branch_name)
+        {
+            return Ok(());
+        }
+
+        let local_ref = format!("refs/heads/{}", branch_name);
+        if self.git_repo.find_reference(&local_ref).is_ok() {
+            self.switch(branch_name)?;
+            return Ok(());
+        }
+
+        let remote_name = self.get_remote_name_for_branch(branch_name)?;
+        if let Ok(mut remote) = self.git_repo.find_remote(&remote_name) {
+            let mut fetch_options = git2::FetchOptions::new();
+            fetch_options.remote_callbacks(self.remote_callbacks()?);
+            remote.fetch::<&str>(&[], Some(&mut fetch_options), None)?;
+        }
+
+        let remote_ref = format!("refs/remotes/{}/{}", remote_name, branch_name);
+        if let Ok(remote_oid) = self.git_repo.refname_to_id(&remote_ref) {
+            let remote_commit = self.git_repo.find_commit(remote_oid)?;
+            self.git_repo.branch(branch_name, &remote_commit, false)?;
+            let mut local_branch = self
+                .git_repo
+                .find_branch(branch_name, git2::BranchType::Local)?;
+            local_branch
+                .set_upstream(Some(&format!("{}/{}", remote_name, branch_name)))?;
+            self.switch(branch_name)?;
+            return Ok(());
+        }
+
+        let head = self.git_repo.head()?;
+        let current_commit = head.peel_to_commit()?;
+        self.git_repo.branch(branch_name, &current_commit, false)?;
+        self.switch(branch_name)?;
         Ok(())
     }
 
@@ -600,6 +660,14 @@ impl Repo {
 
         // Default to merge
         Ok(PullStrategy::Merge)
+    }
+
+    fn is_worktree_clean(&self) -> Result<bool> {
+        let mut status_options = StatusOptions::new();
+        status_options.include_ignored(false);
+        status_options.include_untracked(true);
+        let statuses = self.git_repo.statuses(Some(&mut status_options))?;
+        Ok(statuses.is_empty())
     }
 }
 

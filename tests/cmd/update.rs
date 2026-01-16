@@ -1,8 +1,9 @@
-use std::{fs, io::Cursor};
+use std::{fs, io::Cursor, path::Path};
 
 use rstest::*;
 
 use git_wok::{cmd, config};
+use git2::Repository;
 
 use super::*;
 
@@ -75,6 +76,76 @@ fn update_pulls_tracking_branch(repo_sample: TestRepo) {
         output_str.contains("Updated submodule state committed"),
         "Output: {output_str}"
     );
+}
+
+#[rstest(repo_sample(vec![], None))]
+fn update_switches_detached_submodule_to_configured_branch(repo_sample: TestRepo) {
+    let umbrella_path = repo_sample.repo_path();
+    let remote_parent = umbrella_path.join("remotes");
+    fs::create_dir_all(&remote_parent).unwrap();
+
+    let source_path = remote_parent.join("source");
+    fs::create_dir_all(&source_path).unwrap();
+    _run("git init -b main", &source_path).unwrap();
+    _run("git config user.email 'test@localhost'", &source_path).unwrap();
+    _run("git config user.name 'Test User'", &source_path).unwrap();
+    fs::write(source_path.join("README.md"), "initial").unwrap();
+    _run("git add README.md", &source_path).unwrap();
+    _run("git commit -m initial", &source_path).unwrap();
+
+    let remote_path = remote_parent.join("sub-a.git");
+    _run("git init --bare sub-a.git", &remote_parent).unwrap();
+    _run(
+        &format!("git remote add origin {}", remote_path.display()),
+        &source_path,
+    )
+    .unwrap();
+    _run("git push -u origin main", &source_path).unwrap();
+
+    _run(
+        &format!(
+            "git -c protocol.file.allow=always submodule add {} sub-a",
+            remote_path.display()
+        ),
+        umbrella_path,
+    )
+    .unwrap();
+    _run(
+        "git -c protocol.file.allow=always submodule update --init",
+        umbrella_path,
+    )
+    .unwrap();
+
+    let mut actual_config = config::Config::new();
+    actual_config.add_repo(Path::new("sub-a"), "main");
+    actual_config.save(&repo_sample.config_path()).unwrap();
+
+    let subrepo_path = umbrella_path.join("sub-a");
+    _run("git checkout --detach", &subrepo_path).unwrap();
+    let subrepo_git = Repository::open(&subrepo_path).unwrap();
+    assert!(
+        subrepo_git.head_detached().unwrap(),
+        "Expected detached HEAD before update"
+    );
+
+    let mut output = Cursor::new(Vec::new());
+    let umbrella = repo_sample.repo();
+    cmd::update(&mut actual_config, &umbrella, &mut output, false, true).unwrap();
+
+    let subrepo_git = Repository::open(&subrepo_path).unwrap();
+    assert!(
+        !subrepo_git.head_detached().unwrap(),
+        "Expected attached HEAD after update"
+    );
+    let head_name = subrepo_git.head().unwrap().shorthand().unwrap().to_string();
+    assert_eq!(head_name, "main");
+
+    let upstream = _run(
+        "git rev-parse --abbrev-ref --symbolic-full-name @{u}",
+        &subrepo_path,
+    )
+    .unwrap();
+    assert_eq!(upstream.trim(), "origin/main");
 }
 
 #[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
