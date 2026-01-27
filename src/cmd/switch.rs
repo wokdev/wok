@@ -168,12 +168,14 @@ fn switch_repo(
     create: bool,
 ) -> Result<SwitchResult> {
     // Check if we're already on the target branch
-    if repo_on_branch(repo, branch_name)? {
+    let on_branch = repo_on_branch(repo, branch_name)?;
+    if on_branch {
+        repo.refresh_worktree_force()?;
         return Ok(SwitchResult::AlreadyOnBranch);
     }
 
     // Try to switch to the branch
-    match repo.switch(branch_name) {
+    match repo.switch_force(branch_name) {
         Ok(_) => Ok(SwitchResult::Switched),
         Err(_) => {
             if create {

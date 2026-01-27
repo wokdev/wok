@@ -1,4 +1,4 @@
-use std::{io::Cursor, path::Path};
+use std::{fs, io::Cursor, path::Path};
 
 use rstest::*;
 
@@ -207,6 +207,85 @@ fn switch_with_branch_option(repo_sample: TestRepo) {
     );
     assert!(output_str.contains("Locking workspace state"));
     assert!(output_str.contains("Successfully switched and locked 1 repositories"));
+}
+
+#[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
+fn switch_refreshes_worktree_when_already_on_branch(repo_sample: TestRepo) {
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+    let subrepo_path = &repo_sample.subrepo_paths["sub-a"];
+    let file_path = subrepo_path.join("message.txt");
+
+    fs::write(&file_path, "v1\n").unwrap();
+    _run("git add message.txt", subrepo_path).unwrap();
+    _run("git commit -m 'Add v1'", subrepo_path).unwrap();
+
+    _run("git switch -c temp", subrepo_path).unwrap();
+    fs::write(&file_path, "v2\n").unwrap();
+    _run("git add message.txt", subrepo_path).unwrap();
+    _run("git commit -m 'Add v2'", subrepo_path).unwrap();
+    let v2_commit = _run("git rev-parse HEAD", subrepo_path).unwrap();
+
+    _run("git switch main", subrepo_path).unwrap();
+    _run(
+        &format!("git update-ref refs/heads/main {}", v2_commit.trim()),
+        subrepo_path,
+    )
+    .unwrap();
+
+    let before_contents = fs::read_to_string(&file_path).unwrap();
+    assert_eq!(before_contents, "v1\n");
+
+    cmd::switch(
+        &mut actual_config,
+        &repo_sample.repo(),
+        &repo_sample.config_path(),
+        &mut output,
+        false, // create
+        false, // all
+        "main",
+        &[], // repos
+    )
+    .unwrap();
+
+    let after_contents = fs::read_to_string(&file_path).unwrap();
+    assert_eq!(after_contents, "v2\n");
+}
+
+#[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
+fn switch_updates_file_contents_for_target_branch(repo_sample: TestRepo) {
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+    let subrepo_path = &repo_sample.subrepo_paths["sub-a"];
+    let file_path = subrepo_path.join("message.txt");
+
+    fs::write(&file_path, "main\n").unwrap();
+    _run("git add message.txt", subrepo_path).unwrap();
+    _run("git commit -m 'Add main content'", subrepo_path).unwrap();
+
+    _run("git switch -c feature", subrepo_path).unwrap();
+    fs::write(&file_path, "feature\n").unwrap();
+    _run("git add message.txt", subrepo_path).unwrap();
+    _run("git commit -m 'Add feature content'", subrepo_path).unwrap();
+    _run("git switch main", subrepo_path).unwrap();
+
+    let before_contents = fs::read_to_string(&file_path).unwrap();
+    assert_eq!(before_contents, "main\n");
+
+    cmd::switch(
+        &mut actual_config,
+        &repo_sample.repo(),
+        &repo_sample.config_path(),
+        &mut output,
+        false, // create
+        true,  // all
+        "feature",
+        &[], // repos
+    )
+    .unwrap();
+
+    let after_contents = fs::read_to_string(&file_path).unwrap();
+    assert_eq!(after_contents, "feature\n");
 }
 
 #[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]

@@ -95,7 +95,31 @@ impl Repo {
 
     pub fn switch(&self, head: &str) -> Result<()> {
         self.git_repo.set_head(&self.resolve_reference(head)?)?;
-        self.git_repo.checkout_head(None)?;
+        let checkout_result = self.git_repo.checkout_head(None);
+        checkout_result?;
+        Ok(())
+    }
+
+    pub fn switch_force(&self, head: &str) -> Result<()> {
+        self.git_repo.set_head(&self.resolve_reference(head)?)?;
+        let mut checkout = CheckoutBuilder::new();
+        checkout.force();
+        let checkout_result = self.git_repo.checkout_head(Some(&mut checkout));
+        checkout_result?;
+        Ok(())
+    }
+
+    pub fn refresh_worktree(&self) -> Result<()> {
+        let checkout_result = self.git_repo.checkout_head(None);
+        checkout_result?;
+        Ok(())
+    }
+
+    pub fn refresh_worktree_force(&self) -> Result<()> {
+        let mut checkout = CheckoutBuilder::new();
+        checkout.force();
+        let checkout_result = self.git_repo.checkout_head(Some(&mut checkout));
+        checkout_result?;
         Ok(())
     }
 
