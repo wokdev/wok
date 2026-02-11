@@ -3,6 +3,21 @@ use std::io::Write;
 
 use crate::{config, repo};
 
+#[derive(Debug)]
+struct RepoStatusRow {
+    name: String,
+    branch: String,
+    status: RepoLineStatus,
+}
+
+#[derive(Debug)]
+enum RepoLineStatus {
+    Clean,
+    NeedsLocking,
+    NewCommits,
+    HasUncommittedChanges,
+}
+
 pub fn status<W: Write>(
     wok_config: &mut config::Config,
     umbrella: &repo::Repo,
@@ -19,87 +34,100 @@ pub fn status<W: Write>(
         }
     }
 
-    // Check if umbrella repo is clean
-    let umbrella_clean = is_repo_clean(&umbrella.git_repo, Some(&wok_config.repos))?;
-    let umbrella_emoji = if umbrella_clean { "✓" } else { "✗" };
-    let clean_status = if umbrella_clean { "all clean" } else { "dirty" };
+    let mut status_rows: Vec<RepoStatusRow> =
+        Vec::with_capacity(wok_config.repos.len() + 1);
+    status_rows.push(RepoStatusRow {
+        name: "umbrella".to_string(),
+        branch: umbrella.head.clone(),
+        status: classify_umbrella_status(&umbrella.git_repo, &wok_config.repos)?,
+    });
 
-    // Get remote status for umbrella
-    let remote_status = get_remote_status_string(umbrella, &umbrella.head)?;
-
-    writeln!(
-        stdout,
-        "{} (umbrella) on branch '{}', {}{}",
-        umbrella_emoji, &umbrella.head, clean_status, remote_status
-    )?;
-
-    // Show status for each configured subrepo
     for config_repo in &wok_config.repos {
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
-            let subrepo_clean = is_repo_clean(&subrepo.git_repo, None)?;
-            let subrepo_emoji = if subrepo_clean { "✓" } else { "✗" };
-            let subrepo_clean_status =
-                if subrepo_clean { "all clean" } else { "dirty" };
-            let subrepo_remote_status =
-                get_remote_status_string(subrepo, &subrepo.head)?;
-
-            writeln!(
-                stdout,
-                "{} '{}' on branch '{}', {}{}",
-                subrepo_emoji,
-                config_repo.path.display(),
-                &subrepo.head,
-                subrepo_clean_status,
-                subrepo_remote_status
-            )?;
+            let is_clean = is_repo_clean(&subrepo.git_repo, None)?;
+            let has_new_commits =
+                has_new_commits_vs_pointer(umbrella, &config_repo.path, subrepo)?;
+            status_rows.push(RepoStatusRow {
+                name: config_repo.path.display().to_string(),
+                branch: subrepo.head.clone(),
+                status: line_status_for_repo(is_clean, has_new_commits),
+            });
         }
+    }
+
+    for row in &status_rows {
+        render_status_row(stdout, row)?;
     }
 
     Ok(())
 }
 
-fn get_remote_status_string(
-    repo_obj: &repo::Repo,
-    branch_name: &str,
-) -> Result<String> {
-    let tracking = match repo_obj.tracking_branch(branch_name)? {
-        Some(tracking) => tracking,
-        None => return Ok(String::new()), // No tracking branch, no status to show
+fn line_status_for_repo(is_clean: bool, has_new_commits: bool) -> RepoLineStatus {
+    if !is_clean {
+        RepoLineStatus::HasUncommittedChanges
+    } else if has_new_commits {
+        RepoLineStatus::NewCommits
+    } else {
+        RepoLineStatus::Clean
+    }
+}
+
+fn render_status_row<W: Write>(stdout: &mut W, row: &RepoStatusRow) -> Result<()> {
+    let (symbol, label) = match row.status {
+        RepoLineStatus::Clean => ("✅", "clean"),
+        RepoLineStatus::NeedsLocking => ("🔒", "needs locking"),
+        RepoLineStatus::NewCommits => ("⬆", "new commits"),
+        RepoLineStatus::HasUncommittedChanges => ("❌", "has uncommitted changes"),
+    };
+    writeln!(
+        stdout,
+        "{} {} [{}]: {}",
+        symbol, row.name, row.branch, label
+    )?;
+    Ok(())
+}
+
+fn has_new_commits_vs_pointer(
+    umbrella: &repo::Repo,
+    subrepo_path: &std::path::Path,
+    subrepo: &repo::Repo,
+) -> Result<bool> {
+    let submodule = match subrepo_path.to_str() {
+        Some(path_str) => umbrella.git_repo.find_submodule(path_str)?,
+        None => return Ok(false),
     };
 
-    match repo_obj.get_remote_comparison(branch_name)? {
-        Some(repo::RemoteComparison::UpToDate) => Ok(format!(
-            ", up to date with '{}'",
-            tracking.remote_ref.replace("refs/remotes/", "")
-        )),
-        Some(repo::RemoteComparison::Ahead(count)) => {
-            let commits = if count == 1 { "commit" } else { "commits" };
-            Ok(format!(
-                ", ahead of '{}' by {} {}",
-                tracking.remote_ref.replace("refs/remotes/", ""),
-                count,
-                commits
-            ))
-        },
-        Some(repo::RemoteComparison::Behind(count)) => {
-            let commits = if count == 1 { "commit" } else { "commits" };
-            Ok(format!(
-                ", behind '{}' by {} {}",
-                tracking.remote_ref.replace("refs/remotes/", ""),
-                count,
-                commits
-            ))
-        },
-        Some(repo::RemoteComparison::Diverged(ahead, behind)) => Ok(format!(
-            ", diverged from '{}' ({} ahead, {} behind)",
-            tracking.remote_ref.replace("refs/remotes/", ""),
-            ahead,
-            behind
-        )),
-        Some(repo::RemoteComparison::NoRemote) => {
-            Ok(String::new()) // Remote branch doesn't exist, don't show anything
-        },
-        None => Ok(String::new()), // No tracking branch
+    let pointer_oid = submodule.index_id().or_else(|| submodule.head_id());
+    let Some(pointer_oid) = pointer_oid else {
+        return Ok(false);
+    };
+
+    let subrepo_head_oid = subrepo.git_repo.head()?.peel_to_commit()?.id();
+    Ok(pointer_oid != subrepo_head_oid)
+}
+
+fn classify_umbrella_status(
+    git_repo: &git2::Repository,
+    config_repos: &[crate::config::Repo],
+) -> Result<RepoLineStatus> {
+    let relevant_entries =
+        collect_relevant_status_entries(git_repo, Some(config_repos))?;
+    if relevant_entries.is_empty() {
+        return Ok(RepoLineStatus::Clean);
+    }
+
+    let only_submodule_paths = relevant_entries.iter().all(|(_, path)| {
+        path.as_ref().is_some_and(|path_str| {
+            config_repos.iter().any(|repo_cfg| {
+                repo_cfg.path.to_string_lossy().as_ref() == path_str.as_str()
+            })
+        })
+    });
+
+    if only_submodule_paths {
+        Ok(RepoLineStatus::NeedsLocking)
+    } else {
+        Ok(RepoLineStatus::HasUncommittedChanges)
     }
 }
 
@@ -107,12 +135,20 @@ fn is_repo_clean(
     git_repo: &git2::Repository,
     config_repos: Option<&[crate::config::Repo]>,
 ) -> Result<bool> {
+    Ok(collect_relevant_status_entries(git_repo, config_repos)?.is_empty())
+}
+
+fn collect_relevant_status_entries(
+    git_repo: &git2::Repository,
+    config_repos: Option<&[crate::config::Repo]>,
+) -> Result<Vec<(git2::Status, Option<String>)>> {
     // Check if there are any uncommitted changes
     let mut status_options = git2::StatusOptions::new();
     status_options.include_ignored(false);
     status_options.include_untracked(true);
 
     let statuses = git_repo.statuses(Some(&mut status_options))?;
+    let mut relevant_entries = Vec::new();
 
     // Check if repo is clean - ignore certain files that are expected
     for entry in statuses.iter() {
@@ -140,9 +176,8 @@ fn is_repo_clean(
             continue;
         }
 
-        // Any other status means the repo is not clean
-        return Ok(false);
+        relevant_entries.push((status, path.map(str::to_string)));
     }
 
-    Ok(true)
+    Ok(relevant_entries)
 }

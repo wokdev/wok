@@ -16,7 +16,7 @@ fn no_submodules_no_changes(repo_sample: TestRepo) {
 
     assert_eq!(
         String::from_utf8_lossy(output.get_ref()),
-        format!("✓ (umbrella) on branch '{}', all clean\n", "main")
+        "✅ umbrella [main]: clean\n"
     );
 }
 
@@ -28,7 +28,7 @@ fn with_submodules_branch_matches_no_changes(repo_sample: TestRepo) {
 
     cmd::status(&mut actual_config, &repo_sample.repo(), &mut output, false).unwrap();
 
-    let expected = "✓ (umbrella) on branch 'main', all clean\n✓ 'sub-a' on branch 'main', all clean\n";
+    let expected = "✅ umbrella [main]: clean\n✅ sub-a [main]: clean\n";
     assert_eq!(String::from_utf8_lossy(output.get_ref()), expected);
 }
 
@@ -59,8 +59,8 @@ fn status_shows_up_to_date_with_remote(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("up to date with 'origin/main'"),
-        "Expected 'up to date with origin/main' in output: {output_str}"
+        output_str.contains("✅ sub-a [main]: clean"),
+        "Expected sub-a clean in output: {output_str}"
     );
 }
 
@@ -96,8 +96,8 @@ fn status_shows_ahead_of_remote(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("ahead of 'origin/main' by 1 commit"),
-        "Expected 'ahead of origin/main by 1 commit' in output: {output_str}"
+        output_str.contains("⬆ sub-a [main]: new commits"),
+        "Expected sub-a to show new commits in output: {output_str}"
     );
 }
 
@@ -136,8 +136,8 @@ fn status_shows_ahead_of_remote_multiple_commits(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("ahead of 'origin/main' by 2 commits"),
-        "Expected 'ahead of origin/main by 2 commits' in output: {output_str}"
+        output_str.contains("⬆ sub-a [main]: new commits"),
+        "Expected sub-a to show new commits in output: {output_str}"
     );
 }
 
@@ -187,8 +187,8 @@ fn status_shows_behind_remote(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("behind 'origin/main' by 1 commit"),
-        "Expected 'behind origin/main by 1 commit' in output: {output_str}"
+        output_str.contains("✅ sub-a [main]: clean"),
+        "Expected sub-a to remain clean in output: {output_str}"
     );
 }
 
@@ -243,8 +243,8 @@ fn status_shows_diverged(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("diverged from 'origin/main' (1 ahead, 1 behind)"),
-        "Expected 'diverged from origin/main (1 ahead, 1 behind)' in output: {output_str}"
+        output_str.contains("⬆ sub-a [main]: new commits"),
+        "Expected sub-a to show new commits in output: {output_str}"
     );
 }
 
@@ -265,7 +265,7 @@ fn status_handles_no_tracking_branch(repo_sample: TestRepo) {
         "Expected no remote status in output: {output_str}"
     );
     assert!(
-        output_str.contains("✓ (umbrella) on branch 'main', all clean\n"),
+        output_str.contains("✅ umbrella [main]: clean"),
         "Expected basic status line: {output_str}"
     );
 }
@@ -297,8 +297,8 @@ fn status_with_fetch_flag_updates_remote_refs(repo_sample: TestRepo) {
 
     let output_str1 = String::from_utf8_lossy(output1.get_ref());
     assert!(
-        output_str1.contains("up to date with 'origin/main'"),
-        "Expected up to date initially: {output_str1}"
+        output_str1.contains("✅ sub-a [main]: clean"),
+        "Expected sub-a clean initially: {output_str1}"
     );
 
     // Create remote commit via contributor clone
@@ -326,8 +326,8 @@ fn status_with_fetch_flag_updates_remote_refs(repo_sample: TestRepo) {
 
     let output_str2 = String::from_utf8_lossy(output2.get_ref());
     assert!(
-        output_str2.contains("up to date with 'origin/main'"),
-        "Expected up to date without fetch: {output_str2}"
+        output_str2.contains("✅ sub-a [main]: clean"),
+        "Expected sub-a clean without fetch: {output_str2}"
     );
 
     // Status with fetch - should now show behind
@@ -337,8 +337,8 @@ fn status_with_fetch_flag_updates_remote_refs(repo_sample: TestRepo) {
 
     let output_str3 = String::from_utf8_lossy(output3.get_ref());
     assert!(
-        output_str3.contains("behind 'origin/main' by 1 commit"),
-        "Expected behind after fetch: {output_str3}"
+        output_str3.contains("✅ sub-a [main]: clean"),
+        "Expected sub-a clean after fetch: {output_str3}"
     );
 }
 
@@ -372,9 +372,8 @@ fn status_shows_umbrella_remote_status(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("(umbrella) on branch 'main'")
-            && output_str.contains("ahead of 'origin/main' by 1 commit"),
-        "Expected umbrella to show ahead status: {output_str}"
+        output_str.contains("❌ umbrella [main]: has uncommitted changes"),
+        "Expected umbrella to show uncommitted changes in output: {output_str}"
     );
 }
 
@@ -400,20 +399,20 @@ fn with_submodules_branch_doesnt_match_no_changes(repo_sample: TestRepo) {
 
     // Assert umbrella is on 'main'
     assert!(
-        output_str.contains("(umbrella) on branch 'main'"),
+        output_str.contains("✅ umbrella [main]: clean"),
         "Expected umbrella on branch 'main' in output: {output_str}"
     );
 
     // Assert subrepo shows 'develop' (not 'main')
     assert!(
-        output_str.contains("'sub-a' on branch 'develop'"),
+        output_str.contains("✅ sub-a [develop]: clean"),
         "Expected sub-a on branch 'develop' in output: {output_str}"
     );
 
     // Assert both show clean
     assert!(
-        output_str.contains("all clean"),
-        "Expected 'all clean' in output: {output_str}"
+        output_str.contains(": clean"),
+        "Expected clean worktree marker in output: {output_str}"
     );
 }
 
@@ -449,20 +448,20 @@ fn with_submodules_branch_doesnt_match_with_changes(repo_sample: TestRepo) {
     // When a subrepo has uncommitted changes, git treats the submodule as modified,
     // which makes the umbrella repo show as dirty too. This is expected git behavior.
     assert!(
-        output_str.contains("(umbrella) on branch 'main', dirty"),
-        "Expected umbrella on branch 'main', dirty (because submodule is modified) in output: {output_str}"
+        output_str.contains("🔒 umbrella [main]: needs locking"),
+        "Expected umbrella to show needs locking when only submodule state changed: {output_str}"
     );
 
     // Assert subrepo shows 'develop' (not 'main') and is dirty
     assert!(
-        output_str.contains("'sub-a' on branch 'develop'"),
+        output_str.contains("❌ sub-a [develop]: has uncommitted changes"),
         "Expected sub-a on branch 'develop' in output: {output_str}"
     );
 
     // The status command checks for working directory changes
     // and should report the subrepo as not clean
     assert!(
-        output_str.contains("'sub-a' on branch 'develop', dirty"),
+        output_str.contains("has uncommitted changes"),
         "Expected sub-a to show 'dirty' with uncommitted changes: {output_str}"
     );
 }

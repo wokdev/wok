@@ -116,22 +116,19 @@ Show the status of the umbrella repository and all configured subrepos.
 
 **What it shows:**
 
-- Current branch of umbrella repository
-- Whether umbrella repository has uncommitted changes
-- Comparison with remote tracking branch (ahead/behind/diverged/up-to-date)
-- Current branch of each subrepo
-- Whether each subrepo has uncommitted changes
-- Comparison with remote tracking branch for each subrepo
+- Current branch of umbrella repository and each configured subrepo
+- A compact status per repo using symbols and a short text label
+- Whether repos are clean, have new commits not yet reflected in the umbrella pointer, or have uncommitted changes
 
-**Note:** By default, status does not perform any network operations. Use `--fetch` to update remote refs before comparison. Without `--fetch`, the comparison is based on the last fetched remote state.
+**Note:** By default, status uses local repository state. `--fetch` still fetches remotes before printing status.
 
 **Example output (without fetch):**
 
 ```
-On branch 'main', all clean, up to date with 'origin/main'
-- 'api' is on branch 'main', all clean, ahead of 'origin/main' by 2 commits
-- 'frontend' is on branch 'develop', behind 'origin/develop' by 3 commits
-- 'docs' is on branch 'main', all clean
+🔒 umbrella [main]: needs locking
+✅ api [main]: clean
+⬆ frontend [develop]: new commits
+❌ docs [main]: has uncommitted changes
 ```
 
 **Example with fetch:**
@@ -143,17 +140,16 @@ wok status --fetch
 Output:
 
 ```
-On branch 'main', all clean, diverged from 'origin/main' (1 ahead, 2 behind)
-- 'api' is on branch 'main', all clean, up to date with 'origin/main'
+🔒 umbrella [main]: needs locking
+⬆ api [main]: new commits
 ```
 
-**Remote status indicators:**
+**Status indicators:**
 
-- `up to date with 'origin/main'` - Local and remote branches point to the same commit
-- `ahead of 'origin/main' by N commit(s)` - Local branch has N commits not yet pushed to remote
-- `behind 'origin/main' by N commit(s)` - Remote branch has N commits not yet pulled locally
-- `diverged from 'origin/main' (N ahead, M behind)` - Both local and remote have unique commits
-- No indicator - No remote tracking branch configured for this branch
+- `✅ ...: clean` - No uncommitted changes and subrepo commit matches umbrella pointer
+- `🔒 umbrella ...: needs locking` - Umbrella has only submodule pointer changes (no other file changes)
+- `⬆ ...: new commits` - Subrepo has committed changes not yet reflected in umbrella submodule pointer
+- `❌ ...: has uncommitted changes` - Working tree and/or index has local changes
 
 ---
 

@@ -78,10 +78,10 @@ wok status
 
 Example output:
 ```
-On branch 'main', all clean
-- 'api' is on branch 'main', all clean
-- 'frontend' is on branch 'develop'
-- 'docs' is on branch 'main', all clean
+🔒 umbrella [main]: needs locking
+✅ api [main]: clean
+⬆ frontend [develop]: new commits
+❌ docs [main]: has uncommitted changes
 ```
 
 ### Add a Repository
