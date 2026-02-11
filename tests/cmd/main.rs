@@ -139,3 +139,11 @@ fn _run(cmd: &str, cwd: &PathBuf) -> Result<String> {
         .output()?;
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
+
+fn has_git_lfs() -> bool {
+    process::Command::new("git-lfs")
+        .arg("version")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}

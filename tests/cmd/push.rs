@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{fs, io::Cursor, path::PathBuf, process};
 
 use rstest::*;
 
@@ -325,4 +325,87 @@ fn push_no_repos_without_umbrella(repo_sample: TestRepo) {
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(output_str.contains("No repositories to push"));
     assert!(!output_str.contains("- 'umbrella':"));
+}
+
+#[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
+fn push_lfs_objects_when_repo_uses_lfs(repo_sample: TestRepo) {
+    if !has_git_lfs() {
+        eprintln!("Skipping LFS test because git-lfs is not installed");
+        return;
+    }
+
+    let subrepo_path = repo_sample.subrepo_paths.get("sub-a").unwrap();
+    let remote_parent = repo_sample.repo_path.join("remotes");
+    fs::create_dir_all(&remote_parent).unwrap();
+    let remote_path = remote_parent.join("sub-a.git");
+
+    _run("git init --bare sub-a.git", &remote_parent).unwrap();
+    _run(
+        &format!("git remote add origin {}", remote_path.display()),
+        subrepo_path,
+    )
+    .unwrap();
+    _run("git push -u origin main", subrepo_path).unwrap();
+
+    _run("git lfs install --local", subrepo_path).unwrap();
+    _run("git lfs track '*.bin'", subrepo_path).unwrap();
+    fs::write(
+        subrepo_path.join("artifact.bin"),
+        "lfs payload from push test",
+    )
+    .unwrap();
+    _run("git add .gitattributes artifact.bin", subrepo_path).unwrap();
+    _run("git commit -m 'Add LFS artifact'", subrepo_path).unwrap();
+    let blob_contents = run_checked("git show HEAD:artifact.bin", subrepo_path);
+    assert!(
+        blob_contents.contains("https://git-lfs.github.com/spec/v1"),
+        "Expected artifact.bin to be committed as an LFS pointer",
+    );
+
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+    cmd::push(
+        &mut actual_config,
+        &repo_sample.repo(),
+        &mut output,
+        false,
+        false,
+        Some("main"),
+        false,
+        &[std::path::PathBuf::from("sub-a")],
+    )
+    .unwrap();
+
+    let verifier_path = remote_parent.join("verifier");
+    run_checked(
+        &format!(
+            "git clone {} {}",
+            remote_path.display(),
+            verifier_path.display()
+        ),
+        &remote_parent,
+    );
+    run_checked("git lfs install --local", &verifier_path);
+    let fetch_output = run_checked("git lfs fetch origin main", &verifier_path);
+    assert!(
+        !fetch_output.contains("Object does not exist on the server"),
+        "Expected remote to have uploaded LFS objects, got: {fetch_output}",
+    );
+}
+
+fn run_checked(cmd: &str, cwd: &PathBuf) -> String {
+    let argv = shell_words::split(cmd).unwrap();
+    let output = process::Command::new(&argv[0])
+        .args(&argv[1..])
+        .current_dir(cwd)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "Command failed: `{}`\nstdout:\n{}\nstderr:\n{}",
+        cmd,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+    String::from_utf8_lossy(&output.stdout).into_owned()
 }

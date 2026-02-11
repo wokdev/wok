@@ -486,3 +486,62 @@ fn update_without_umbrella_when_no_submodules(repo_sample: TestRepo) {
         "Output: {output_str}"
     );
 }
+
+#[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
+fn update_pulls_lfs_objects_when_repo_uses_lfs(repo_sample: TestRepo) {
+    if !has_git_lfs() {
+        eprintln!("Skipping LFS test because git-lfs is not installed");
+        return;
+    }
+
+    let subrepo_path = repo_sample.subrepo_paths.get("sub-a").unwrap();
+    let remote_parent = repo_sample.repo_path.join("remotes");
+    fs::create_dir_all(&remote_parent).unwrap();
+    let remote_path = remote_parent.join("sub-a.git");
+
+    _run("git init --bare sub-a.git", &remote_parent).unwrap();
+    _run(
+        &format!("git remote add origin {}", remote_path.display()),
+        subrepo_path,
+    )
+    .unwrap();
+
+    _run("git lfs install --local", subrepo_path).unwrap();
+    _run("git lfs track '*.bin'", subrepo_path).unwrap();
+    fs::write(subrepo_path.join("seed.bin"), "initial lfs payload").unwrap();
+    _run("git add .gitattributes seed.bin", subrepo_path).unwrap();
+    _run("git commit -m 'seed lfs'", subrepo_path).unwrap();
+    _run("git push -u origin main", subrepo_path).unwrap();
+
+    let contributor_path = remote_parent.join("contributor");
+    _run(
+        &format!(
+            "git clone {} {}",
+            remote_path.display(),
+            contributor_path.display()
+        ),
+        &remote_parent,
+    )
+    .unwrap();
+    _run("git config user.email 'test@localhost'", &contributor_path).unwrap();
+    _run("git config user.name 'Test User'", &contributor_path).unwrap();
+    _run("git lfs install --local", &contributor_path).unwrap();
+
+    let expected_content = "upstream lfs payload";
+    fs::write(contributor_path.join("UPSTREAM.bin"), expected_content).unwrap();
+    _run("git add UPSTREAM.bin", &contributor_path).unwrap();
+    _run("git commit -m upstream-lfs", &contributor_path).unwrap();
+    _run("git push", &contributor_path).unwrap();
+
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+    let umbrella = repo_sample.repo();
+    cmd::update(&mut actual_config, &umbrella, &mut output, false, true).unwrap();
+
+    let updated_file = fs::read_to_string(subrepo_path.join("UPSTREAM.bin")).unwrap();
+    assert_eq!(updated_file, expected_content);
+    assert!(
+        !updated_file.contains("https://git-lfs.github.com/spec/v1"),
+        "Expected materialized LFS object, got pointer text",
+    );
+}

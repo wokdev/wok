@@ -1,4 +1,4 @@
-use std::{fmt, path};
+use std::{fmt, fs, io::ErrorKind, path, process::Command};
 
 use anyhow::*;
 use git2::StatusOptions;
@@ -90,6 +90,97 @@ impl Repo {
 
     pub fn sync(&self) -> Result<()> {
         self.switch(&self.head)?;
+        Ok(())
+    }
+
+    pub fn uses_lfs(&self) -> Result<bool> {
+        let attributes_path = self.work_dir.join(".gitattributes");
+        if attributes_path.exists() {
+            let attributes =
+                fs::read_to_string(&attributes_path).with_context(|| {
+                    format!("Cannot read `{}`", attributes_path.display())
+                })?;
+            if attributes.lines().any(|line| {
+                let trimmed = line.trim();
+                !trimmed.is_empty()
+                    && !trimmed.starts_with('#')
+                    && trimmed.contains("filter=lfs")
+            }) {
+                return Ok(true);
+            }
+        }
+
+        if self.work_dir.join(".lfsconfig").exists() {
+            return Ok(true);
+        }
+
+        // Repository::path() points to the actual git directory, including for
+        // submodules/worktrees where `.git` in the work tree is a redirect file.
+        if self.git_repo.path().join("lfs").exists() {
+            return Ok(true);
+        }
+
+        Ok(false)
+    }
+
+    pub fn lfs_pull_if_needed(&self) -> Result<()> {
+        if self.uses_lfs()? {
+            self.run_git_lfs(&["pull"])?;
+        }
+        Ok(())
+    }
+
+    pub fn lfs_push_if_needed(
+        &self,
+        remote_name: &str,
+        branch_name: &str,
+    ) -> Result<()> {
+        if self.uses_lfs()? {
+            self.run_git_lfs(&["push", remote_name, branch_name])?;
+        }
+        Ok(())
+    }
+
+    fn run_git_lfs(&self, args: &[&str]) -> Result<()> {
+        let output = Command::new("git-lfs")
+            .args(args)
+            .current_dir(&self.work_dir)
+            .output()
+            .map_err(|err| {
+                if err.kind() == ErrorKind::NotFound {
+                    anyhow!(
+                        "Git LFS support required for `{}` but `git-lfs` is not installed.\n\
+                        Install it on Fedora with:\n\
+                        sudo dnf install git-lfs\n\
+                        git lfs install",
+                        self.work_dir.display()
+                    )
+                } else {
+                    anyhow!(err).context(format!(
+                        "Cannot execute git-lfs in `{}`",
+                        self.work_dir.display()
+                    ))
+                }
+            })?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            let details = if !stderr.is_empty() {
+                stderr
+            } else if !stdout.is_empty() {
+                stdout
+            } else {
+                "no output".to_string()
+            };
+            bail!(
+                "git-lfs {} failed in `{}`: {}",
+                args.join(" "),
+                self.work_dir.display(),
+                details
+            );
+        }
+
         Ok(())
     }
 
@@ -418,6 +509,7 @@ impl Repo {
             let mut checkout = CheckoutBuilder::new();
             checkout.force();
             self.git_repo.checkout_head(Some(&mut checkout))?;
+            self.lfs_pull_if_needed()?;
             return Ok(MergeResult::FastForward);
         }
 
@@ -427,11 +519,24 @@ impl Repo {
         match pull_strategy {
             PullStrategy::Rebase => {
                 // Perform rebase
-                self.rebase(branch_name, &remote_commit)
+                let result = self.rebase(branch_name, &remote_commit)?;
+                if matches!(result, MergeResult::Rebased) {
+                    self.lfs_pull_if_needed()?;
+                }
+                Ok(result)
             },
             PullStrategy::Merge => {
                 // Perform merge (existing logic)
-                self.do_merge(branch_name, &local_commit, &remote_commit, &tracking)
+                let result = self.do_merge(
+                    branch_name,
+                    &local_commit,
+                    &remote_commit,
+                    &tracking,
+                )?;
+                if matches!(result, MergeResult::Merged) {
+                    self.lfs_pull_if_needed()?;
+                }
+                Ok(result)
             },
         }
     }

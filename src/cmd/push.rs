@@ -253,6 +253,10 @@ fn push_repo(
     // Prepare the refspec for pushing
     let refspec = format!("{}:refs/heads/{}", branch_ref, branch_name);
 
+    // Upload LFS objects before updating remote refs so object discovery
+    // sees commits that are still ahead of the remote.
+    repo.lfs_push_if_needed(&remote_name, branch_name)?;
+
     // Perform the push
     let mut push_options = git2::PushOptions::new();
     push_options.remote_callbacks(repo.remote_callbacks()?);

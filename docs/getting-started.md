@@ -381,6 +381,17 @@ If `wok update` or `wok push` fail with authentication errors, but `git fetch` w
 - **Wrong key permissions:** SSH keys should be readable only by you (`chmod 600`).
 - **Credential helper mismatch:** Some git credential helpers may not work with libgit2. Try using the `cache` helper.
 
+### Git LFS Not Installed
+
+If `wok update` or `wok push` detects a repository that uses Git LFS, it will run Git LFS transfer commands. If `git-lfs` is missing, install it first:
+
+```sh
+sudo dnf install git-lfs
+git lfs install
+```
+
+After installation, rerun the `wok` command.
+
 ### Differences Between Git CLI and Wok
 
 Wok uses libgit2 internally, which may handle authentication differently than the git command-line tool:

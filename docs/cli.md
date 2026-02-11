@@ -372,6 +372,7 @@ Update submodules by fetching and merging latest changes from remotes.
 - Switch each repo to its configured branch
 - Fetch changes from the remote
 - Merge or rebase changes into the local branch (respects `pull.rebase` and `branch.<name>.rebase` config)
+- For repositories using Git LFS, run `git lfs pull` after fast-forward/merge/rebase updates
 - Stage submodule updates in the umbrella repository
 - Commit the updated state (unless `--no-commit` is used)
 
@@ -515,6 +516,7 @@ Specific repositories to push. If not provided and `--all` is not used, pushes r
 **Behavior:**
 - Check remote state before pushing to avoid unnecessary operations
 - Skip push entirely if the remote branch already matches the local branch
+- For repositories using Git LFS, run `git lfs push <remote> <branch>` after a successful ref push
 - Skip repos with `push` in their `skip_for` list (unless explicitly targeted)
 - Report which repos were pushed successfully
 - Handle "up to date" and error cases gracefully
