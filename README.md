@@ -2,45 +2,58 @@
 
 [![status-badge](https://ci.codeberg.org/api/badges/15540/status.svg)](https://ci.codeberg.org/repos/15540)
 
-**Git Wok** helps you organize multiple git repositories into a single multi-project workspace.
+Git Wok manages multiple Git repositories as one workspace, with Git submodules
+as the source of truth.
 
-## ✨ Features
+Use it to keep many component repos in sync for daily development, updates, and
+releases from a single umbrella repository.
 
-- **9 Complete Commands** for comprehensive multi-repo management
-- **Housekeeping**: `init`, `status`
-- **Package Management**: `add`, `rm`, `update`, `lock`
-- **Development Flow**: `switch`, `push`
-- **Release Management**: `tag`
-- **Advanced Options**: Selective repo targeting, branch creation, GPG signing
-- **Config Controls**: Per-repo skip lists to exclude projects from bulk operations while preserving explicit access
-- **Comprehensive Testing**: 37+ tests covering all functionality
-- **Shell Completion**: Support for Bash, Zsh, and Fish
+## Features
 
-### 🎯 Quick Start
+- Workspace setup for existing umbrellas (`init`) or directories of repos (`assemble`)
+- Daily multirepo operations (`status`, `switch`, `lock`, `update`, `push`)
+- Repo configuration management (`add`, `rm`)
+- Release workflows across repos (`tag create`, `tag list`, `tag push`)
+- Selective targeting: current-branch repos (default), `--all`, or explicit paths
+- Per-repo `skip_for` controls in `wok.toml` for bulk commands
+- Git LFS-aware `update` and `push` behavior
+- Shell completion generation for Bash, Zsh, and Fish
+- Authentication diagnostics with `test-auth`
 
-```bash
-# Initialize a workspace
+## Quick Start
+
+```sh
+# Install from crates.io
+cargo install git-wok
+
+# In an existing umbrella repository with submodules
 wok init
 
-# Add a submodule
-wok add path/to/submodule
+# Check workspace state
+wok status
 
-# Switch all repos to current branch
-wok switch --all
+# Reconcile repos using branch state from wok.toml on "main"
+wok switch -b main
 
-# Push changes to all repos
-wok push --all
+# Update subrepos and commit updated submodule pointers
+wok update
 
-# Create and push a signed tag
-wok tag --all v1.0.0 --sign --push
+# Push all repos (and umbrella)
+wok push --all -u
+
+# Create and push a signed release tag in all repos
+wok tag --all create v1.0.0 --sign
+wok tag --all push
 ```
 
-### 📚 Documentation
+## Documentation
 
-- [Getting Started Guide](docs/getting-started.md)
-- [CLI Reference](docs/cli.md)
-- [Configuration Guide](docs/wokfile.md)
+- Main docs: <https://git-wok.dev/>
+- Getting started: <https://git-wok.dev/getting-started/>
+- CLI reference: <https://git-wok.dev/cli/>
+- Wokfile reference: <https://git-wok.dev/wokfile/>
 
 ## Community
 
-- Join the Delta Chat group: [Git Wok on Delta Chat](https://i.delta.chat/#667BD2FB6B122F4138F29A17861B4E257DCDFDB9&a=lig%40countzero.co&g=Git%20Wok&x=0FgEK_cMRZ6NMvG1PAekdJE3&i=9Jn9KZM9tErF-O0k8xvadsn_&s=DyV77Vq3p4y86HX9rRuOMvm2)
+- Delta Chat:
+  [Git Wok group](https://i.delta.chat/#667BD2FB6B122F4138F29A17861B4E257DCDFDB9&a=lig%40countzero.co&g=Git%20Wok&x=0FgEK_cMRZ6NMvG1PAekdJE3&i=9Jn9KZM9tErF-O0k8xvadsn_&s=DyV77Vq3p4y86HX9rRuOMvm2)
