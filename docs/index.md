@@ -4,19 +4,28 @@ A powerful multirepo management tool built with Rust.
 
 ---
 
-Git Wok manages multiple git repositories as a single workspace, using git submodules under the hood. Think of it as a package manager for your multi-repository projects—similar to how `cargo`, `poetry`, or `npm` manage dependencies.
+Git Wok manages multiple Git repositories as one workspace, using Git
+submodules as the source of truth.
+
+Use it to keep many component repos in sync for daily development, updates,
+and releases from a single umbrella repository.
 
 ## Key Features
 
-- **9 Complete Commands** for comprehensive multi-repo management
-- **Package Management**: Initialize workspaces, add/remove repos, update dependencies, lock state
-- **Development Flow**: Branch switching, pushing, status checking across all repos
-- **Release Management**: Create, sign, and push tags across multiple repositories
-- **Smart Controls**: Selective repo targeting, per-repo skip lists, branch creation options
-- **TOML Configuration**: Simple, version-controlled `wok.toml` file
+- Workspace setup for existing umbrellas (`init`) or directories of repos
+  (`assemble`)
+- Daily multirepo operations (`status`, `switch`, `lock`, `update`, `push`)
+- Repo configuration management (`add`, `rm`)
+- Release workflows across repos (`tag create`, `tag list`, `tag push`)
+- Selective targeting with current-branch defaults, `--all`, and explicit paths
+- Per-repo `skip_for` controls in `wok.toml` for bulk commands
+- Git LFS-aware `update` and `push`
+- Shell completion support for Bash, Zsh, and Fish
+- Authentication diagnostics with `test-auth`
 
 [Get started](getting-started.md){ .md-button .md-button--primary }
 [View Commands](cli.md){ .md-button }
+[Wokfile Reference](wokfile.md){ .md-button }
 
 ## Community
 
