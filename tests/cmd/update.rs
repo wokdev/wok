@@ -1,4 +1,4 @@
-use std::{fs, io::Cursor, path::Path};
+use std::{env, fs, io::Cursor, path::Path};
 
 use rstest::*;
 
@@ -543,5 +543,99 @@ fn update_pulls_lfs_objects_when_repo_uses_lfs(repo_sample: TestRepo) {
     assert!(
         !updated_file.contains("https://git-lfs.github.com/spec/v1"),
         "Expected materialized LFS object, got pointer text",
+    );
+}
+
+#[rstest(repo_sample(vec![], Some("empty.toml")))]
+fn update_initializes_newly_configured_missing_submodule(repo_sample: TestRepo) {
+    let cargo_manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let wok_binary = env::var("CARGO_BIN_EXE_wok")
+        .unwrap_or_else(|_| format!("{}/target/debug/wok", cargo_manifest_dir));
+
+    let source_umbrella_path = repo_sample.repo_path();
+    let remote_parent = source_umbrella_path.join("remotes");
+    fs::create_dir_all(&remote_parent).unwrap();
+
+    let source_path = remote_parent.join("source-sub-b");
+    fs::create_dir_all(&source_path).unwrap();
+    _run("git init -b main", &source_path).unwrap();
+    _run("git config user.email 'test@localhost'", &source_path).unwrap();
+    _run("git config user.name 'Test User'", &source_path).unwrap();
+    fs::write(source_path.join("README.md"), "sub-b initial").unwrap();
+    _run("git add README.md", &source_path).unwrap();
+    _run("git commit -m initial", &source_path).unwrap();
+
+    let remote_path = remote_parent.join("sub-b.git");
+    _run("git init --bare sub-b.git", &remote_parent).unwrap();
+    _run(
+        &format!("git remote add origin {}", remote_path.display()),
+        &source_path,
+    )
+    .unwrap();
+    _run("git push -u origin main", &source_path).unwrap();
+
+    _run(
+        &format!(
+            "git -c protocol.file.allow=always submodule add {} sub-b",
+            remote_path.display()
+        ),
+        source_umbrella_path,
+    )
+    .unwrap();
+
+    _run("git add .gitmodules sub-b", source_umbrella_path).unwrap();
+    _run("git commit -m 'add sub-b submodule'", source_umbrella_path).unwrap();
+
+    let mut wok_config = config::Config::load(&repo_sample.config_path()).unwrap();
+    wok_config.add_repo(Path::new("sub-b"), "main");
+    wok_config.save(&repo_sample.config_path()).unwrap();
+    _run("git add wok.toml", source_umbrella_path).unwrap();
+    _run(
+        "git commit -m 'configure sub-b for update'",
+        source_umbrella_path,
+    )
+    .unwrap();
+
+    let clone_path = remote_parent.join("consumer");
+    _run(
+        &format!(
+            "git clone {} {}",
+            source_umbrella_path.display(),
+            clone_path.display()
+        ),
+        &remote_parent,
+    )
+    .unwrap();
+    _run("git config user.email 'test@localhost'", &clone_path).unwrap();
+    _run("git config user.name 'Test User'", &clone_path).unwrap();
+
+    let clone_config_path = clone_path.join("wok.toml");
+    let sub_b_abs_path = clone_path.join("sub-b");
+
+    let output = std::process::Command::new(&wok_binary)
+        .arg("-f")
+        .arg(&clone_config_path)
+        .arg("update")
+        .arg("--no-commit")
+        .current_dir(&clone_path)
+        .output()
+        .expect("Failed to execute wok update");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        output.status.success(),
+        "Command failed. stdout: {}, stderr: {}",
+        stdout,
+        stderr
+    );
+    assert!(
+        stdout.contains("- 'sub-b':"),
+        "Expected sub-b to be processed. stdout: {stdout}"
+    );
+    assert!(
+        Repository::open(&sub_b_abs_path).is_ok(),
+        "Expected sub-b to be initialized at `{}`",
+        sub_b_abs_path.display()
     );
 }

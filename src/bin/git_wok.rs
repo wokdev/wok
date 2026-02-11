@@ -284,6 +284,21 @@ fn main() -> Result<()> {
                 format!("Cannot open work dir for `{}`", config_path.display())
             })?;
 
+            if let App::Update { .. } = &app_cmd {
+                if !config_path.exists() {
+                    bail!("Git Wok file not found at `{}`", config_path.display());
+                };
+
+                let wok_config_for_init = wok::config::Config::load(&config_path)?;
+                let configured_paths = wok_config_for_init
+                    .repos
+                    .iter()
+                    .map(|config_repo| config_repo.path.clone())
+                    .collect::<Vec<_>>();
+
+                wok::repo::init_configured_submodules(repo_dir, &configured_paths)?;
+            }
+
             let umbrella = wok::repo::Repo::new(repo_dir, None)?;
 
             match app_cmd {

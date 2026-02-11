@@ -30,6 +30,108 @@ pub struct Repo {
     pub subrepos: Vec<Repo>,
 }
 
+pub fn init_configured_submodules(
+    work_dir: &path::Path,
+    configured_paths: &[path::PathBuf],
+) -> Result<()> {
+    let git_repo = git2::Repository::open(work_dir)
+        .with_context(|| format!("Cannot open repo at `{}`", work_dir.display()))?;
+
+    // Initialize shallower paths first so nested configured paths can be
+    // initialized through already materialized parent worktrees.
+    let mut sorted_paths = configured_paths.to_vec();
+    sorted_paths.sort_by_key(|path| path.components().count());
+
+    for configured_path in &sorted_paths {
+        init_configured_submodule_path(&git_repo, work_dir, configured_path)
+            .with_context(|| {
+                format!(
+                    "Cannot initialize configured submodule `{}`",
+                    configured_path.display()
+                )
+            })?;
+    }
+
+    Ok(())
+}
+
+fn init_configured_submodule_path(
+    git_repo: &git2::Repository,
+    work_dir: &path::Path,
+    configured_path: &path::Path,
+) -> Result<()> {
+    if configured_path.as_os_str().is_empty() {
+        return Ok(());
+    }
+
+    let mut components = configured_path.components();
+    let first_component = match components.next() {
+        Some(component) => component.as_os_str(),
+        None => return Ok(()),
+    };
+
+    let first_component_str = first_component.to_str().with_context(|| {
+        format!(
+            "Configured submodule path `{}` is not valid UTF-8",
+            configured_path.display()
+        )
+    })?;
+
+    let mut submodule = match git_repo.find_submodule(first_component_str) {
+        Ok(submodule) => submodule,
+        Err(err) if err.code() == git2::ErrorCode::NotFound => return Ok(()),
+        Err(err) => return Err(err.into()),
+    };
+
+    submodule.init(false).with_context(|| {
+        format!(
+            "Cannot initialize submodule `{}` in `{}`",
+            first_component_str,
+            work_dir.display()
+        )
+    })?;
+
+    let submodule_work_dir = work_dir.join(first_component);
+    let is_initialized = submodule.open().is_ok();
+    if !is_initialized {
+        let module_git_dir = git_repo.path().join("modules").join(first_component);
+        if module_git_dir.exists() && !submodule_work_dir.exists() {
+            fs::create_dir_all(&submodule_work_dir).with_context(|| {
+                format!(
+                    "Cannot create submodule worktree directory `{}`",
+                    submodule_work_dir.display()
+                )
+            })?;
+        }
+
+        if let Err(initial_err) = submodule.update(false, None) {
+            submodule.update(true, None).with_context(|| {
+                format!(
+                    "Cannot update submodule `{}` in `{}` (initial attempt with init=false failed: {})",
+                    first_component_str,
+                    work_dir.display(),
+                    initial_err,
+                )
+            })?;
+        }
+    }
+
+    let remaining_path = components.as_path();
+    if remaining_path.as_os_str().is_empty() {
+        return Ok(());
+    }
+
+    let child_work_dir = submodule_work_dir;
+    let child_repo = git2::Repository::open(&child_work_dir).with_context(|| {
+        format!(
+            "Cannot open initialized submodule repo at `{}`",
+            child_work_dir.display()
+        )
+    })?;
+
+    init_configured_submodule_path(&child_repo, &child_work_dir, remaining_path)
+}
+
 impl Repo {
     pub fn new(work_dir: &path::Path, head_name: Option<&str>) -> Result<Self> {
         let git_repo = git2::Repository::open(work_dir)
