@@ -348,7 +348,10 @@ fn status_shows_umbrella_remote_status(repo_sample: TestRepo) {
     _run("git add .", &repo_sample.repo_path).unwrap();
     _run("git commit -m baseline", &repo_sample.repo_path).unwrap();
 
-    let remote_parent = repo_sample.repo_path.join("remotes");
+    let remote_parent = repo_sample.repo_path.parent().unwrap().join(format!(
+        "remotes-{}",
+        repo_sample.repo_path.file_name().unwrap().to_string_lossy()
+    ));
     fs::create_dir_all(&remote_parent).unwrap();
     let remote_path = remote_parent.join("umbrella.git");
 
@@ -372,8 +375,62 @@ fn status_shows_umbrella_remote_status(repo_sample: TestRepo) {
 
     let output_str = String::from_utf8_lossy(output.get_ref());
     assert!(
-        output_str.contains("❌ umbrella [main]: has uncommitted changes"),
-        "Expected umbrella to show uncommitted changes in output: {output_str}"
+        output_str.contains("⬆ umbrella [main]: new commits"),
+        "Expected umbrella to show new commits in output: {output_str}"
+    );
+}
+
+#[rstest(repo_sample(vec![], Some("empty.toml")))]
+fn status_shows_umbrella_clean_when_only_behind_remote(repo_sample: TestRepo) {
+    // Setup remote for umbrella repo
+    _run("git add .", &repo_sample.repo_path).unwrap();
+    _run("git commit -m baseline", &repo_sample.repo_path).unwrap();
+
+    let remote_parent = repo_sample.repo_path.parent().unwrap().join(format!(
+        "remotes-{}",
+        repo_sample.repo_path.file_name().unwrap().to_string_lossy()
+    ));
+    fs::create_dir_all(&remote_parent).unwrap();
+    let remote_path = remote_parent.join("umbrella.git");
+
+    _run("git init --bare umbrella.git", &remote_parent).unwrap();
+    _run(
+        &format!("git remote add origin {}", remote_path.display()),
+        &repo_sample.repo_path,
+    )
+    .unwrap();
+    _run("git push -u origin main", &repo_sample.repo_path).unwrap();
+
+    // Create upstream commit from contributor clone
+    let contributor_path = remote_parent.join("contributor");
+    _run(
+        &format!(
+            "git clone {} {}",
+            remote_path.display(),
+            contributor_path.display()
+        ),
+        &remote_parent,
+    )
+    .unwrap();
+    _run("git config user.email 'test@localhost'", &contributor_path).unwrap();
+    _run("git config user.name 'Test User'", &contributor_path).unwrap();
+    fs::write(contributor_path.join("UPSTREAM.md"), "upstream change").unwrap();
+    _run("git add UPSTREAM.md", &contributor_path).unwrap();
+    _run("git commit -m upstream", &contributor_path).unwrap();
+    _run("git push", &contributor_path).unwrap();
+
+    let mut output = Cursor::new(Vec::new());
+    let mut actual_config = config::Config::load(&repo_sample.config_path()).unwrap();
+    cmd::status(&mut actual_config, &repo_sample.repo(), &mut output, true).unwrap();
+
+    let output_str = String::from_utf8_lossy(output.get_ref());
+    assert!(
+        output_str.contains("✅ umbrella [main]: clean"),
+        "Expected umbrella to remain clean when only behind: {output_str}"
+    );
+    assert!(
+        !output_str.contains("⬆ umbrella [main]: new commits"),
+        "Did not expect umbrella to show new commits when only behind: {output_str}"
     );
 }
 

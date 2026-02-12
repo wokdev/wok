@@ -36,10 +36,27 @@ pub fn status<W: Write>(
 
     let mut status_rows: Vec<RepoStatusRow> =
         Vec::with_capacity(wok_config.repos.len() + 1);
+    let mut umbrella_status =
+        classify_umbrella_status(&umbrella.git_repo, &wok_config.repos)?;
+    if matches!(umbrella_status, RepoLineStatus::Clean)
+        && let Some(remote_comparison) =
+            umbrella.get_remote_comparison(&umbrella.head)?
+    {
+        let has_local_new_commits = match remote_comparison {
+            repo::RemoteComparison::Ahead(_) => true,
+            repo::RemoteComparison::Diverged(ahead, _) => ahead > 0,
+            repo::RemoteComparison::UpToDate
+            | repo::RemoteComparison::Behind(_)
+            | repo::RemoteComparison::NoRemote => false,
+        };
+        if has_local_new_commits {
+            umbrella_status = RepoLineStatus::NewCommits;
+        }
+    }
     status_rows.push(RepoStatusRow {
         name: "umbrella".to_string(),
         branch: umbrella.head.clone(),
-        status: classify_umbrella_status(&umbrella.git_repo, &wok_config.repos)?,
+        status: umbrella_status,
     });
 
     for config_repo in &wok_config.repos {
