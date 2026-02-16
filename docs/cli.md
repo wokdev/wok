@@ -718,7 +718,9 @@ List existing tags in repositories.
 
 **Behavior:**
 - Skip repos with `tag` in their `skip_for` list (unless explicitly targeted)
-- Display all tags for each repository
+- Display tags newest to oldest for each repository
+- Show the most recent reachable tag in status-style brackets: `[tag]` or `[tag-N]`
+- Use `⬆` when HEAD is `N` commits ahead of the latest tag, otherwise `✅`
 - Include the umbrella repository by default (disable with `--no-umbrella`)
 
 **Examples:**
@@ -744,11 +746,9 @@ wok tag api frontend
 
 **Example output:**
 ```
-Listing tags in 3 repositories...
-- 'umbrella': v0.9.0, v1.0.0, v1.1.0
-- 'api': v1.0.0, v1.1.0
-- 'frontend': v1.0.0
-Successfully processed 3 repositories
+✅ umbrella [v1.1.0]: v1.1.0, v1.0.0, v0.9.0
+⬆ api [v1.1.0-2]: v1.1.0, v1.0.0
+✅ frontend [v1.0.0]: v1.0.0
 ```
 
 ---

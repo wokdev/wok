@@ -182,8 +182,8 @@ fn tag_list_subcommand(repo_sample: TestRepo) {
         stderr
     );
 
-    assert!(stdout.contains("Listing tags"));
-    assert!(stdout.contains("v1.0.0"));
+    assert!(stdout.contains("✅ umbrella [v1.0.0]: v1.0.0"));
+    assert!(stdout.contains("✅ sub-a [v1.0.0]: v1.0.0"));
 }
 
 /// Test that implicit list works (no subcommand, no args)
@@ -225,8 +225,13 @@ fn tag_implicit_list(repo_sample: TestRepo) {
     );
 
     assert!(
-        stdout.contains("Listing tags"),
-        "Expected 'Listing tags' in output: {}",
+        stdout.contains("✅ umbrella [v1.0.0]: v1.0.0"),
+        "Expected umbrella row in output: {}",
+        stdout
+    );
+    assert!(
+        stdout.contains("✅ sub-a [v1.0.0]: v1.0.0"),
+        "Expected sub-a row in output: {}",
         stdout
     );
     assert!(

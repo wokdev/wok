@@ -1,4 +1,5 @@
 use anyhow::*;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::Write;
 use std::panic::{self, AssertUnwindSafe};
@@ -63,19 +64,15 @@ pub fn tag_list<W: Write>(
         return Ok(());
     }
 
-    writeln!(stdout, "Listing tags in {} repositories...", total_targets)?;
-
     if include_umbrella {
         match list_tags(umbrella) {
-            Ok(tags) => {
-                if tags.is_empty() {
-                    writeln!(stdout, "- 'umbrella': no tags found")?;
-                } else {
-                    writeln!(stdout, "- 'umbrella': {}", tags.join(", "))?;
-                }
+            Ok(mut tags) => {
+                sort_tags_latest_first(umbrella, &mut tags);
+                let head_tag = describe_head_tag(umbrella);
+                render_tag_list_row(stdout, "umbrella", &tags, head_tag.as_ref())?;
             },
             Err(e) => {
-                writeln!(stdout, "- 'umbrella': failed to list tags - {}", e)?;
+                render_tag_list_error(stdout, "umbrella", &e)?;
             },
         }
     }
@@ -83,39 +80,26 @@ pub fn tag_list<W: Write>(
     for config_repo in &repos_to_tag {
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
             match list_tags(subrepo) {
-                Ok(tags) => {
-                    if tags.is_empty() {
-                        writeln!(
-                            stdout,
-                            "- '{}': no tags found",
-                            config_repo.path.display()
-                        )?;
-                    } else {
-                        writeln!(
-                            stdout,
-                            "- '{}': {}",
-                            config_repo.path.display(),
-                            tags.join(", ")
-                        )?;
-                    }
+                Ok(mut tags) => {
+                    sort_tags_latest_first(subrepo, &mut tags);
+                    let head_tag = describe_head_tag(subrepo);
+                    render_tag_list_row(
+                        stdout,
+                        &config_repo.path.display().to_string(),
+                        &tags,
+                        head_tag.as_ref(),
+                    )?;
                 },
                 Err(e) => {
-                    writeln!(
+                    render_tag_list_error(
                         stdout,
-                        "- '{}': failed to list tags - {}",
-                        config_repo.path.display(),
-                        e
+                        &config_repo.path.display().to_string(),
+                        &e,
                     )?;
                 },
             }
         }
     }
-
-    writeln!(
-        stdout,
-        "Successfully processed {} repositories",
-        total_targets
-    )?;
     Ok(())
 }
 
@@ -430,10 +414,138 @@ fn list_tags(repo: &repo::Repo) -> Result<Vec<String>> {
         tags.push(tag_name.to_string());
     }
 
-    // Sort tags for consistent output
-    tags.sort();
-
     Ok(tags)
+}
+
+#[derive(Debug, Clone)]
+struct HeadTagInfo {
+    tag_name: String,
+    commits_since_tag: usize,
+}
+
+fn sort_tags_latest_first(repo: &repo::Repo, tags: &mut [String]) {
+    let mut timestamps: HashMap<String, Option<i64>> =
+        HashMap::with_capacity(tags.len());
+    for tag_name in tags.iter() {
+        timestamps.insert(tag_name.clone(), tag_timestamp(repo, tag_name));
+    }
+
+    tags.sort_by(|a, b| {
+        let a_ts = timestamps.get(a).copied().flatten();
+        let b_ts = timestamps.get(b).copied().flatten();
+        match (a_ts, b_ts) {
+            (Some(a_ts), Some(b_ts)) => b_ts.cmp(&a_ts).then_with(|| a.cmp(b)),
+            (Some(_), None) => Ordering::Less,
+            (None, Some(_)) => Ordering::Greater,
+            (None, None) => a.cmp(b),
+        }
+    });
+}
+
+fn describe_head_tag(repo: &repo::Repo) -> Option<HeadTagInfo> {
+    let mut describe_options = git2::DescribeOptions::new();
+    describe_options.describe_tags();
+    describe_options.show_commit_oid_as_fallback(false);
+
+    let describe = repo.git_repo.describe(&describe_options).ok()?;
+    let describe_text = describe.format(None).ok()?;
+    parse_describe_output(&describe_text)
+}
+
+fn parse_describe_output(output: &str) -> Option<HeadTagInfo> {
+    // git describe formats:
+    // - Exact tag: v1.2.3
+    // - Ahead of tag: v1.2.3-4-gabc1234
+    let mut parts = output.rsplitn(3, '-');
+    let last = parts.next();
+    let commits_part = parts.next();
+    let tag_part = parts.next();
+
+    if let (Some(last), Some(commits), Some(tag)) = (last, commits_part, tag_part)
+        && last.starts_with('g')
+        && commits.chars().all(|c| c.is_ascii_digit())
+        && let Ok(commits_since_tag) = commits.parse::<usize>()
+    {
+        return Some(HeadTagInfo {
+            tag_name: tag.to_string(),
+            commits_since_tag,
+        });
+    }
+
+    Some(HeadTagInfo {
+        tag_name: output.to_string(),
+        commits_since_tag: 0,
+    })
+}
+
+fn tag_timestamp(repo: &repo::Repo, tag_name: &str) -> Option<i64> {
+    let ref_name = format!("refs/tags/{tag_name}");
+    let tag_ref = repo.git_repo.find_reference(&ref_name).ok()?;
+    let target_oid = tag_ref.target()?;
+    let target_obj = repo.git_repo.find_object(target_oid, None).ok()?;
+
+    // Prefer annotated tagger timestamp; for lightweight tags, use commit time.
+    if let Some(tag_obj) = target_obj.as_tag() {
+        tag_obj
+            .tagger()
+            .map(|signature| signature.when().seconds())
+            .or_else(|| {
+                tag_obj
+                    .target()
+                    .ok()?
+                    .peel_to_commit()
+                    .ok()
+                    .map(|c| c.time().seconds())
+            })
+    } else {
+        target_obj.peel_to_commit().ok().map(|c| c.time().seconds())
+    }
+}
+
+fn render_tag_list_row<W: Write>(
+    stdout: &mut W,
+    repo_name: &str,
+    tags: &[String],
+    head_tag: Option<&HeadTagInfo>,
+) -> Result<()> {
+    let (symbol, head_text) = match head_tag {
+        Some(tag_info) if tag_info.commits_since_tag > 0 => (
+            "⬆",
+            format!("{}-{}", tag_info.tag_name, tag_info.commits_since_tag),
+        ),
+        Some(tag_info) => ("✅", tag_info.tag_name.clone()),
+        None => ("✅", "no-tags".to_string()),
+    };
+
+    if tags.is_empty() {
+        writeln!(
+            stdout,
+            "{} {} [{}]: no tags found",
+            symbol, repo_name, head_text
+        )?;
+        return Ok(());
+    }
+
+    let tags_text = format_tags_for_display(tags);
+    writeln!(
+        stdout,
+        "{} {} [{}]: {}",
+        symbol, repo_name, head_text, tags_text
+    )?;
+    Ok(())
+}
+
+fn render_tag_list_error<W: Write>(
+    stdout: &mut W,
+    repo_name: &str,
+    error: &anyhow::Error,
+) -> Result<()> {
+    writeln!(stdout, "❌ {}: failed to list tags - {}", repo_name, error)?;
+    Ok(())
+}
+
+fn format_tags_for_display(tags: &[String]) -> String {
+    tags.join(", ")
 }
 
 /// Check if the current HEAD commit has any tags pointing to it
