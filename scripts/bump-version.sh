@@ -173,6 +173,28 @@ bump_version() {
     fi
 }
 
+update_lockfile() {
+    local new_version="$1"
+
+    print_step "Refreshing Cargo.lock"
+
+    if ! command -v cargo &> /dev/null; then
+        print_warning "cargo not found; skipping Cargo.lock refresh"
+        return
+    fi
+
+    local crate_name
+    crate_name=$(grep '^name = ' "$CARGO_TOML" | head -1 | sed 's/name = "\(.*\)"/\1/')
+
+    if cargo update --package "$crate_name" --precise "$new_version" 2>/dev/null; then
+        print_success "Cargo.lock updated via cargo update"
+    else
+        print_warning "cargo update --precise failed; falling back to cargo check"
+        cargo check
+        print_success "Cargo.lock updated via cargo check"
+    fi
+}
+
 verify_changes() {
     print_step "Verifying changes"
 
@@ -233,6 +255,7 @@ main() {
 
     if [[ "$dry_run" == "false" ]]; then
         verify_changes
+        update_lockfile "$new_version"
 
         # Success summary
         echo
@@ -242,7 +265,7 @@ main() {
         print_info "Next steps:"
         echo "  1. Review the changes: git diff"
         echo "  2. Run tests: cargo test --all"
-        echo "  3. Commit the changes: git add Cargo.toml pyproject.toml"
+        echo "  3. Commit the changes: git add Cargo.toml Cargo.lock pyproject.toml"
         echo "  4. Create a commit: git commit -m \"Bump version to $new_version\""
         echo "  5. Create a tag: git tag v$new_version"
     else
