@@ -104,7 +104,7 @@ fn render_status_row<W: Write>(stdout: &mut W, row: &RepoStatusRow) -> Result<()
     Ok(())
 }
 
-fn has_new_commits_vs_pointer(
+pub(crate) fn has_new_commits_vs_pointer(
     umbrella: &repo::Repo,
     subrepo_path: &std::path::Path,
     subrepo: &repo::Repo,
@@ -148,7 +148,7 @@ fn classify_umbrella_status(
     }
 }
 
-fn is_repo_clean(
+pub(crate) fn is_repo_clean(
     git_repo: &git2::Repository,
     config_repos: Option<&[crate::config::Repo]>,
 ) -> Result<bool> {

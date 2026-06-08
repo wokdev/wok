@@ -2,7 +2,7 @@ use anyhow::*;
 use std::io::Write;
 use std::result::Result::Ok;
 
-use crate::{config, repo};
+use crate::{cmd::status, config, repo};
 
 #[allow(clippy::too_many_arguments)]
 pub fn switch<W: Write>(
@@ -12,6 +12,7 @@ pub fn switch<W: Write>(
     stdout: &mut W,
     create: bool,
     all: bool,
+    dirty: bool,
     branch_name: &str,
     target_repos: &[std::path::PathBuf],
 ) -> Result<bool> {
@@ -27,6 +28,31 @@ pub fn switch<W: Write>(
             let explicitly_targeted = target_repos.contains(&config_repo.path);
             if config_repo.is_skipped_for("switch") && !explicitly_targeted {
                 return None;
+            }
+
+            if dirty {
+                // In dirty mode include repos that are explicitly listed OR that
+                // have local changes (uncommitted or needs locking). Clean repos
+                // that are not explicitly listed are excluded entirely.
+                let has_local_changes = explicitly_targeted || {
+                    if let Some(subrepo) =
+                        umbrella.get_subrepo_by_path(&config_repo.path)
+                    {
+                        repo_has_local_changes(umbrella, subrepo, &config_repo.path)
+                            .unwrap_or(false)
+                    } else {
+                        false
+                    }
+                };
+                if !has_local_changes {
+                    return None;
+                }
+                return Some(SwitchPlanItem {
+                    config_repo: config_repo.clone(),
+                    effective_branch: umbrella_branch.clone(),
+                    forced: true,
+                    preserve_changes: true,
+                });
             }
 
             let desired_branch = if config_repo.head.trim().is_empty() {
@@ -45,6 +71,7 @@ pub fn switch<W: Write>(
                 config_repo: config_repo.clone(),
                 effective_branch,
                 forced,
+                preserve_changes: false,
             })
         })
         .collect();
@@ -65,7 +92,12 @@ pub fn switch<W: Write>(
     for plan_item in &switch_plan {
         let config_repo = &plan_item.config_repo;
         if let Some(subrepo) = umbrella.get_subrepo_by_path(&config_repo.path) {
-            match switch_repo(subrepo, &plan_item.effective_branch, create) {
+            match switch_repo(
+                subrepo,
+                &plan_item.effective_branch,
+                create,
+                plan_item.preserve_changes,
+            ) {
                 Ok(result) => {
                     if plan_item.forced {
                         config_updated |= wok_config.set_repo_head(
@@ -153,6 +185,7 @@ struct SwitchPlanItem {
     config_repo: config::Repo,
     effective_branch: String,
     forced: bool,
+    preserve_changes: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -166,12 +199,21 @@ fn switch_repo(
     repo: &repo::Repo,
     branch_name: &str,
     create: bool,
+    preserve_changes: bool,
 ) -> Result<SwitchResult> {
     // Check if we're already on the target branch
     let on_branch = repo_on_branch(repo, branch_name)?;
     if on_branch {
-        repo.refresh_worktree_force()?;
+        if !preserve_changes {
+            repo.refresh_worktree_force()?;
+        }
         return Ok(SwitchResult::AlreadyOnBranch);
+    }
+
+    if preserve_changes {
+        // Safe switch: update HEAD without discarding working-tree changes.
+        repo.switch_or_create_preserving(branch_name, create)?;
+        return Ok(SwitchResult::Switched);
     }
 
     // Try to switch to the branch
@@ -190,6 +232,21 @@ fn switch_repo(
             }
         },
     }
+}
+
+/// Returns true when `subrepo` has uncommitted working-tree changes or has new
+/// commits that have not been recorded in the umbrella's submodule pointer.
+fn repo_has_local_changes(
+    umbrella: &repo::Repo,
+    subrepo: &repo::Repo,
+    path: &std::path::Path,
+) -> Result<bool> {
+    let worktree_dirty = !status::is_repo_clean(&subrepo.git_repo, None)?;
+    if worktree_dirty {
+        return Ok(true);
+    }
+    let needs_locking = status::has_new_commits_vs_pointer(umbrella, path, subrepo)?;
+    Ok(needs_locking)
 }
 
 fn create_and_switch_branch(repo: &repo::Repo, branch_name: &str) -> Result<()> {

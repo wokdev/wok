@@ -230,6 +230,20 @@ wok switch -b <BRANCH> --create
 
 Create the target branch in repositories if it doesn't exist. Without this flag, the command fails if the branch doesn't exist. Existing branches are never recreated.
 
+#### -d / -u / --dirty
+
+```sh
+wok switch --dirty -b <BRANCH>
+wok switch -d -b <BRANCH>
+wok switch -u -b <BRANCH>
+```
+
+Only switch repos that have local changes (uncommitted working-tree edits or commits not yet locked into the umbrella). Clean repos that are not explicitly listed are left untouched. Both `-d` and `-u` are accepted as short aliases for `--dirty`.
+
+When combined with explicit repo arguments, the selection is the **union** of dirty repos and listed repos — listed repos are always switched regardless of their cleanliness.
+
+Uncommitted working-tree changes are **preserved** when switching: the branch pointer is updated without force-resetting the worktree, so in-progress edits stay on the new branch ready to commit.
+
 #### -b / --branch <BRANCH>
 
 ```sh
@@ -275,12 +289,22 @@ wok switch -b feature-new --all --create
 
 # Create and switch to new branch (short form)
 wok switch -b feature-new --all -c
+
+# Create new-feature and switch only repos with local changes onto it (-u = --dirty)
+wok switch -cub new-feature
+
+# Same as above, long form
+wok switch --create --dirty --branch new-feature
+
+# Create new-feature, switch dirty repos AND explicitly listed some-repo onto it
+wok switch -cub new-feature some-repo
 ```
 
 **Behavior:**
 - When `-b` is provided, switch the umbrella repository to the target branch before loading `wok.toml`; when omitted, use the umbrella's current branch as the target and leave the umbrella unchanged
 - Reconcile subrepos to the per-repo `head` values in the wokfile (so a bare `wok switch` reconciles everything to the `wok.toml` state)
 - When using `--all` or explicit repo arguments, force those repos to the umbrella branch and update `wok.toml` accordingly
+- With `--dirty` (`-d`/`-u`): switch the union of repos with local changes and any explicitly listed repos onto the umbrella branch; clean unlisted repos are left untouched and uncommitted changes are preserved on the new branch
 - Commit submodule pointer changes **and** any wokfile changes together
 - Skip repos with `switch` in their `skip_for` list (unless explicitly targeted)
 

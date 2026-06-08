@@ -123,6 +123,10 @@ enum App {
         #[clap(long)]
         all: bool,
 
+        /// Only switch repos with uncommitted changes or that need locking
+        #[clap(short('d'), visible_short_alias('u'), long("dirty"))]
+        dirty: bool,
+
         /// Branch to target; defaults to the umbrella repo's current branch
         #[clap(short, long)]
         branch: Option<String>,
@@ -330,6 +334,7 @@ fn main() -> Result<()> {
                 App::Switch {
                     create,
                     all,
+                    dirty,
                     branch,
                     repos,
                 } => {
@@ -339,23 +344,59 @@ fn main() -> Result<()> {
 
                     let effective_branch = match branch {
                         Some(ref b) => {
-                            umbrella
-                                .ensure_on_branch_existing_or_remote(b, create)
-                                .with_context(|| {
-                                    format!("Cannot switch umbrella repo to '{}'", b)
-                                })?;
-                            let umbrella = wok::repo::Repo::new(repo_dir, None)?;
-                            let wokfile_rel = config_path
-                                .strip_prefix(&umbrella.work_dir)
-                                .with_context(|| {
-                                    format!(
-                                        "Wokfile must be inside umbrella repo: `{}`",
-                                        config_path.display()
-                                    )
-                                })?;
-                            umbrella
-                                .checkout_path_from_head(wokfile_rel)
-                                .context("Cannot refresh wokfile from umbrella HEAD")?;
+                            if dirty {
+                                // When --dirty is set, preserve uncommitted changes:
+                                // don't bail on dirty worktree, and don't force-reset.
+                                umbrella
+                                    .switch_or_create_preserving(b, create)
+                                    .with_context(|| {
+                                        format!(
+                                            "Cannot switch umbrella repo to '{}'",
+                                            b
+                                        )
+                                    })?;
+                                // Only refresh the wokfile from HEAD when we switched
+                                // to an existing branch (the branch already had a
+                                // wokfile commit). For a newly created branch the
+                                // working-tree wokfile is already correct.
+                                let umbrella_reloaded =
+                                    wok::repo::Repo::new(repo_dir, None)?;
+                                if umbrella_reloaded.head.as_str() == b.as_str() {
+                                    let wokfile_rel = config_path
+                                        .strip_prefix(&umbrella_reloaded.work_dir)
+                                        .with_context(|| {
+                                            format!(
+                                                "Wokfile must be inside umbrella repo: `{}`",
+                                                config_path.display()
+                                            )
+                                        })?;
+                                    // Ignore errors here: the branch may not yet have a
+                                    // wokfile commit (e.g. freshly created).
+                                    let _ = umbrella_reloaded
+                                        .checkout_path_from_head(wokfile_rel);
+                                }
+                            } else {
+                                umbrella
+                                    .ensure_on_branch_existing_or_remote(b, create)
+                                    .with_context(|| {
+                                        format!(
+                                            "Cannot switch umbrella repo to '{}'",
+                                            b
+                                        )
+                                    })?;
+                                let umbrella = wok::repo::Repo::new(repo_dir, None)?;
+                                let wokfile_rel = config_path
+                                    .strip_prefix(&umbrella.work_dir)
+                                    .with_context(|| {
+                                        format!(
+                                            "Wokfile must be inside umbrella repo: `{}`",
+                                            config_path.display()
+                                        )
+                                    })?;
+                                umbrella.checkout_path_from_head(wokfile_rel).context(
+                                    "Cannot refresh wokfile from umbrella HEAD",
+                                )?;
+                            }
                             b.clone()
                         },
                         None => {
@@ -383,6 +424,7 @@ fn main() -> Result<()> {
                         &mut output,
                         create,
                         all,
+                        dirty,
                         &effective_branch,
                         &repos,
                     )?;

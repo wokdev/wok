@@ -19,6 +19,7 @@ fn switch_all_repos(repo_sample: TestRepo) {
         &mut output,
         false, // create
         true,  // all
+        false, // dirty
         "main",
         &[], // repos
     )
@@ -56,6 +57,7 @@ fn switch_all_skips_configured_repo(repo_sample: TestRepo) {
         &mut output,
         false,
         true,
+        false, // dirty
         "main",
         &[],
     )
@@ -82,6 +84,7 @@ fn switch_all_includes_explicit_repo_overrides_skip(repo_sample: TestRepo) {
         &mut output,
         false,
         true,
+        false, // dirty
         "main",
         &[std::path::PathBuf::from("sub-a")],
     )
@@ -109,6 +112,7 @@ fn switch_specific_repo(repo_sample: TestRepo) {
         &mut output,
         false, // create
         false, // all
+        false, // dirty
         "main",
         &[std::path::PathBuf::from("sub-a")], // repos
     )
@@ -145,8 +149,9 @@ fn switch_with_create_option(repo_sample: TestRepo) {
         &repo_sample.repo(),
         &repo_sample.config_path(),
         &mut output,
-        true, // create
-        true, // all
+        true,  // create
+        true,  // all
+        false, // dirty
         "feature-branch",
         &[], // repos
     )
@@ -187,6 +192,7 @@ fn switch_with_branch_option(repo_sample: TestRepo) {
         &mut output,
         false, // create
         true,  // all
+        false, // dirty
         "develop",
         &[], // repos
     )
@@ -243,6 +249,7 @@ fn switch_refreshes_worktree_when_already_on_branch(repo_sample: TestRepo) {
         &mut output,
         false, // create
         false, // all
+        false, // dirty
         "main",
         &[], // repos
     )
@@ -279,6 +286,7 @@ fn switch_updates_file_contents_for_target_branch(repo_sample: TestRepo) {
         &mut output,
         false, // create
         true,  // all
+        false, // dirty
         "feature",
         &[], // repos
     )
@@ -304,6 +312,7 @@ fn switch_all_repos_moves_repo_when_cached_head_matches_target(repo_sample: Test
         &mut output,
         false, // create
         true,  // all
+        false, // dirty
         "test",
         &[], // repos
     )
@@ -342,6 +351,7 @@ fn switch_with_no_repos(repo_sample: TestRepo) {
         &mut output,
         false, // create
         false, // all
+        false, // dirty
         "main",
         &[], // repos
     )
@@ -366,6 +376,7 @@ fn switch_nonexistent_repo(repo_sample: TestRepo) {
         &mut output,
         false, // create
         false, // all
+        false, // dirty
         "main",
         &[std::path::PathBuf::from("nonexistent")], // repos
     )
@@ -388,8 +399,9 @@ fn switch_commits_wokfile_with_submodule_state(repo_sample: TestRepo) {
         &repo_sample.repo(),
         &repo_sample.config_path(),
         &mut output,
-        true, // create
-        true, // all
+        true,  // create
+        true,  // all
+        false, // dirty
         "feature-branch",
         &[],
     )

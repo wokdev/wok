@@ -507,6 +507,51 @@ impl Repo {
         );
     }
 
+    /// Switch the repo to `branch_name` without touching the working tree beyond
+    /// what is strictly needed to update HEAD (no force-checkout, no clean check).
+    /// If the branch does not exist locally and `create` is true, create it at the
+    /// current HEAD commit. If `create` is false and the branch is not found
+    /// locally, bail with an error. Remote tracking is not consulted.
+    ///
+    /// This is the right call when the caller wants to preserve uncommitted changes.
+    pub fn switch_or_create_preserving(
+        &self,
+        branch_name: &str,
+        create: bool,
+    ) -> Result<()> {
+        // Already on the target branch — nothing to do.
+        if !self.git_repo.head_detached().with_context(|| {
+            format!(
+                "Cannot determine head state for repo at `{}`",
+                self.work_dir.display()
+            )
+        })? && let Ok(head) = self.git_repo.head()
+            && head.shorthand() == Some(branch_name)
+        {
+            return Ok(());
+        }
+
+        let local_ref = format!("refs/heads/{}", branch_name);
+        if self.git_repo.find_reference(&local_ref).is_ok() {
+            // Branch exists locally: update HEAD without touching the worktree.
+            self.git_repo.set_head(&local_ref)?;
+            return Ok(());
+        }
+
+        if create {
+            let head = self.git_repo.head()?;
+            let current_commit = head.peel_to_commit()?;
+            self.git_repo.branch(branch_name, &current_commit, false)?;
+            self.git_repo.set_head(&local_ref)?;
+            return Ok(());
+        }
+
+        bail!(
+            "Branch '{}' does not exist and --create not specified",
+            branch_name
+        );
+    }
+
     fn rebase(
         &self,
         _branch_name: &str,

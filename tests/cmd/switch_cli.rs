@@ -279,6 +279,203 @@ fn switch_no_branch_no_repos_reconciles_to_wokfile(repo_sample: TestRepo) {
     );
 }
 
+/// --dirty (-u short alias) selects only repos with uncommitted changes and
+/// switches them to the new branch while leaving clean repos untouched.
+#[rstest(repo_sample(vec!["sub-a", "sub-b"], Some("a-b.toml")))]
+fn switch_dirty_selects_only_changed_repos(repo_sample: TestRepo) {
+    let cargo_manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let wok_binary = env::var("CARGO_BIN_EXE_wok")
+        .unwrap_or_else(|_| format!("{}/target/debug/wok", cargo_manifest_dir));
+
+    let sub_a_path = &repo_sample.subrepo_paths["sub-a"];
+    let sub_b_path = &repo_sample.subrepo_paths["sub-b"];
+
+    // Commit the base wokfile so the umbrella has a HEAD commit.
+    _run("git add wok.toml", repo_sample.repo_path()).unwrap();
+    _run(
+        "git commit --allow-empty -m 'Add base wokfile'",
+        repo_sample.repo_path(),
+    )
+    .unwrap();
+
+    // Make sub-a dirty (untracked file) and leave sub-b clean.
+    fs::write(sub_a_path.join("dirty.txt"), "work in progress").unwrap();
+
+    // Run `wok switch -cub new-feature` (-u is the short alias for --dirty).
+    let output = Command::new(&wok_binary)
+        .arg("-f")
+        .arg(repo_sample.config_path())
+        .arg("switch")
+        .arg("-cub")
+        .arg("new-feature")
+        .current_dir(repo_sample.repo_path())
+        .output()
+        .expect("Failed to execute wok switch");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(
+        output.status.success(),
+        "Command failed. stdout: {stdout}, stderr: {stderr}"
+    );
+
+    // sub-a was dirty so it should be on new-feature.
+    let sub_a_branch = _run("git branch --show-current", sub_a_path).unwrap();
+    assert_eq!(
+        sub_a_branch.trim(),
+        "new-feature",
+        "sub-a (dirty) should be on new-feature. stdout: {stdout}\nstderr: {stderr}"
+    );
+
+    // The uncommitted change must still be present.
+    assert!(
+        sub_a_path.join("dirty.txt").exists(),
+        "Uncommitted change in sub-a should be preserved. stdout: {stdout}"
+    );
+
+    // sub-b was clean and not listed, so it must be untouched.
+    let sub_b_branch = _run("git branch --show-current", sub_b_path).unwrap();
+    assert_eq!(
+        sub_b_branch.trim(),
+        "main",
+        "sub-b (clean) should remain on main. stdout: {stdout}\nstderr: {stderr}"
+    );
+}
+
+/// --dirty combined with an explicit repo list: dirty repos AND listed repos are
+/// switched (union); other clean repos are left alone.
+#[rstest(repo_sample(vec!["sub-a", "sub-b"], Some("a-b.toml")))]
+fn switch_dirty_union_with_explicit_repos(repo_sample: TestRepo) {
+    let cargo_manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let wok_binary = env::var("CARGO_BIN_EXE_wok")
+        .unwrap_or_else(|_| format!("{}/target/debug/wok", cargo_manifest_dir));
+
+    let sub_a_path = &repo_sample.subrepo_paths["sub-a"];
+    let sub_b_path = &repo_sample.subrepo_paths["sub-b"];
+
+    // Commit the base wokfile.
+    _run("git add wok.toml", repo_sample.repo_path()).unwrap();
+    _run(
+        "git commit --allow-empty -m 'Add base wokfile'",
+        repo_sample.repo_path(),
+    )
+    .unwrap();
+
+    // Make sub-a dirty; leave sub-b clean.
+    fs::write(sub_a_path.join("dirty.txt"), "work in progress").unwrap();
+
+    // Run `wok switch -cub new-feature sub-b`: sub-a is dirty (auto-selected),
+    // sub-b is explicitly listed (selected even though clean).
+    let output = Command::new(&wok_binary)
+        .arg("-f")
+        .arg(repo_sample.config_path())
+        .arg("switch")
+        .arg("-cub")
+        .arg("new-feature")
+        .arg("sub-b")
+        .current_dir(repo_sample.repo_path())
+        .output()
+        .expect("Failed to execute wok switch");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(
+        output.status.success(),
+        "Command failed. stdout: {stdout}, stderr: {stderr}"
+    );
+
+    // Both sub-a (dirty) and sub-b (explicit) should be on new-feature.
+    let sub_a_branch = _run("git branch --show-current", sub_a_path).unwrap();
+    let sub_b_branch = _run("git branch --show-current", sub_b_path).unwrap();
+
+    assert_eq!(
+        sub_a_branch.trim(),
+        "new-feature",
+        "sub-a (dirty) should be on new-feature. stdout: {stdout}\nstderr: {stderr}"
+    );
+    assert_eq!(
+        sub_b_branch.trim(),
+        "new-feature",
+        "sub-b (explicit) should be on new-feature. stdout: {stdout}\nstderr: {stderr}"
+    );
+
+    // Uncommitted change in sub-a must survive.
+    assert!(
+        sub_a_path.join("dirty.txt").exists(),
+        "Uncommitted change in sub-a should be preserved"
+    );
+}
+
+/// `wok switch -cu` (no -b): dirty repos are switched to the umbrella's current
+/// branch; the branch is created when it doesn't exist yet. Clean repos are left
+/// alone.
+#[rstest(repo_sample(vec!["sub-a", "sub-b"], Some("a-b.toml")))]
+fn switch_dirty_no_branch_uses_umbrella_current_branch(repo_sample: TestRepo) {
+    let cargo_manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let wok_binary = env::var("CARGO_BIN_EXE_wok")
+        .unwrap_or_else(|_| format!("{}/target/debug/wok", cargo_manifest_dir));
+
+    let sub_a_path = &repo_sample.subrepo_paths["sub-a"];
+    let sub_b_path = &repo_sample.subrepo_paths["sub-b"];
+
+    // Switch the umbrella to a feature branch so the implied target is that branch.
+    _run("git switch -c feature-branch", repo_sample.repo_path()).unwrap();
+
+    // Commit the wokfile so the umbrella has a HEAD commit on feature-branch.
+    _run("git add wok.toml", repo_sample.repo_path()).unwrap();
+    _run(
+        "git commit --allow-empty -m 'Add base wokfile'",
+        repo_sample.repo_path(),
+    )
+    .unwrap();
+
+    // Make sub-a dirty; leave sub-b clean. Neither subrepo has feature-branch yet.
+    fs::write(sub_a_path.join("dirty.txt"), "work in progress").unwrap();
+
+    // Run `wok switch -cu`: no -b, so target = umbrella's current branch
+    // (feature-branch). -c creates the branch where needed. -u restricts to dirty.
+    let output = Command::new(&wok_binary)
+        .arg("-f")
+        .arg(repo_sample.config_path())
+        .arg("switch")
+        .arg("-cu")
+        .current_dir(repo_sample.repo_path())
+        .output()
+        .expect("Failed to execute wok switch");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(
+        output.status.success(),
+        "Command failed. stdout: {stdout}, stderr: {stderr}"
+    );
+
+    // sub-a was dirty so it should now be on feature-branch.
+    let sub_a_branch = _run("git branch --show-current", sub_a_path).unwrap();
+    assert_eq!(
+        sub_a_branch.trim(),
+        "feature-branch",
+        "sub-a (dirty) should be on feature-branch. stdout: {stdout}\nstderr: {stderr}"
+    );
+
+    // The uncommitted change must still be present after the switch.
+    assert!(
+        sub_a_path.join("dirty.txt").exists(),
+        "Uncommitted change in sub-a should be preserved"
+    );
+
+    // sub-b was clean and not listed, so it must remain on main.
+    let sub_b_branch = _run("git branch --show-current", sub_b_path).unwrap();
+    assert_eq!(
+        sub_b_branch.trim(),
+        "main",
+        "sub-b (clean) should remain on main. stdout: {stdout}\nstderr: {stderr}"
+    );
+}
+
 /// When -b is omitted and the umbrella is in detached HEAD state, wok should
 /// refuse with a descriptive error.
 #[rstest(repo_sample(vec!["sub-a"], Some("a.toml")))]
