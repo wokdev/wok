@@ -170,7 +170,7 @@ fn collect_relevant_status_entries(
     // Check if repo is clean - ignore certain files that are expected
     for entry in statuses.iter() {
         let status = entry.status();
-        let path = entry.path();
+        let path = entry.path().ok();
 
         // If it's just an untracked wok.toml file, we can consider the repo clean
         if status == git2::Status::WT_NEW && path == Some("wok.toml") {

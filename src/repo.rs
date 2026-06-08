@@ -406,7 +406,7 @@ impl Repo {
                 self.work_dir.display()
             )
         })? && let Ok(head) = self.git_repo.head()
-            && head.shorthand() == Some(branch_name)
+            && head.shorthand().ok() == Some(branch_name)
         {
             return Ok(());
         }
@@ -462,7 +462,7 @@ impl Repo {
                 self.work_dir.display()
             )
         })? && let Ok(head) = self.git_repo.head()
-            && head.shorthand() == Some(branch_name)
+            && head.shorthand().ok() == Some(branch_name)
         {
             return Ok(());
         }
@@ -526,7 +526,7 @@ impl Repo {
                 self.work_dir.display()
             )
         })? && let Ok(head) = self.git_repo.head()
-            && head.shorthand() == Some(branch_name)
+            && head.shorthand().ok() == Some(branch_name)
         {
             return Ok(());
         }

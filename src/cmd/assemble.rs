@@ -234,7 +234,9 @@ fn update_submodule_remote(
 
 fn repo_remote_url(repo: &Repository) -> Result<Option<String>> {
     match repo.find_remote("origin") {
-        std::result::Result::Ok(remote) => Ok(remote.url().map(|url| url.to_string())),
+        std::result::Result::Ok(remote) => {
+            Ok(remote.url().ok().map(|url| url.to_string()))
+        },
         Err(err) if err.code() == ErrorCode::NotFound => Ok(None),
         Err(err) => Err(err.into()),
     }

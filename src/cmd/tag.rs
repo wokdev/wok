@@ -410,7 +410,7 @@ fn list_tags(repo: &repo::Repo) -> Result<Vec<String>> {
     // Get all tag references
     let tag_names = repo.git_repo.tag_names(None)?;
 
-    for tag_name in tag_names.iter().flatten() {
+    for tag_name in tag_names.iter().flatten().flatten() {
         tags.push(tag_name.to_string());
     }
 
@@ -558,7 +558,7 @@ fn commit_has_tags(repo: &repo::Repo) -> Result<bool> {
     let tag_names = repo.git_repo.tag_names(None)?;
 
     // Check each tag to see if it points to HEAD
-    for tag_name in tag_names.iter().flatten() {
+    for tag_name in tag_names.iter().flatten().flatten() {
         let tag_ref = repo
             .git_repo
             .find_reference(&format!("refs/tags/{}", tag_name))?;
@@ -625,7 +625,7 @@ fn push_tags(repo: &repo::Repo) -> Result<PushResult> {
     drop(connection);
 
     let mut refspecs: Vec<String> = Vec::new();
-    for tag_name in tag_names.iter().flatten() {
+    for tag_name in tag_names.iter().flatten().flatten() {
         let refname = format!("refs/tags/{tag_name}");
         let reference = repo.git_repo.find_reference(&refname)?;
         let target_oid = reference.target().with_context(|| {

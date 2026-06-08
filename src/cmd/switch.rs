@@ -395,8 +395,7 @@ fn build_switch_commit_message(
                             std::result::Result::Ok(subrepo_git) => {
                                 match subrepo_git.head() {
                                     std::result::Result::Ok(head_ref) => {
-                                        if let Some(branch_name) = head_ref.shorthand()
-                                        {
+                                        if let Ok(branch_name) = head_ref.shorthand() {
                                             changed_submodules.push((
                                                 submodule_name,
                                                 branch_name.to_string(),

@@ -11,9 +11,7 @@ pub fn test_auth<W: Write>(repo: &repo::Repo, stdout: &mut W) -> Result<()> {
 
     // Get current branch
     let head_ref = repo.git_repo.head()?;
-    let branch_name = head_ref
-        .shorthand()
-        .ok_or_else(|| anyhow!("Cannot get branch name"))?;
+    let branch_name = head_ref.shorthand().context("Cannot get branch name")?;
 
     writeln!(stdout, "Current branch: {}", branch_name)?;
 

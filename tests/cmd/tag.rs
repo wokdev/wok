@@ -581,5 +581,8 @@ fn tag_create_with_message(repo_sample: TestRepo) {
         .revparse_single("refs/tags/v1.0.0")
         .unwrap();
     let tag = tag_obj.as_tag().unwrap();
-    assert_eq!(tag.message().unwrap().trim(), "Release version 1.0.0");
+    assert_eq!(
+        tag.message().unwrap().unwrap_or("").trim(),
+        "Release version 1.0.0"
+    );
 }

@@ -64,7 +64,10 @@ fn tag_implicit_create_with_message_flag(repo_sample: TestRepo) {
         .revparse_single("refs/tags/v1.0.0")
         .expect("Tag should exist");
     let tag = tag_obj.as_tag().expect("Should be an annotated tag");
-    assert_eq!(tag.message().unwrap().trim(), "Release v1.0.0");
+    assert_eq!(
+        tag.message().unwrap().unwrap_or("").trim(),
+        "Release v1.0.0"
+    );
 }
 
 /// Test that the implicit create syntax works with short -m flag
@@ -98,7 +101,10 @@ fn tag_implicit_create_with_message_short_flag(repo_sample: TestRepo) {
         .revparse_single("refs/tags/v2.0.0")
         .expect("Tag should exist");
     let tag = tag_obj.as_tag().expect("Should be an annotated tag");
-    assert_eq!(tag.message().unwrap().trim(), "Release v2.0.0");
+    assert_eq!(
+        tag.message().unwrap().unwrap_or("").trim(),
+        "Release v2.0.0"
+    );
 }
 
 /// Test that explicit create syntax also works with flags
@@ -140,7 +146,10 @@ fn tag_explicit_create_with_message_flag(repo_sample: TestRepo) {
         .revparse_single("refs/tags/v3.0.0")
         .expect("Tag should exist");
     let tag = tag_obj.as_tag().expect("Should be an annotated tag");
-    assert_eq!(tag.message().unwrap().trim(), "Release v3.0.0");
+    assert_eq!(
+        tag.message().unwrap().unwrap_or("").trim(),
+        "Release v3.0.0"
+    );
 }
 
 /// Test that list subcommand works
