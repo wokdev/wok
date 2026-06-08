@@ -123,9 +123,9 @@ enum App {
         #[clap(long)]
         all: bool,
 
-        /// Use specified branch name instead of current main repo branch
+        /// Branch to target; defaults to the umbrella repo's current branch
         #[clap(short, long)]
-        branch: String,
+        branch: Option<String>,
 
         /// Specific repos to switch (if not provided, acts on all matching repos)
         repos: Vec<path::PathBuf>,
@@ -333,29 +333,47 @@ fn main() -> Result<()> {
                     branch,
                     repos,
                 } => {
-                    umbrella
-                        .ensure_on_branch_existing_or_remote(&branch, create)
-                        .with_context(|| {
-                            format!("Cannot switch umbrella repo to '{}'", branch)
-                        })?;
-                    let umbrella = wok::repo::Repo::new(repo_dir, None)?;
-
                     if !config_path.exists() {
                         bail!("Git Wok file not found at `{}`", config_path.display());
                     };
 
-                    let wokfile_rel = config_path
-                        .strip_prefix(&umbrella.work_dir)
-                        .with_context(|| {
-                            format!(
-                                "Wokfile must be inside umbrella repo: `{}`",
-                                config_path.display()
-                            )
-                        })?;
-                    umbrella
-                        .checkout_path_from_head(wokfile_rel)
-                        .context("Cannot refresh wokfile from umbrella HEAD")?;
+                    let effective_branch = match branch {
+                        Some(ref b) => {
+                            umbrella
+                                .ensure_on_branch_existing_or_remote(b, create)
+                                .with_context(|| {
+                                    format!("Cannot switch umbrella repo to '{}'", b)
+                                })?;
+                            let umbrella = wok::repo::Repo::new(repo_dir, None)?;
+                            let wokfile_rel = config_path
+                                .strip_prefix(&umbrella.work_dir)
+                                .with_context(|| {
+                                    format!(
+                                        "Wokfile must be inside umbrella repo: `{}`",
+                                        config_path.display()
+                                    )
+                                })?;
+                            umbrella
+                                .checkout_path_from_head(wokfile_rel)
+                                .context("Cannot refresh wokfile from umbrella HEAD")?;
+                            b.clone()
+                        },
+                        None => {
+                            if umbrella.head == "<detached>" {
+                                bail!(
+                                    "Umbrella repo is in detached HEAD state; pass -b <BRANCH> to specify a target branch"
+                                );
+                            }
+                            // No branch given: use the umbrella's current branch as
+                            // the target for any forced repos (explicit repos or
+                            // --all). Repos that are not forced reconcile to their
+                            // wok.toml head as usual, so a bare `wok switch`
+                            // reconciles everything to the wok.toml state.
+                            umbrella.head.clone()
+                        },
+                    };
 
+                    let umbrella = wok::repo::Repo::new(repo_dir, None)?;
                     let mut wok_config = wok::config::Config::load(&config_path)?;
 
                     let config_changed = wok::cmd::switch(
@@ -365,7 +383,7 @@ fn main() -> Result<()> {
                         &mut output,
                         create,
                         all,
-                        &branch,
+                        &effective_branch,
                         &repos,
                     )?;
                     if config_changed {

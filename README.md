@@ -32,6 +32,9 @@ wok init
 # Check workspace state
 wok status
 
+# Reconcile repos to the wok.toml state on the current branch
+wok switch
+
 # Reconcile repos using branch state from wok.toml on "main"
 wok switch -b main
 

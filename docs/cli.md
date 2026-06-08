@@ -204,10 +204,10 @@ git rm component
 ### switch
 
 ```sh
-wok switch -b <BRANCH> [OPTIONS] [REPOS]...
+wok switch [-b <BRANCH>] [OPTIONS] [REPOS]...
 ```
 
-Switch repositories using a target umbrella branch and its wokfile state.
+Switch repositories using a target umbrella branch and its wokfile state. When `-b` is omitted, the umbrella repo's current branch is used as the target and the umbrella is not switched.
 
 **Options:**
 
@@ -237,18 +237,27 @@ wok switch -b <BRANCH_NAME>
 wok switch --branch <BRANCH_NAME>
 ```
 
-Required. Switch the umbrella repo to this branch first, then load the wokfile from that branch to determine subrepo branches.
+Optional. When provided, switch the umbrella repo to this branch first, then load the wokfile from that branch to determine subrepo branches. When omitted, the umbrella repo's **current** branch is used as the target and the umbrella is not switched (its working-tree wokfile is used as-is). If the umbrella is in a detached HEAD state, `-b` must be provided.
 
 #### repos
 
 ```sh
-wok switch -b <BRANCH> <REPO1> <REPO2> ...
+wok switch [-b <BRANCH>] <REPO1> <REPO2> ...
 ```
 
 Specific repositories to force onto the umbrella branch after the base reconcile. If not provided and `--all` is not used, the command only reconciles repos to the wokfile’s per-repo heads.
 
 **Examples:**
 ```sh
+# Reconcile every repo to the wokfile state on the current umbrella branch
+wok switch
+
+# Force specific repos to the current umbrella branch (no -b)
+wok switch api frontend
+
+# Force all non-skipped repos to the current umbrella branch (no -b)
+wok switch --all
+
 # Reconcile repos to the wokfile on branch main
 wok switch -b main
 
@@ -261,9 +270,6 @@ wok switch -b main api frontend
 # Switch umbrella to a specific branch and force all repos to it
 wok switch -b develop --all
 
-# Switch to specific branch (short form)
-wok switch -b develop --all
-
 # Create and switch to new branch (long form)
 wok switch -b feature-new --all --create
 
@@ -272,8 +278,8 @@ wok switch -b feature-new --all -c
 ```
 
 **Behavior:**
-- Switch the umbrella repository to the target branch before loading `wok.toml`
-- Reconcile subrepos to the per-repo `head` values in the target branch’s wokfile
+- When `-b` is provided, switch the umbrella repository to the target branch before loading `wok.toml`; when omitted, use the umbrella's current branch as the target and leave the umbrella unchanged
+- Reconcile subrepos to the per-repo `head` values in the wokfile (so a bare `wok switch` reconciles everything to the `wok.toml` state)
 - When using `--all` or explicit repo arguments, force those repos to the umbrella branch and update `wok.toml` accordingly
 - Commit submodule pointer changes **and** any wokfile changes together
 - Skip repos with `switch` in their `skip_for` list (unless explicitly targeted)
