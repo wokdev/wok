@@ -6,3 +6,6 @@
 	path = homebrew-wok
 	url = ../homebrew-wok.git
 	branch = main
+[submodule "skills"]
+	path = skills
+	url = ssh://git@codeberg.org/wok/skills.git
