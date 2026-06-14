@@ -114,10 +114,10 @@ get_sha256() {
     local crate_url="https://static.crates.io/crates/git-wok/${crate_name}"
 
     if [[ -f "$local_crate" ]]; then
-        print_info "Using locally packaged crate: $local_crate"
+        print_info "Using locally packaged crate: $local_crate" >&2
         compute_sha256 "$local_crate"
     else
-        print_info "Downloading crate from crates.io..."
+        print_info "Downloading crate from crates.io..." >&2
         if ! command -v curl &> /dev/null; then
             print_error "curl not found. Install it: sudo dnf install curl"
         fi
