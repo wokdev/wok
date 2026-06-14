@@ -20,6 +20,16 @@ releases from a single umbrella repository.
 - Shell completion generation for Bash, Zsh, and Fish
 - Authentication diagnostics with `test-auth`
 
+## Agent Skills
+
+AI agents working in a wok-managed workspace can install the [wok agent skills](https://codeberg.org/wok/skills) to operate multirepos correctly using the `wok` CLI:
+
+```bash
+npx skills add https://codeberg.org/wok/skills
+```
+
+Supports Cursor, Claude Code, Codex, Gemini CLI, OpenCode, and [65+ more agents](https://agentskills.io).
+
 ## Quick Start
 
 ```sh
