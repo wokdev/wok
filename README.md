@@ -25,7 +25,7 @@ releases from a single umbrella repository.
 AI agents working in a wok-managed workspace can install the [wok agent skills](https://codeberg.org/wok/skills) to operate multirepos correctly using the `wok` CLI:
 
 ```bash
-npx skills add https://codeberg.org/wok/skills
+npx skills add https://codeberg.org/wok/skills.git
 ```
 
 Supports Cursor, Claude Code, Codex, Gemini CLI, OpenCode, and [65+ more agents](https://agentskills.io).
