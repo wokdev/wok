@@ -10,6 +10,13 @@ Submodule objects, once committed to the umbrella repository, serve as a lock fi
 
 ## Installation
 
+### With Homebrew (macOS/Linux)
+
+```sh
+brew tap wok/wok https://codeberg.org/wok/homebrew-wok
+brew install wok
+```
+
 ### From crates.io
 
 ```sh

@@ -33,6 +33,14 @@ update-site-no-clean:
 update-site-verbose-no-clean:
     bash scripts/update-site.sh --verbose --no-clean
 
+# Update Homebrew formula (homebrew-wok submodule) to VERSION.
+update-formula VERSION:
+    bash scripts/update-formula.sh "{{VERSION}}"
+
+# Show what would change, without modifying the formula.
+update-formula-dry VERSION:
+    bash scripts/update-formula.sh --dry-run "{{VERSION}}"
+
 # Release flow. VERSION is a semver like 1.2.3 or 1.2.3-rc.1.
 release VERSION:
     just bump-version "{{VERSION}}"
@@ -43,6 +51,12 @@ release VERSION:
     git commit --allow-empty -m "Bump version to v{{VERSION}}"
     wok push
     cargo publish
+    just update-formula "{{VERSION}}"
+    git -C homebrew-wok add -A
+    git -C homebrew-wok commit --allow-empty -m "Update wok formula to v{{VERSION}}"
+    git add homebrew-wok
+    git commit --allow-empty -m "Update Homebrew formula to v{{VERSION}}"
+    wok push
     wok tag create "v{{VERSION}}" -sm "v{{VERSION}}"
     wok tag push
 

@@ -23,7 +23,11 @@ releases from a single umbrella repository.
 ## Quick Start
 
 ```sh
-# Install from crates.io
+# Install via Homebrew (macOS/Linux)
+brew tap wok/wok https://codeberg.org/wok/homebrew-wok
+brew install wok
+
+# Or install from crates.io
 cargo install git-wok
 
 # In an existing umbrella repository with submodules

@@ -3,3 +3,7 @@ version = "1.0"
 [[repo]]
 path = "site"
 head = "main"
+
+[[repo]]
+path = "homebrew-wok"
+head = "main"

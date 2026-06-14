@@ -2,3 +2,7 @@
 	path = site
 	url = ../pages.git
 	branch = main
+[submodule "homebrew-wok"]
+	path = homebrew-wok
+	url = ../homebrew-wok.git
+	branch = main

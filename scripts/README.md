@@ -294,6 +294,140 @@ When modifying this script:
 
 ---
 
+### update-formula.sh
+
+Updates the Homebrew formula (`homebrew-wok/Formula/wok.rb`) with the `url` and `sha256` for a new release version.
+
+#### Purpose
+
+This script simplifies Homebrew formula maintenance by:
+
+1. Validating the provided version number follows semantic versioning
+2. Resolving the crate sha256 (from `target/package/` if available, otherwise by downloading from crates.io)
+3. Rewriting the `url` and `sha256` lines in the formula file
+4. Working on both Linux and macOS
+
+#### Prerequisites
+
+- **curl**: Required to download the crate when no local package exists (`sudo dnf install curl`)
+- **sha256sum** (Linux) or **shasum** (macOS): Required to compute the sha256 hash
+  - On Fedora/RHEL: `sudo dnf install coreutils`
+  - Pre-installed on macOS
+
+#### Usage
+
+##### Basic Usage
+
+Update the formula to a new release version:
+
+```bash
+./scripts/update-formula.sh 1.6.0
+```
+
+##### Dry Run Mode
+
+Preview what changes would be made without modifying the formula:
+
+```bash
+./scripts/update-formula.sh --dry-run 1.6.0
+```
+
+This prints the `url` and `sha256` that would be written, without touching the file.
+
+#### Command-Line Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--help` | `-h` | Show help message and exit |
+| `--dry-run` | | Preview changes without modifying the formula |
+
+#### What the Script Does
+
+1. **Version Validation**
+   - Checks that the provided version follows semantic versioning format
+
+2. **Prerequisites Check**
+   - Verifies `homebrew-wok/Formula/wok.rb` exists (submodule initialized)
+   - Confirms a sha256 tool is available
+
+3. **Resolve sha256**
+   - If `target/package/git-wok-VERSION.crate` exists (produced by `cargo package`/`cargo publish`), hashes that file — no network required, and the hash matches the upload exactly
+   - Otherwise, downloads `https://static.crates.io/crates/git-wok/git-wok-VERSION.crate` to a temp file, hashes it, and removes the temp file
+
+4. **Update Formula**
+   - Rewrites the `url "https://static.crates.io/..."` line
+   - Rewrites the `sha256 "..."` line
+   - Handles the `sed -i` difference between Linux (GNU sed) and macOS (BSD sed)
+
+#### Workflow Integration
+
+##### Release Process
+
+The script is wired into `just release` and runs automatically after `cargo publish`:
+
+```bash
+just release 1.6.0
+```
+
+To run it manually:
+
+```bash
+# Update formula
+./scripts/update-formula.sh 1.6.0
+
+# Commit the formula
+git -C homebrew-wok add -A
+git -C homebrew-wok commit -m "Update wok formula to v1.6.0"
+
+# Update the umbrella submodule pointer
+git add homebrew-wok
+git commit -m "Update Homebrew formula to v1.6.0"
+
+# Push everything
+wok push
+```
+
+#### Troubleshooting
+
+##### "Formula not found"
+
+**Problem**: `homebrew-wok/Formula/wok.rb` doesn't exist.
+
+**Solution**: Initialize the submodule:
+```bash
+git submodule update --init homebrew-wok
+```
+
+##### "Neither sha256sum nor shasum found"
+
+**Problem**: No sha256 hashing tool is available.
+
+**Solution**: Install coreutils:
+```bash
+sudo dnf install coreutils
+```
+
+##### "Failed to download crate"
+
+**Problem**: The crate URL returned an error (e.g., the version hasn't been published yet).
+
+**Solution**: Run `cargo publish` first so the crate is available on crates.io, or use a locally packaged crate:
+```bash
+cargo package
+./scripts/update-formula.sh 1.6.0  # Will use target/package/git-wok-1.6.0.crate
+```
+
+##### "Permission denied"
+
+**Problem**: The script doesn't have execute permissions.
+
+**Solution**: Make the script executable:
+```bash
+chmod +x scripts/update-formula.sh
+```
+
+---
+
 ### update-site.sh
 
 Automates the process of building documentation with MkDocs and generating the static site files.
