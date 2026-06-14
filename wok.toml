@@ -7,3 +7,8 @@ head = "main"
 [[repo]]
 path = "homebrew-wok"
 head = "main"
+
+[[repo]]
+path = "skills"
+head = "main"
+skip_for = ["tag"]
