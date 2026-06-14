@@ -14,6 +14,7 @@ Submodule objects, once committed to the umbrella repository, serve as a lock fi
 
 ```sh
 brew tap wok/wok https://codeberg.org/wok/homebrew-wok
+brew trust wok/wok
 brew install wok
 ```
 
@@ -30,6 +31,16 @@ git clone https://codeberg.org/wok/wok
 cd wok
 cargo install --path .
 ```
+
+## Agent Skills
+
+AI agents working in a wok-managed workspace can install the [wok agent skills](https://codeberg.org/wok/skills) to operate multirepos correctly using the `wok` CLI:
+
+```sh
+npx skills add https://codeberg.org/wok/skills.git
+```
+
+Supports Cursor, Claude Code, Codex, Gemini CLI, OpenCode, and [65+ more agents](https://agentskills.io).
 
 ## Creating a Workspace
 

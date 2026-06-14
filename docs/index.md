@@ -22,6 +22,7 @@ and releases from a single umbrella repository.
 - Git LFS-aware `update` and `push`
 - Shell completion support for Bash, Zsh, and Fish
 - Authentication diagnostics with `test-auth`
+- Agent Skills for AI-assisted multirepo workflows
 
 [Get started](getting-started.md){ .md-button .md-button--primary }
 [View Commands](cli.md){ .md-button }

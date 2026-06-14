@@ -35,6 +35,7 @@ Supports Cursor, Claude Code, Codex, Gemini CLI, OpenCode, and [65+ more agents]
 ```sh
 # Install via Homebrew (macOS/Linux)
 brew tap wok/wok https://codeberg.org/wok/homebrew-wok
+brew trust wok/wok
 brew install wok
 
 # Or install from crates.io
