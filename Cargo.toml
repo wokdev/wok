@@ -17,7 +17,7 @@ path = "src/bin/git_wok.rs"
 anyhow = "1.0.102"
 clap = { version = "4.6.1", features = ["derive"] }
 clap_complete = "4.6.5"
-git2 = { version = "0.21.0", features = ["cred"] }
+git2 = { version = "0.21.0", features = ["https", "ssh"] }
 serde = { version = "1.0.228", features = ["derive"] }
 toml = "1.1.2"
 
