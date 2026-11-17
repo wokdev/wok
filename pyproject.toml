@@ -1,14 +1,72 @@
 [project]
-name = "wok-docs"
+name = "wok"
 version = "1.5.2"
-description = ""
-authors = [
-    {name = "Serge Matveenko", email = "lig@countzero.co"}
-]
-license = {text = "MIT"}
+description = "Git Wok -- control several git repositories as a single project."
+authors = [{ name = "Serge Matveenko", email = "lig@countzero.co" }]
+license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "mkdocs-material>=9.2.4",
-    "mdx-truly-sane-lists>=1.3",
+    "click>=8.3.1",
+    "rich>=13.7",
+    "tomli-w>=1.1",
+    "typer>=0.12.5",
 ]
+
+[project.scripts]
+wok = "wok.cli:main"
+
+[dependency-groups]
+dev = [
+    "pyrefly>=0.42",
+    "pytest>=8",
+    "ruff>=0.8",
+]
+docs = [
+    "mdx-truly-sane-lists>=1.3",
+    "mkdocs-material>=9.2.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wok"]
+
+[tool.uv]
+default-groups = ["dev", "docs"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+preview = true
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "B",
+    "SIM",
+    "correctness",
+    "suspicious",
+    "complexity",
+    "performance",
+    "style",
+]
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.pyrefly]
+project-includes = ["src", "tests"]
+search-path = ["src", "."]
+python-version = "3.11"
+preset = "default"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
