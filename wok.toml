@@ -6,7 +6,7 @@ head = "main"
 
 [[repo]]
 path = "homebrew-wok"
-head = "main"
+head = "python-rewrite"
 
 [[repo]]
 path = "skills"
