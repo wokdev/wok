@@ -184,3 +184,62 @@ def test_status_missing_wokfile(repo_sample) -> None:
     assert "not found" in (result.stderr + result.output).lower() or "Cannot read" in (
         result.stderr + result.output
     )
+
+
+def test_with_submodules_branch_matches_no_changes(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    output = StringIO()
+    status(Config.load(sample.config_path()), sample.repo(), output, False)
+    assert output.getvalue() == "✅ umbrella [main]: clean\n✅ sub-a [main]: clean\n"
+
+
+def test_with_submodules_branch_doesnt_match_no_changes(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    git(["add", "."], sample.root)
+    git(["commit", "-m", "baseline"], sample.root)
+    git(["checkout", "-b", "develop"], sample.subrepo_path("sub-a"))
+    output = StringIO()
+    status(Config.load(sample.config_path()), sample.repo(), output, False)
+    text = output.getvalue()
+    assert "✅ umbrella [main]: clean" in text
+    assert "✅ sub-a [develop]: clean" in text
+    assert ": clean" in text
+
+
+def test_with_submodules_branch_doesnt_match_with_changes(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    sub = sample.subrepo_path("sub-a")
+    git(["add", "."], sample.root)
+    git(["commit", "-m", "baseline"], sample.root)
+    git(["checkout", "-b", "develop"], sub)
+    git(["add", "."], sample.root)
+    try:
+        git(["commit", "-m", "switch sub-a to develop"], sample.root)
+    except AssertionError as exc:
+        if "nothing to commit" not in str(exc) and "nothing added" not in str(exc):
+            raise
+    (sub / "CHANGES.md").write_text("some changes")
+    output = StringIO()
+    status(Config.load(sample.config_path()), sample.repo(), output, False)
+    text = output.getvalue()
+    assert "🔒 umbrella [main]: needs locking" in text
+    assert "❌ sub-a [develop]: has uncommitted changes" in text
+    assert "has uncommitted changes" in text
+
+
+def test_status_shows_umbrella_remote_status(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    git(["add", "."], sample.root)
+    git(["commit", "-m", "baseline"], sample.root)
+    remote_parent = sample.root.parent / f"remotes-{sample.root.name}"
+    remote_parent.mkdir()
+    remote = remote_parent / "umbrella.git"
+    git(["init", "--bare", remote.name], remote_parent)
+    git(["remote", "add", "origin", str(remote)], sample.root)
+    git(["push", "-u", "origin", "main"], sample.root)
+    (sample.root / "README.md").write_text("umbrella change")
+    git(["add", "README.md"], sample.root)
+    git(["commit", "-m", "umbrella commit"], sample.root)
+    output = StringIO()
+    status(Config.load(sample.config_path()), sample.repo(), output, False)
+    assert "⬆ umbrella [main]: new commits" in output.getvalue()

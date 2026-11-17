@@ -220,3 +220,92 @@ def test_failing_pre_push_hook_is_reported(repo_sample) -> None:
     )
     assert "failed" in output.getvalue()
     assert not (remote / "refs" / "heads" / "main").exists()
+
+
+def _push(
+    sample, *, upstream=False, all_repos=False, branch=None, umbrella=True, targets=None
+):
+    output = StringIO()
+    push(
+        Config.load(sample.config_path()),
+        sample.repo(),
+        output,
+        upstream,
+        all_repos,
+        branch,
+        umbrella,
+        list(targets or []),
+    )
+    return output.getvalue()
+
+
+def test_push_all_repos(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    text = _push(sample, all_repos=True)
+    assert "Pushing 2 repositories to branch 'main'" in text
+    assert "- 'umbrella':" in text
+    assert "- 'sub-a':" in text
+    assert (
+        "pushed to 'main'" in text
+        or "already up to date" in text
+        or "no remote configured, skipping" in text
+    )
+    assert "Successfully processed 2 repositories" in text
+
+
+def test_push_multiple_repos(repo_sample) -> None:
+    sample = repo_sample(["sub-a", "sub-b"], "a-b.toml")
+    text = _push(sample, all_repos=True)
+    assert "Pushing 3 repositories to branch 'main'" in text
+    assert "- 'umbrella':" in text
+    assert "- 'sub-a':" in text
+    assert "- 'sub-b':" in text
+    assert "Successfully processed 3 repositories" in text
+
+
+def test_push_specific_multiple_repos(repo_sample) -> None:
+    sample = repo_sample(["sub-a", "sub-b"], "a-b.toml")
+    text = _push(sample, targets=[Path("sub-a"), Path("sub-b")])
+    assert "Pushing 3 repositories to branch 'main'" in text
+    assert "- 'umbrella':" in text
+    assert "- 'sub-a':" in text
+    assert "- 'sub-b':" in text
+    assert "Successfully processed 3 repositories" in text
+
+
+def test_push_skips_umbrella_when_disabled(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    text = _push(sample, all_repos=True, umbrella=False)
+    assert "Pushing 1 repositories to branch 'main'" in text
+    assert "- 'umbrella':" not in text
+    assert "- 'sub-a':" in text
+    assert "Successfully processed 1 repositories" in text
+
+
+def test_push_with_branch_option(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    text = _push(sample, branch="develop")
+    assert "Pushing 2 repositories to branch 'develop'" in text
+    assert "- 'umbrella':" in text
+    assert "Successfully processed 2 repositories" in text
+
+
+def test_push_with_upstream_option(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    text = _push(sample, upstream=True)
+    assert "Pushing 2 repositories to branch 'main'" in text
+    assert "- 'umbrella':" in text
+    assert (
+        "pushed to 'main' and set upstream" in text
+        or "already up to date" in text
+        or "no remote configured, skipping" in text
+    )
+    assert "Successfully processed 2 repositories" in text
+
+
+def test_push_with_no_repos(repo_sample) -> None:
+    sample = repo_sample([], "empty.toml")
+    text = _push(sample)
+    assert "Pushing 1 repositories to branch 'main'" in text
+    assert "- 'umbrella':" in text
+    assert "Successfully processed 1 repositories" in text

@@ -226,6 +226,144 @@ def test_implicit_create_via_cli(repo_sample) -> None:
     assert "Release v1.0.0" in message
 
 
+def _tag(
+    sample,
+    name,
+    *,
+    sign=False,
+    message=None,
+    push=False,
+    all_repos=False,
+    umbrella=True,
+    targets=None,
+) -> str:
+    output = StringIO()
+    tag(
+        Config.load(sample.config_path()),
+        sample.repo(),
+        output,
+        name,
+        sign,
+        message,
+        push,
+        all_repos,
+        umbrella,
+        list(targets or []),
+    )
+    return output.getvalue()
+
+
+def _annotated_message(path: Path, name: str) -> str:
+    assert git(["cat-file", "-t", f"refs/tags/{name}"], path).strip() == "tag"
+    return git(
+        ["for-each-ref", "--format=%(contents)", f"refs/tags/{name}"], path
+    ).strip()
+
+
+def test_tag_create_specific_repo(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    text = _tag(sample, "v1.0.0", targets=[Path("sub-a")])
+    assert "Creating tag 'v1.0.0' in 2 repositories" in text
+    assert "- 'umbrella': created tag 'v1.0.0'" in text
+    assert "- 'sub-a': created tag 'v1.0.0'" in text
+    assert "Successfully processed 2 repositories" in text
+
+
+def test_tag_create_with_sign(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    text = _tag(sample, "v1.0.0", sign=True, all_repos=True)
+    assert "Creating tag 'v1.0.0' in 2 repositories" in text
+    if "failed to create tag" not in text:
+        assert "- 'umbrella': created tag 'v1.0.0'" in text
+        assert "- 'sub-a': created tag 'v1.0.0'" in text
+        assert "Successfully processed 2 repositories" in text
+        return
+    assert "failed to create tag 'v1.0.0'" in text
+    assert "gpg" in text.lower() or "sign" in text.lower()
+
+
+def test_tag_create_with_push(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    text = _tag(sample, "v1.0.0", push=True, all_repos=True)
+    assert "Creating tag 'v1.0.0' in 2 repositories" in text
+    assert "- 'umbrella':" in text
+    assert "- 'sub-a': created tag 'v1.0.0'" in text
+    assert "Pushing tags to remotes" in text
+    assert "Successfully processed 2 repositories" in text
+
+
+def test_tag_list_all_repos(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    text = _tag(sample, None, all_repos=True)
+    assert "Listing tags in" not in text
+    assert "✅ umbrella [no-tags]: no tags found" in text
+    assert "✅ sub-a [no-tags]: no tags found" in text
+    assert "Successfully processed" not in text
+
+
+def test_tag_list_specific_repo(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    text = _tag(sample, None, targets=[Path("sub-a")])
+    assert "Listing tags in" not in text
+    assert "✅ umbrella [no-tags]: no tags found" in text
+    assert "✅ sub-a [no-tags]: no tags found" in text
+    assert "Successfully processed" not in text
+
+
+def test_tag_list_skips_umbrella_when_disabled(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    text = _tag(sample, None, all_repos=True, umbrella=False)
+    assert "Listing tags in" not in text
+    assert " umbrella:" not in text
+    assert "✅ sub-a [no-tags]: no tags found" in text
+    assert "Successfully processed" not in text
+
+
+def test_tag_default_skips_configured_repo(repo_sample) -> None:
+    sample = repo_sample(["sub-a", "sub-b"], "a-b-skip.toml")
+    text = _tag(sample, None)
+    assert "Listing tags in" not in text
+    assert "✅ umbrella [no-tags]: no tags found" in text
+    assert " sub-a:" not in text
+    assert "✅ sub-b [no-tags]: no tags found" in text
+    assert "Successfully processed" not in text
+
+
+def test_tag_multiple_repos(repo_sample) -> None:
+    sample = repo_sample(["sub-a", "sub-b"], "a-b.toml")
+    text = _tag(sample, "v1.0.0", all_repos=True)
+    assert "Creating tag 'v1.0.0' in 3 repositories" in text
+    assert "- 'umbrella':" in text
+    assert "- 'sub-a': created tag 'v1.0.0'" in text
+    assert "- 'sub-b': created tag 'v1.0.0'" in text
+    assert "Successfully processed 3 repositories" in text
+
+
+def test_tag_specific_multiple_repos(repo_sample) -> None:
+    sample = repo_sample(["sub-a", "sub-b"], "a-b.toml")
+    text = _tag(sample, "v1.0.0", targets=[Path("sub-a"), Path("sub-b")])
+    assert "Creating tag 'v1.0.0' in 3 repositories" in text
+    assert "- 'umbrella': created tag 'v1.0.0'" in text
+    assert "- 'sub-a': created tag 'v1.0.0'" in text
+    assert "- 'sub-b': created tag 'v1.0.0'" in text
+    assert "Successfully processed 3 repositories" in text
+
+
+def test_tag_with_no_repos(repo_sample) -> None:
+    sample = repo_sample([], "empty.toml")
+    text = _tag(sample, None)
+    assert "Listing tags in" not in text
+    assert "✅ umbrella [no-tags]: no tags found" in text
+    assert "Successfully processed" not in text
+
+
+def test_tag_no_repos_without_umbrella(repo_sample) -> None:
+    sample = repo_sample([], "empty.toml")
+    text = _tag(sample, None, all_repos=False, umbrella=False)
+    assert "No repositories to tag" in text
+    assert "- 'umbrella':" not in text
+
+
 def test_tag_all_with_repos_is_rejected() -> None:
     from typer.testing import CliRunner
 
@@ -236,3 +374,93 @@ def test_tag_all_with_repos_is_rejected() -> None:
     assert "Cannot specify repositories when using --all" in (
         result.stderr + result.output
     )
+
+
+def _invoke(sample, *args: str):
+    from typer.testing import CliRunner
+
+    from wok.cli import app
+
+    result = CliRunner().invoke(app, ["-f", str(sample.config_path()), "tag", *args])
+    return result
+
+
+def test_tag_implicit_create_with_sign_flag(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    result = _invoke(sample, "v1.0.0", "--sign", "--all")
+    combined = result.stdout + result.stderr + result.output
+    assert "Creating tag 'v1.0.0'" in result.stdout or "GPG" in combined
+
+
+def test_tag_implicit_create_with_message_flag(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    result = _invoke(sample, "v1.0.0", "--message", "Release v1.0.0", "--all")
+    assert result.exit_code == 0, result.output + result.stderr
+    assert "Creating tag 'v1.0.0'" in result.stdout
+    assert "created tag 'v1.0.0'" in result.stdout
+    assert _annotated_message(sample.root, "v1.0.0") == "Release v1.0.0"
+
+
+def test_tag_implicit_create_with_message_short_flag(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    result = _invoke(sample, "v2.0.0", "-m", "Release v2.0.0", "--all")
+    assert result.exit_code == 0, result.output + result.stderr
+    assert "Creating tag 'v2.0.0'" in result.stdout
+    assert "created tag 'v2.0.0'" in result.stdout
+    assert _annotated_message(sample.root, "v2.0.0") == "Release v2.0.0"
+
+
+def test_tag_explicit_create_with_message_flag(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    result = _invoke(sample, "--all", "create", "v3.0.0", "-m", "Release v3.0.0")
+    assert result.exit_code == 0, result.output + result.stderr
+    assert "Creating tag 'v3.0.0'" in result.stdout
+    assert "created tag 'v3.0.0'" in result.stdout
+    assert _annotated_message(sample.root, "v3.0.0") == "Release v3.0.0"
+
+
+def test_tag_list_subcommand(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    created = _invoke(sample, "--all", "create", "v1.0.0")
+    assert created.exit_code == 0, created.output + created.stderr
+    result = _invoke(sample, "--all", "list")
+    assert result.exit_code == 0, result.output + result.stderr
+    assert "✅ umbrella [v1.0.0]: v1.0.0" in result.stdout
+    assert "✅ sub-a [v1.0.0]: v1.0.0" in result.stdout
+
+
+def test_tag_implicit_list(repo_sample) -> None:
+    sample = repo_sample(["sub-a"], "a.toml")
+    created = _invoke(sample, "--all", "create", "v1.0.0")
+    assert created.exit_code == 0, created.output + created.stderr
+    result = _invoke(sample, "--all")
+    assert result.exit_code == 0, result.output + result.stderr
+    assert "✅ umbrella [v1.0.0]: v1.0.0" in result.stdout
+    assert "✅ sub-a [v1.0.0]: v1.0.0" in result.stdout
+    listed = _invoke(sample, "sub-a")
+    assert listed.exit_code == 0, listed.output + listed.stderr
+    assert "✅ sub-a [v1.0.0]: v1.0.0" in listed.stdout
+
+
+def test_tag_create_help_shows_options() -> None:
+    from typer.testing import CliRunner
+
+    from wok.cli import app
+
+    result = CliRunner().invoke(app, ["tag", "create", "--help"])
+    assert result.exit_code == 0
+    assert "--sign" in result.stdout or "-s" in result.stdout
+    assert "--message" in result.stdout or "-m" in result.stdout
+
+
+def test_tag_help_mentions_subcommands() -> None:
+    from typer.testing import CliRunner
+
+    from wok.cli import app
+
+    result = CliRunner().invoke(app, ["tag", "--help"])
+    assert result.exit_code == 0
+    assert "create" in result.stdout
+    assert "list" in result.stdout
+    assert "push" in result.stdout
+    assert "-s" not in result.stdout or "Sign the tag" not in result.stdout
