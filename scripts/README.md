@@ -6,7 +6,7 @@ This directory contains utility scripts for maintaining the Wok project.
 
 ### bump-version.sh
 
-Updates the version number in both `Cargo.toml` and `pyproject.toml` to ensure consistency across the project.
+Updates the version number in `pyproject.toml` and refreshes `uv.lock`.
 
 #### Purpose
 

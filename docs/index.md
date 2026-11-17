@@ -1,6 +1,6 @@
 # Git Wok
 
-A powerful multirepo management tool built with Rust.
+A multirepo management tool. The `wok` command is a Python package that drives Git.
 
 ---
 

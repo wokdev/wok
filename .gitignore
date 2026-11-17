@@ -9,5 +9,11 @@
 !/.pre-commit-config.yaml
 !/.woodpecker.yml
 
-# build
-/target
+# python
+/dist
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

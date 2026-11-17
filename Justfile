@@ -12,7 +12,7 @@ help:
 
 # --- scripts/ wrappers --------------------------------------------------------
 
-# Bump version in Cargo.toml and pyproject.toml.
+# Bump version in pyproject.toml and refresh uv.lock.
 bump-version VERSION:
     bash scripts/bump-version.sh "{{VERSION}}"
 
@@ -42,15 +42,17 @@ update-formula-dry VERSION:
     bash scripts/update-formula.sh --dry-run "{{VERSION}}"
 
 # Release flow. VERSION is a semver like 1.2.3 or 1.2.3-rc.1.
+# uv publish uploads to PyPI. Run it only when a release is intended.
 release VERSION:
     just bump-version "{{VERSION}}"
+    uv build
     just update-site
     git -C site add -A
     git -C site commit --allow-empty -m "Update docs for v{{VERSION}}"
-    git add Cargo.toml Cargo.lock pyproject.toml uv.lock site
+    git add pyproject.toml uv.lock site
     git commit --allow-empty -m "Bump version to v{{VERSION}}"
     wok push
-    cargo publish
+    uv publish
     just update-formula "{{VERSION}}"
     git -C homebrew-wok add -A
     git -C homebrew-wok commit --allow-empty -m "Update wok formula to v{{VERSION}}"
@@ -63,20 +65,19 @@ release VERSION:
 # --- common dev commands ------------------------------------------------------
 
 build:
-    cargo build --all
+    uv build
 
 test:
-    cargo test --all
+    uv run pytest
 
 fmt:
-    cargo fmt --all
+    uv run ruff format .
+    uv run ruff check --fix .
 
-clippy:
-    cargo clippy --all-targets --all-features -- -D warnings
+lint:
+    uv run ruff format --check .
+    uv run ruff check .
+    uv run pyrefly check
 
 docs-serve:
-    if command -v uv >/dev/null 2>&1; then \
-      uv run mkdocs serve; \
-    else \
-      mkdocs serve; \
-    fi
+    uv run mkdocs serve

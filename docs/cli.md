@@ -18,6 +18,25 @@ wok --wokfile-path <WOK_FILE_PATH>
 
 Override the default path to [Wokfile](./wokfile.md).
 
+### -j / --jobs
+
+```sh
+wok -j 1 status --fetch
+wok --jobs 4 push --all
+```
+
+How many repositories to operate on at once. The default is the smaller of 8 and the number of targets. `WOK_JOBS` sets the same value. `-j1` leaves Git attached to the terminal. A higher value sets `GIT_TERMINAL_PROMPT=0` and prints a hint to rerun with `-j1` when a command needs a prompt. On a terminal, parallel runs show a live section per repository. Without a terminal, each repository prints one plain block, in `wok.toml` order. `tag create --sign` forces `-j1`.
+
+Git hooks run because every mutation goes through the `git` command.
+
+### -v / --verbose
+
+Trace Git and SSH while `test-auth` contacts a remote (`GIT_TRACE=1` and `GIT_SSH_COMMAND="ssh -v"`).
+
+### -V / --version
+
+Print the installed version and exit.
+
 ### --help
 
 ```sh

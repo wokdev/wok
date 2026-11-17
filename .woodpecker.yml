@@ -10,11 +10,18 @@ when:
     - push
     - manual
   path:
-    include: ["src/**", "tests/**", ".woodpecker.yml", "Cargo.*"]
+    include: ["src/**", "tests/**", ".woodpecker.yml", "pyproject.toml", "uv.lock"]
 
 steps:
   test:
-    image: rust:1
+    image: python:3.13
     commands:
-      - git config --global init.defaultBranch 'main'
-      - cargo test
+      - apt-get update
+      - apt-get install -y --no-install-recommends git git-lfs curl ca-certificates
+      - curl -LsSf https://astral.sh/uv/install.sh | sh
+      - export PATH="$HOME/.local/bin:$PATH"
+      - uv sync --locked
+      - uv run ruff check
+      - uv run ruff format --check
+      - uv run pyrefly check
+      - uv run pytest

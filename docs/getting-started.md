@@ -10,6 +10,18 @@ Submodule objects, once committed to the umbrella repository, serve as a lock fi
 
 ## Installation
 
+Git and, for repositories that use it, Git LFS must be installed. Wok calls the `git` and `git lfs` commands, so hooks and credentials are the ones Git already uses.
+
+### With uv or pipx
+
+```sh
+uv tool install wok
+```
+
+```sh
+pipx install wok
+```
+
 ### With Homebrew (macOS/Linux)
 
 ```sh
@@ -18,19 +30,16 @@ brew trust wok/wok
 brew install wok
 ```
 
-### From crates.io
-
-```sh
-cargo install git-wok
-```
-
 ### From source
 
 ```sh
 git clone https://codeberg.org/wok/wok
 cd wok
-cargo install --path .
+uv sync
+uv tool install --editable .
 ```
+
+The crates.io package `git-wok` is discontinued. Uninstall it with `cargo uninstall git-wok` if it is still on your `PATH`.
 
 ## Agent Skills
 
@@ -350,7 +359,7 @@ wok lock  # Update umbrella with resolved state
 
 ### Authentication Failures During Update/Push
 
-If `wok update` or `wok push` fail with authentication errors, but `git fetch` works from the command line, this typically indicates a difference in how libgit2 (used by wok) handles credentials compared to the git CLI.
+If `wok update` or `wok push` fail with authentication errors, check the same Git configuration you use for `git fetch`. Wok uses your git configuration.
 
 **Diagnostic Steps:**
 
@@ -394,10 +403,10 @@ If `wok update` or `wok push` fail with authentication errors, but `git fetch` w
 
 **Common Fixes:**
 
-- **SSH agent not accessible:** Ensure `SSH_AUTH_SOCK` is set and the socket file exists. Wok uses libgit2 which requires explicit SSH agent access.
+- **SSH agent not accessible:** Ensure `SSH_AUTH_SOCK` is set and the socket file exists. Wok runs the `git` command, which uses that agent.
 - **SSH keys with passphrase:** Ensure keys are added to the SSH agent with `ssh-add`.
 - **Wrong key permissions:** SSH keys should be readable only by you (`chmod 600`).
-- **Credential helper mismatch:** Some git credential helpers may not work with libgit2. Try using the `cache` helper.
+- **Credential helper:** Configure the helper with `git config`. Wok uses that same helper.
 
 ### Git LFS Not Installed
 
@@ -410,20 +419,9 @@ git lfs install
 
 After installation, rerun the `wok` command.
 
-### Differences Between Git CLI and Wok
+### Git configuration
 
-Wok uses libgit2 internally, which may handle authentication differently than the git command-line tool:
-
-- libgit2 requires explicit SSH agent access (`SSH_AUTH_SOCK` must be set and accessible)
-- Some git credential helpers may not work with libgit2
-- Environment variables that work with git may need to be explicitly set for wok
-- libgit2 will attempt multiple authentication methods in order:
-  1. SSH key from agent
-  2. SSH key files from `~/.ssh/` (id_ed25519, id_rsa, id_ecdsa)
-  3. Credential helper
-  4. Default credentials
-
-If you continue to experience authentication issues after trying these steps, the debug output from `wok test-auth` will help identify which authentication method is failing and why.
+Wok uses your git configuration. SSH keys, credential helpers, `insteadOf` rewrites, and hooks are the ones the `git` command already uses. `wok test-auth -v` prints Git's own trace while it contacts the remote.
 
 ### Submodule Not Initialized
 
